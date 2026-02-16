@@ -17,17 +17,6 @@ pub(crate) struct AppState {
     client: Arc<Mutex<Option<RpcClient>>>,
 }
 
-/// Helper macro to reduce boilerplate for commands that just get the client and call a method.
-macro_rules! with_client {
-    ($state:expr) => {{
-        let guard = $state.client.lock().await;
-        guard.as_ref().ok_or("Not connected".to_string())?.clone()
-    }};
-}
-
-// We need RpcClient to be cloneable for the macro. Since it's behind Arc<Mutex>,
-// we just use the guard pattern directly.
-
 #[tauri::command]
 async fn connect(
     state: State<'_, AppState>,

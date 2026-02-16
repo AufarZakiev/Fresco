@@ -125,7 +125,6 @@ pub enum ConnectionState {
     Connecting,
     Connected,
     AuthError,
-    Error(String),
 }
 
 /// A single day's statistics for a project.

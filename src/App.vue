@@ -49,6 +49,8 @@ const showSelectComputer = ref(false);
 const showAddProject = ref(false);
 const showManagerOptions = ref(false);
 const showExitConfirm = ref(false);
+const initializing = ref(true);
+let autoConnectCancelled = false;
 
 useWindowState();
 
@@ -86,12 +88,22 @@ async function autoConnect() {
     }
   }
 
+  if (autoConnectCancelled) return;
+
   if (connection.state === "Connected") {
     startAllPolling();
+    router.push("/tasks");
   } else {
     // Auto-connect failed — show ConnectView
     router.replace("/");
   }
+  initializing.value = false;
+}
+
+function cancelAutoConnect() {
+  autoConnectCancelled = true;
+  initializing.value = false;
+  router.replace("/");
 }
 
 // ── Tauri event listeners for system tray ───────────────────────
@@ -214,7 +226,15 @@ watch(
 </script>
 
 <template>
-  <div class="app" :class="{ 'has-sidebar': connection.state === 'Connected' || connection.state === 'Reconnecting' }">
+  <div v-if="initializing" class="loading-screen">
+    <div class="loading-content">
+      <span class="loading-logo">Fresco</span>
+      <div class="loading-spinner"></div>
+      <span class="loading-text">Connecting to a local BOINC...</span>
+      <button class="btn loading-cancel" @click="cancelAutoConnect">Cancel</button>
+    </div>
+  </div>
+  <div v-else class="app" :class="{ 'has-sidebar': connection.state === 'Connected' || connection.state === 'Reconnecting' }">
     <aside v-if="connection.state === 'Connected' || connection.state === 'Reconnecting'" class="sidebar">
       <div class="sidebar-header">
         <span class="sidebar-logo">BOINC</span>
@@ -541,5 +561,52 @@ input, textarea, select {
 .sidebar-action-btn:hover {
   background: var(--color-bg-tertiary);
   color: var(--color-text-primary);
+}
+
+/* ── Loading screen ──────────────────────────────────────────── */
+
+.loading-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loading-logo {
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2.5px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.loading-cancel {
+  margin-top: 4px;
+  padding: 6px 24px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
