@@ -9,6 +9,7 @@ export interface ManagerSettings {
   showShutdownConfirmation: boolean;
   minimizeToTrayOnClose: boolean;
   startMinimizedToTray: boolean;
+  checkForUpdates: boolean;
 }
 
 const STORAGE_KEY = "boinc-manager-settings";
@@ -21,6 +22,7 @@ const defaults: ManagerSettings = {
   showShutdownConfirmation: true,
   minimizeToTrayOnClose: true,
   startMinimizedToTray: false,
+  checkForUpdates: true,
 };
 
 function load(): ManagerSettings {

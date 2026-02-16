@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 import { useRoute, useRouter } from "vue-router";
 import { useConnectionStore } from "./stores/connection";
 import { CONNECTION_STATE } from "./types/boinc";
@@ -13,7 +14,9 @@ import ProjectAttachWizard from "./components/ProjectAttachWizard.vue";
 import ManagerOptionsDialog from "./components/ManagerOptionsDialog.vue";
 import ExitConfirmDialog from "./components/ExitConfirmDialog.vue";
 import ToastContainer from "./components/ToastContainer.vue";
+import UpdateBanner from "./components/UpdateBanner.vue";
 import { useWindowState } from "./composables/useWindowState";
+import { useUpdateCheck } from "./composables/useUpdateCheck";
 import { notifyConnectionLost } from "./composables/useNotifications";
 import { useTasksStore } from "./stores/tasks";
 import { useProjectsStore } from "./stores/projects";
@@ -60,6 +63,7 @@ const hasSidebar = computed(
 let autoConnectCancelled = false;
 
 useWindowState();
+const { updateAvailable, dismissed, assetUrl, checkForUpdates: doUpdateCheck } = useUpdateCheck();
 
 // ── Auto-connect to local BOINC client on startup ───────────────
 
@@ -101,6 +105,8 @@ async function autoConnect() {
   if (connection.state === CONNECTION_STATE.CONNECTED) {
     startAllPolling();
     router.push("/tasks");
+    doUpdateCheck();
+    invoke("cleanup_old_binary").catch(() => {});
   } else {
     // Auto-connect failed — show ConnectView
     router.replace("/");
@@ -155,7 +161,7 @@ onUnmounted(() => {
   unlisteners.forEach((fn) => fn());
 });
 
-async function doExit(doShutdownClient: boolean) {
+async function doExit(doShutdownClient: boolean, applyUpdate = false) {
   showExitConfirm.value = false;
   try {
     if (doShutdownClient) {
@@ -164,6 +170,16 @@ async function doExit(doShutdownClient: boolean) {
     await disconnect();
   } catch {
     // ignore
+  }
+  if (applyUpdate && assetUrl.value) {
+    try {
+      await invoke("download_update", { assetUrl: assetUrl.value });
+      const { relaunch } = await import("@tauri-apps/plugin-process");
+      await relaunch();
+      return;
+    } catch {
+      // Update failed — exit normally
+    }
   }
   try {
     const { getCurrentWebviewWindow } = await import(
@@ -340,6 +356,7 @@ watch(
       </div>
     </aside>
     <main class="main-content">
+      <UpdateBanner v-if="updateAvailable && !dismissed" />
       <router-view />
     </main>
 
@@ -368,6 +385,7 @@ watch(
     />
     <ExitConfirmDialog
       :open="showExitConfirm"
+      :update-available="updateAvailable"
       @close="showExitConfirm = false"
       @confirm="doExit"
     />

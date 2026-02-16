@@ -7,7 +7,7 @@ import { useConnectionStore } from "./stores/connection";
 import { CONNECTION_STATE } from "./types/boinc";
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+  invoke: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({
@@ -24,6 +24,10 @@ vi.mock("@tauri-apps/api/webviewWindow", () => ({
 
 vi.mock("@tauri-apps/plugin-shell", () => ({
   Command: { create: vi.fn() },
+}));
+
+vi.mock("@tauri-apps/plugin-process", () => ({
+  relaunch: vi.fn(),
 }));
 
 // Mock all RPC calls so autoConnect finishes quickly
@@ -82,6 +86,7 @@ async function mountApp(router: ReturnType<typeof createTestRouter>) {
         ExitConfirmDialog: stubComponent,
         StatusBar: stubComponent,
         ToastContainer: stubComponent,
+        UpdateBanner: stubComponent,
       },
     },
   });

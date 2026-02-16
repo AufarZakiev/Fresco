@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { useUpdateCheck } from "../composables/useUpdateCheck";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
 const version = ref("0.1.0");
+const {
+  buildTime,
+  updateAvailable,
+  releaseDate,
+  checking,
+  error: updateError,
+  checkForUpdates,
+} = useUpdateCheck();
 
 watch(
   () => props.open,
@@ -19,6 +28,34 @@ watch(
     }
   },
 );
+
+function formatBuildTime(bt: string): string {
+  if (!bt || bt === "dev") return "Development build";
+  try {
+    return new Date(bt).toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
+  } catch {
+    return bt;
+  }
+}
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
 
 async function openWebsite() {
   try {
@@ -54,11 +91,30 @@ async function openWebsite() {
         </div>
         <h3>Fresco</h3>
         <p class="version">Version {{ version }}</p>
+        <p class="build-time">Built: {{ formatBuildTime(buildTime) }}</p>
         <p class="description">
           Berkeley Open Infrastructure for Network Computing.
           Use your computer to help solve scientific problems.
         </p>
         <button class="link-btn" @click="openWebsite">boinc.berkeley.edu</button>
+
+        <div class="update-section">
+          <button
+            class="btn"
+            :disabled="checking"
+            @click="checkForUpdates(true)"
+          >
+            {{ checking ? "Checking..." : "Check for Updates" }}
+          </button>
+          <p v-if="updateAvailable" class="update-available">
+            Update available (released {{ formatDate(releaseDate) }})
+          </p>
+          <p v-else-if="buildTime && buildTime !== 'dev' && !checking && !updateError" class="up-to-date">
+            You're up to date
+          </p>
+          <p v-if="updateError" class="update-error">{{ updateError }}</p>
+        </div>
+
         <div class="about-footer">
           <button class="btn" @click="emit('close')">Close</button>
         </div>
@@ -102,6 +158,12 @@ async function openWebsite() {
 .version {
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
+  margin: 0 0 2px;
+}
+
+.build-time {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
   margin: 0 0 var(--space-lg);
 }
 
@@ -119,11 +181,34 @@ async function openWebsite() {
   font-size: var(--font-size-md);
   cursor: pointer;
   padding: 4px;
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-lg);
 }
 
 .link-btn:hover {
   text-decoration: underline;
+}
+
+.update-section {
+  margin-bottom: var(--space-xl);
+}
+
+.update-available {
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  margin: var(--space-sm) 0 0;
+}
+
+.up-to-date {
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
+  margin: var(--space-sm) 0 0;
+}
+
+.update-error {
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+  margin: var(--space-sm) 0 0;
 }
 
 .about-footer {

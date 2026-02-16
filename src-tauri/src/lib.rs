@@ -1,5 +1,6 @@
 mod rpc;
 mod tray;
+mod updater;
 
 use rpc::{
     AccountOut, AcctMgrInfo, AcctMgrRpcReply, CcConfig, CcState, CcStatus, ConnectionState,
@@ -761,12 +762,22 @@ fn launch_remote_desktop(addr: String) -> Result<(), String> {
     Ok(())
 }
 
+// ── Build info ──────────────────────────────────────────────────
+
+#[tauri::command]
+fn get_build_time() -> String {
+    option_env!("FRESCO_BUILD_TIME")
+        .unwrap_or("dev")
+        .to_string()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_cli::init())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             // Focus existing window when second instance is launched
             if let Some(window) = app.get_webview_window("main") {
@@ -902,6 +913,9 @@ pub fn run() {
             get_old_results,
             get_message_count,
             get_daily_xfer_history,
+            get_build_time,
+            updater::download_update,
+            updater::cleanup_old_binary,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

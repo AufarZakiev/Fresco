@@ -106,10 +106,16 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Set build timestamp
+        id: build_time
+        shell: bash
+        run: echo "value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - name: Build Tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FRESCO_BUILD_TIME: ${{ steps.build_time.outputs.value }}
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
           PKG_CONFIG_SYSROOT_DIR: /usr/aarch64-linux-gnu
           PKG_CONFIG_PATH: /usr/lib/aarch64-linux-gnu/pkgconfig

@@ -17,6 +17,9 @@ importers:
       '@tauri-apps/plugin-opener':
         specifier: ^2
         version: 2.5.3
+      '@tauri-apps/plugin-process':
+        specifier: ^2.3.1
+        version: 2.3.1
       pinia:
         specifier: ^3.0.4
         version: 3.0.4(typescript@5.6.3)(vue@3.5.28(typescript@5.6.3))
@@ -611,6 +614,9 @@ packages:
 
   '@tauri-apps/plugin-opener@2.5.3':
     resolution: {integrity: sha512-CCcUltXMOfUEArbf3db3kCE7Ggy1ExBEBl51Ko2ODJ6GDYHRp1nSNlQm5uNCFY5k7/ufaK5Ib3Du/Zir19IYQQ==}
+
+  '@tauri-apps/plugin-process@2.3.1':
+    resolution: {integrity: sha512-nCa4fGVaDL/B9ai03VyPOjfAHRHSBz5v6F/ObsB73r/dA3MHHhZtldaDMIc0V/pnUw9ehzr2iEG+XkSEyC0JJA==}
 
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -1643,6 +1649,10 @@ snapshots:
       '@tauri-apps/api': 2.10.1
 
   '@tauri-apps/plugin-opener@2.5.3':
+    dependencies:
+      '@tauri-apps/api': 2.10.1
+
+  '@tauri-apps/plugin-process@2.3.1':
     dependencies:
       '@tauri-apps/api': 2.10.1
 
