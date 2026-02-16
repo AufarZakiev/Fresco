@@ -684,13 +684,20 @@ async fn start_boinc_client(data_dir: String) -> Result<(), String> {
     let mut cmd = std::process::Command::new(&exe_path);
     cmd.arg("--dir")
         .arg(&data_dir)
-        .arg("--redirectio")
-        .arg("--daemon");
+        .arg("--redirectio");
 
+    // On Windows, --daemon causes BOINC to skip GPU detection entirely,
+    // so use CREATE_NO_WINDOW instead to hide the console.
+    // On other platforms, --daemon is needed to detach from the terminal.
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
         cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        cmd.arg("--daemon");
     }
 
     cmd.spawn()
