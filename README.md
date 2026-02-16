@@ -1,7 +1,25 @@
-# Tauri + Vue + TypeScript
+# Fresco
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+A modern alternative to the official BOINC Manager, built with Tauri.
 
-## Recommended IDE Setup
+Connects to the BOINC client over the standard GUI RPC protocol. Starts the BOINC client automatically and works out of the box if BOINC is installed in the default location.
 
-- [VS Code](https://code.visualstudio.com/) + [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+The goal is to reach full functional parity with the standard BOINC Manager.
+
+## Features
+
+- Tasks, projects, transfers, messages, notices, disk usage, and host info views
+- Project attach wizard and account manager support
+- Activity controls for CPU, GPU, and network modes
+- Global preferences editor
+- Remote client connections
+- System tray with status indicator
+- Cross-platform (Windows, macOS, Linux)
+
+## Installation
+
+Download the latest release from the [Releases](https://github.com/AufarZakiev/Fresco/releases) page.
+
+## License
+
+MIT
