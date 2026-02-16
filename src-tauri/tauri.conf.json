@@ -1,0 +1,71 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Fresco",
+  "version": "0.1.0",
+  "identifier": "com.github.aufarzakiev.fresco",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Fresco",
+        "width": 1024,
+        "height": 700
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "plugins": {
+    "cli": {
+      "args": [
+        {
+          "name": "autostart",
+          "short": "a",
+          "description": "Start minimized to tray",
+          "takesValue": false
+        },
+        {
+          "name": "datadir",
+          "short": "d",
+          "description": "BOINC data directory",
+          "takesValue": true
+        },
+        {
+          "name": "host",
+          "short": "n",
+          "description": "Remote host",
+          "takesValue": true
+        },
+        {
+          "name": "port",
+          "short": "g",
+          "description": "RPC port",
+          "takesValue": true
+        },
+        {
+          "name": "password",
+          "short": "p",
+          "description": "RPC password",
+          "takesValue": true
+        }
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

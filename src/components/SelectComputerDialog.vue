@@ -1,0 +1,237 @@
+<script setup lang="ts">
+import { ref } from "vue";
+import { connect, connectLocal } from "../composables/useRpc";
+
+defineProps<{ open: boolean }>();
+const emit = defineEmits<{ close: [] }>();
+
+const hostname = ref("localhost");
+const port = ref(31416);
+const password = ref("");
+const connecting = ref(false);
+const error = ref("");
+
+async function doConnect() {
+  connecting.value = true;
+  error.value = "";
+  try {
+    await connect(hostname.value, port.value, password.value);
+    emit("close");
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    connecting.value = false;
+  }
+}
+
+async function doConnectLocal() {
+  connecting.value = true;
+  error.value = "";
+  try {
+    await connectLocal("");
+    emit("close");
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    connecting.value = false;
+  }
+}
+</script>
+
+<template>
+  <Teleport to="body">
+    <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
+      <div class="dialog">
+        <div class="dialog-header">
+          <h3>Select Computer</h3>
+          <button class="close-btn" @click="emit('close')">&times;</button>
+        </div>
+
+        <div class="dialog-body">
+          <div v-if="error" class="dialog-error">{{ error }}</div>
+
+          <label class="field">
+            <span>Hostname</span>
+            <input
+              v-model="hostname"
+              type="text"
+              placeholder="localhost"
+              :disabled="connecting"
+            />
+          </label>
+
+          <label class="field">
+            <span>Port</span>
+            <input
+              v-model.number="port"
+              type="number"
+              placeholder="31416"
+              :disabled="connecting"
+            />
+          </label>
+
+          <label class="field">
+            <span>Password</span>
+            <input
+              v-model="password"
+              type="password"
+              placeholder="Remote password"
+              :disabled="connecting"
+            />
+          </label>
+
+          <div class="dialog-actions">
+            <button class="btn" :disabled="connecting" @click="emit('close')">
+              Cancel
+            </button>
+            <button
+              class="btn btn-primary"
+              :disabled="connecting || !hostname.trim()"
+              @click="doConnect"
+            >
+              {{ connecting ? "Connecting..." : "Connect" }}
+            </button>
+          </div>
+
+          <div class="divider">
+            <span>or</span>
+          </div>
+
+          <div class="local-section">
+            <p class="local-info">
+              Connect to the BOINC client on this computer. The data directory
+              will be auto-detected.
+            </p>
+            <button
+              class="btn btn-primary local-btn"
+              :disabled="connecting"
+              @click="doConnectLocal"
+            >
+              {{ connecting ? "Connecting..." : "Connect Local" }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+</template>
+
+<style scoped>
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.dialog {
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  width: 420px;
+  max-width: 90%;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dialog-header h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.dialog-body {
+  padding: 16px 20px;
+}
+
+.dialog-error {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-md);
+  padding: 8px 12px;
+  background: var(--color-danger-light);
+  border-radius: var(--radius-sm);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--space-md);
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.field input {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+
+.dialog-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-top: var(--space-lg);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin: var(--space-lg) 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.local-section {
+  text-align: center;
+}
+
+.local-info {
+  margin: 0 0 var(--space-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.local-btn {
+  width: 100%;
+}
+</style>
