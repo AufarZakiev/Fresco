@@ -34,6 +34,15 @@ function save() {
 
         <div class="options-body">
           <div class="option-group">
+            <label class="option-label">Appearance</label>
+            <select v-model="form.theme" class="option-select">
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+
+          <div class="option-group">
             <label class="option-label">Language</label>
             <select v-model="form.language" class="option-select">
               <option value="auto">Auto-detect</option>
