@@ -672,7 +672,7 @@ async fn start_boinc_client(data_dir: String) -> Result<(), String> {
     let exe_path = if cfg!(target_os = "windows") {
         r"C:\Program Files\BOINC\boinc.exe".to_string()
     } else if cfg!(target_os = "macos") {
-        "/Library/Application Support/BOINC Data/boinc_client".to_string()
+        "/Applications/BOINCManager.app/Contents/Resources/boinc".to_string()
     } else {
         "/usr/bin/boinc".to_string()
     };
