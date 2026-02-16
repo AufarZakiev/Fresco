@@ -1859,10 +1859,12 @@ pub fn parse_version_info(xml: &str) -> VersionInfo {
 
 /// Parse `<client_state>` from a `get_state` response.
 pub fn parse_cc_state(xml: &str) -> CcState {
-    let mut state = CcState::default();
-    state.results = parse_results(xml);
-    state.projects = parse_projects(xml);
-    state.host_info = parse_host_info(xml);
+    let mut state = CcState {
+        results: parse_results(xml),
+        projects: parse_projects(xml),
+        host_info: parse_host_info(xml),
+        ..Default::default()
+    };
 
     let mut reader = Reader::from_str(xml);
     let mut buf = Vec::new();

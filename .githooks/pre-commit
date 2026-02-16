@@ -1,0 +1,18 @@
+#!/bin/sh
+echo "Running lints..."
+
+# Oxlint (Vue/TS)
+npx oxlint src/
+if [ $? -ne 0 ]; then
+  echo "oxlint failed. Fix the issues above before committing."
+  exit 1
+fi
+
+# Clippy (Rust)
+cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings 2>&1
+if [ $? -ne 0 ]; then
+  echo "clippy failed. Fix the issues above before committing."
+  exit 1
+fi
+
+echo "All lints passed."
