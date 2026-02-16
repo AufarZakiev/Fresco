@@ -4,6 +4,8 @@ use tauri::{
     AppHandle, Emitter, Manager,
 };
 
+use crate::AppState;
+
 pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let icon = app.default_window_icon().cloned().expect("no default icon");
 
@@ -14,6 +16,8 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let resume = MenuItemBuilder::with_id("tray_resume", "Resume").build(app)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
     let about = MenuItemBuilder::with_id("tray_about", "About BOINC").build(app)?;
+    let sep3 = PredefinedMenuItem::separator(app)?;
+    let exit = MenuItemBuilder::with_id("tray_exit", "Exit").build(app)?;
 
     let menu = MenuBuilder::new(app)
         .item(&open)
@@ -23,6 +27,8 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         .item(&resume)
         .item(&sep2)
         .item(&about)
+        .item(&sep3)
+        .item(&exit)
         .build()?;
 
     TrayIconBuilder::new()
@@ -50,6 +56,18 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                 }
                 "tray_about" => {
                     let _ = app.emit("tray-action", "about");
+                }
+                "tray_exit" => {
+                    let handle = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let state = handle.state::<AppState>();
+                        let guard = state.client.lock().await;
+                        if let Some(client) = guard.as_ref() {
+                            let _ = client.quit().await;
+                        }
+                        drop(guard);
+                        handle.exit(0);
+                    });
                 }
                 _ => {}
             }

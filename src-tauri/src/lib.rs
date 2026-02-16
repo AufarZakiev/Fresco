@@ -13,7 +13,7 @@ use tauri::{Manager, State};
 use tauri_plugin_cli::CliExt;
 use tokio::sync::Mutex;
 
-struct AppState {
+pub(crate) struct AppState {
     client: Arc<Mutex<Option<RpcClient>>>,
 }
 
@@ -830,17 +830,7 @@ pub fn run() {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
-                let handle = window.app_handle().clone();
-                tauri::async_runtime::spawn(async move {
-                    // Try to shut down BOINC client
-                    let state: State<AppState> = handle.state();
-                    let guard = state.client.lock().await;
-                    if let Some(client) = guard.as_ref() {
-                        let _ = client.quit().await;
-                    }
-                    drop(guard);
-                    handle.exit(0);
-                });
+                let _ = window.hide();
             }
         })
         .invoke_handler(tauri::generate_handler![
