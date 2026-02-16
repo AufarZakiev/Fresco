@@ -692,12 +692,19 @@ async fn start_boinc_client(data_dir: String) -> Result<(), String> {
         return Err(format!("BOINC client not found at {exe_path}"));
     }
 
-    std::process::Command::new(&exe_path)
-        .arg("--dir")
+    let mut cmd = std::process::Command::new(&exe_path);
+    cmd.arg("--dir")
         .arg(&data_dir)
         .arg("--redirectio")
-        .arg("--daemon")
-        .spawn()
+        .arg("--daemon");
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+
+    cmd.spawn()
         .map_err(|e| format!("Failed to start BOINC client: {e}"))?;
 
     // Poll port 31416 until it responds or timeout after 15s
