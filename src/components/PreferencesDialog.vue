@@ -2,6 +2,7 @@
 import { ref, watch } from "vue";
 import { usePreferencesStore } from "../stores/preferences";
 import type { GlobalPreferences } from "../types/boinc";
+import PrefNumericInput from "./PrefNumericInput.vue";
 import ProxySettingsDialog from "./ProxySettingsDialog.vue";
 import ExclusiveAppsDialog from "./ExclusiveAppsDialog.vue";
 import LogFlagsDialog from "./LogFlagsDialog.vue";
@@ -15,18 +16,40 @@ const form = ref<GlobalPreferences | null>(null);
 const showProxy = ref(false);
 const showExclusiveApps = ref(false);
 const showLogFlags = ref(false);
+const dayEnabled = ref<boolean[]>([false, false, false, false, false, false, false]);
 
 watch(
   () => props.open,
   async (isOpen) => {
     if (isOpen) {
-      await store.fetchPreferences();
-      if (store.prefs) {
-        form.value = { ...store.prefs };
+      if (store.prefetched && store.prefs) {
+        // Data already cached — show instantly
+        initForm(store.prefs);
+      } else {
+        // First open before prefetch completed — fetch with spinner
+        await store.fetchPreferences();
+        if (store.prefs) {
+          initForm(store.prefs);
+        }
       }
     }
   },
 );
+
+function initForm(prefs: GlobalPreferences) {
+  // Deep clone to avoid mutating store state (day_prefs is an array of objects)
+  form.value = JSON.parse(JSON.stringify(prefs));
+  // Initialize dayEnabled from existing day_prefs
+  const enabled = [false, false, false, false, false, false, false];
+  if (form.value!.day_prefs) {
+    for (const dp of form.value!.day_prefs) {
+      if (dp.start_hour !== 0 || dp.end_hour !== 0 || dp.net_start_hour !== 0 || dp.net_end_hour !== 0) {
+        enabled[dp.day_of_week] = true;
+      }
+    }
+  }
+  dayEnabled.value = enabled;
+}
 
 const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -39,6 +62,18 @@ function getDayPref(dayOfWeek: number) {
     form.value.day_prefs.push(dp);
   }
   return dp;
+}
+
+function toggleDay(dayOfWeek: number, enabled: boolean) {
+  dayEnabled.value[dayOfWeek] = enabled;
+  if (!enabled) {
+    // Reset day prefs to defaults (0 = use global)
+    const dp = getDayPref(dayOfWeek);
+    dp.start_hour = 0;
+    dp.end_hour = 0;
+    dp.net_start_hour = 0;
+    dp.net_end_hour = 0;
+  }
 }
 
 async function save() {
@@ -59,7 +94,7 @@ async function save() {
           <button class="close-btn" @click="emit('close')">&times;</button>
         </div>
 
-        <div v-if="store.loading" class="prefs-loading">Loading preferences...</div>
+        <div v-if="store.loading && !form" class="prefs-loading">Loading preferences...</div>
 
         <template v-else-if="form">
           <div class="tabs">
@@ -99,212 +134,254 @@ async function save() {
                 <span>Run if user is active</span>
                 <input v-model="form.run_if_user_active" type="checkbox" />
               </label>
-              <label class="pref-row">
-                <span>Idle time before running (min)</span>
-                <input
-                  v-model.number="form.idle_time_to_run"
-                  type="number"
-                  min="0"
-                  step="1"
-                />
-              </label>
-              <label class="pref-row">
-                <span>Max CPUs used (%)</span>
-                <input
-                  v-model.number="form.max_ncpus_pct"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                />
-              </label>
-              <label class="pref-row">
-                <span>CPU usage limit (%)</span>
-                <input
-                  v-model.number="form.cpu_usage_limit"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                />
-              </label>
-              <label class="pref-row">
-                <span>RAM when busy (%)</span>
-                <input
-                  v-model.number="form.ram_max_used_busy_frac"
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                />
-              </label>
-              <label class="pref-row">
-                <span>RAM when idle (%)</span>
-                <input
-                  v-model.number="form.ram_max_used_idle_frac"
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                />
-              </label>
-              <label class="pref-row">
-                <span>Computing start hour</span>
-                <input
-                  v-model.number="form.start_hour"
-                  type="number"
-                  min="0"
-                  max="24"
-                  step="0.5"
-                />
-              </label>
-              <label class="pref-row">
-                <span>Computing end hour</span>
-                <input
-                  v-model.number="form.end_hour"
-                  type="number"
-                  min="0"
-                  max="24"
-                  step="0.5"
-                />
-              </label>
-              <label class="pref-row">
-                <span>Suspend if no recent input (min)</span>
-                <input v-model.number="form.suspend_if_no_recent_input" type="number" min="0" step="1" />
-              </label>
-              <label class="pref-row">
-                <span>Suspend if CPU usage above (%)</span>
-                <input v-model.number="form.suspend_cpu_usage" type="number" min="0" max="100" step="1" />
-              </label>
+              <PrefNumericInput
+                v-model="form.idle_time_to_run"
+                label="Idle time before running (min)"
+                field="idle_time_to_run"
+                :min="0"
+                :step="1"
+                zero-label="No wait"
+              />
+              <PrefNumericInput
+                v-model="form.max_ncpus_pct"
+                label="Max CPUs used (%)"
+                field="max_ncpus_pct"
+                :min="0"
+                :max="100"
+                :step="1"
+                zero-label="Use all"
+              />
+              <PrefNumericInput
+                v-model="form.cpu_usage_limit"
+                label="CPU usage limit (%)"
+                field="cpu_usage_limit"
+                :min="0"
+                :max="100"
+                :step="1"
+                zero-label="No limit"
+              />
+              <PrefNumericInput
+                v-model="form.ram_max_used_busy_frac"
+                label="RAM when busy (fraction)"
+                field="ram_max_used_busy_frac"
+                :min="0"
+                :max="1"
+                :step="0.05"
+                zero-label="Default"
+              />
+              <PrefNumericInput
+                v-model="form.ram_max_used_idle_frac"
+                label="RAM when idle (fraction)"
+                field="ram_max_used_idle_frac"
+                :min="0"
+                :max="1"
+                :step="0.05"
+                zero-label="Default"
+              />
+              <PrefNumericInput
+                v-model="form.start_hour"
+                label="Computing start hour"
+                field="start_hour"
+                :min="0"
+                :max="24"
+                :step="0.5"
+                zero-label="All day"
+              />
+              <PrefNumericInput
+                v-model="form.end_hour"
+                label="Computing end hour"
+                field="end_hour"
+                :min="0"
+                :max="24"
+                :step="0.5"
+                zero-label="All day"
+              />
+              <PrefNumericInput
+                v-model="form.suspend_if_no_recent_input"
+                label="Suspend if no recent input (min)"
+                field="suspend_if_no_recent_input"
+                :min="0"
+                :step="1"
+                zero-label="Disabled"
+              />
+              <PrefNumericInput
+                v-model="form.suspend_cpu_usage"
+                label="Suspend if CPU usage above (%)"
+                field="suspend_cpu_usage"
+                :min="0"
+                :max="100"
+                :step="1"
+                zero-label="Disabled"
+              />
               <label class="pref-row">
                 <span>Leave apps in memory</span>
                 <input v-model="form.leave_apps_in_memory" type="checkbox" />
               </label>
-              <label class="pref-row">
-                <span>Additional work buffer (days)</span>
-                <input v-model.number="form.work_buf_additional_days" type="number" min="0" step="0.1" />
-              </label>
-              <label class="pref-row">
-                <span>CPU scheduling period (min)</span>
-                <input v-model.number="form.cpu_scheduling_period_minutes" type="number" min="1" step="1" />
-              </label>
+              <PrefNumericInput
+                v-model="form.work_buf_additional_days"
+                label="Additional work buffer (days)"
+                field="work_buf_additional_days"
+                :min="0"
+                :step="0.1"
+                zero-label="Default"
+              />
+              <PrefNumericInput
+                v-model="form.cpu_scheduling_period_minutes"
+                label="CPU scheduling period (min)"
+                field="cpu_scheduling_period_minutes"
+                :min="0"
+                :step="1"
+                zero-label="Default"
+              />
             </div>
 
             <!-- Network tab -->
             <div v-if="activeTab === 'network'" class="prefs-section">
-              <label class="pref-row">
-                <span>Max download rate (bytes/s)</span>
-                <input
-                  v-model.number="form.max_bytes_sec_down"
-                  type="number"
-                  min="0"
-                  step="1024"
-                />
-              </label>
-              <label class="pref-row">
-                <span>Max upload rate (bytes/s)</span>
-                <input
-                  v-model.number="form.max_bytes_sec_up"
-                  type="number"
-                  min="0"
-                  step="1024"
-                />
-              </label>
-              <label class="pref-row">
-                <span>Daily transfer limit (MB)</span>
-                <input
-                  v-model.number="form.daily_xfer_limit_mb"
-                  type="number"
-                  min="0"
-                  step="100"
-                />
-              </label>
-              <label class="pref-row">
-                <span>Network start hour</span>
-                <input
-                  v-model.number="form.net_start_hour"
-                  type="number"
-                  min="0"
-                  max="24"
-                  step="0.5"
-                />
-              </label>
-              <label class="pref-row">
-                <span>Network end hour</span>
-                <input
-                  v-model.number="form.net_end_hour"
-                  type="number"
-                  min="0"
-                  max="24"
-                  step="0.5"
-                />
-              </label>
+              <PrefNumericInput
+                v-model="form.max_bytes_sec_down"
+                label="Max download rate (bytes/s)"
+                field="max_bytes_sec_down"
+                :min="0"
+                :step="1024"
+                zero-label="No limit"
+              />
+              <PrefNumericInput
+                v-model="form.max_bytes_sec_up"
+                label="Max upload rate (bytes/s)"
+                field="max_bytes_sec_up"
+                :min="0"
+                :step="1024"
+                zero-label="No limit"
+              />
+              <PrefNumericInput
+                v-model="form.daily_xfer_limit_mb"
+                label="Daily transfer limit (MB)"
+                field="daily_xfer_limit_mb"
+                :min="0"
+                :step="100"
+                zero-label="No limit"
+              />
+              <PrefNumericInput
+                v-model="form.net_start_hour"
+                label="Network start hour"
+                field="net_start_hour"
+                :min="0"
+                :max="24"
+                :step="0.5"
+                zero-label="All day"
+              />
+              <PrefNumericInput
+                v-model="form.net_end_hour"
+                label="Network end hour"
+                field="net_end_hour"
+                :min="0"
+                :max="24"
+                :step="0.5"
+                zero-label="All day"
+              />
             </div>
 
             <!-- Storage tab -->
             <div v-if="activeTab === 'storage'" class="prefs-section">
-              <label class="pref-row">
-                <span>Max disk used (GB)</span>
-                <input
-                  v-model.number="form.disk_max_used_gb"
-                  type="number"
-                  min="0"
-                  step="1"
-                />
-              </label>
-              <label class="pref-row">
-                <span>Max disk used (%)</span>
-                <input
-                  v-model.number="form.disk_max_used_pct"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                />
-              </label>
-              <label class="pref-row">
-                <span>Min free disk (GB)</span>
-                <input
-                  v-model.number="form.disk_min_free_gb"
-                  type="number"
-                  min="0"
-                  step="0.1"
-                />
-              </label>
-              <label class="pref-row">
-                <span>Work buffer (days)</span>
-                <input
-                  v-model.number="form.work_buf_min_days"
-                  type="number"
-                  min="0"
-                  step="0.1"
-                />
-              </label>
+              <PrefNumericInput
+                v-model="form.disk_max_used_gb"
+                label="Max disk used (GB)"
+                field="disk_max_used_gb"
+                :min="0"
+                :step="1"
+                zero-label="No limit"
+              />
+              <PrefNumericInput
+                v-model="form.disk_max_used_pct"
+                label="Max disk used (%)"
+                field="disk_max_used_pct"
+                :min="0"
+                :max="100"
+                :step="1"
+                zero-label="No limit"
+              />
+              <PrefNumericInput
+                v-model="form.disk_min_free_gb"
+                label="Min free disk (GB)"
+                field="disk_min_free_gb"
+                :min="0"
+                :step="0.1"
+                zero-label="Default"
+              />
+              <PrefNumericInput
+                v-model="form.work_buf_min_days"
+                label="Work buffer (days)"
+                field="work_buf_min_days"
+                :min="0"
+                :step="0.1"
+                zero-label="Default"
+              />
             </div>
 
             <!-- Schedule tab -->
             <div v-if="activeTab === 'schedule'" class="prefs-section">
-              <p class="section-desc">Set per-day computing and network hours (0-24). Leave at 0-0 to use the default hours above.</p>
-              <table class="schedule-table">
-                <thead>
-                  <tr>
-                    <th>Day</th>
-                    <th>CPU Start</th>
-                    <th>CPU End</th>
-                    <th>Net Start</th>
-                    <th>Net End</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(day, i) in dayNames" :key="i">
-                    <td class="day-label">{{ day }}</td>
-                    <td><input v-model.number="getDayPref(i).start_hour" type="number" min="0" max="24" step="0.5" class="schedule-input" /></td>
-                    <td><input v-model.number="getDayPref(i).end_hour" type="number" min="0" max="24" step="0.5" class="schedule-input" /></td>
-                    <td><input v-model.number="getDayPref(i).net_start_hour" type="number" min="0" max="24" step="0.5" class="schedule-input" /></td>
-                    <td><input v-model.number="getDayPref(i).net_end_hour" type="number" min="0" max="24" step="0.5" class="schedule-input" /></td>
-                  </tr>
-                </tbody>
-              </table>
+              <p class="section-desc">Override computing and network hours for specific days. Unchecked days use the global hours set above.</p>
+              <div class="schedule-days">
+                <div v-for="(day, i) in dayNames" :key="i" class="schedule-day">
+                  <div class="schedule-day-header">
+                    <label class="day-toggle">
+                      <input
+                        type="checkbox"
+                        :checked="dayEnabled[i]"
+                        @change="toggleDay(i, ($event.target as HTMLInputElement).checked)"
+                      />
+                      <span class="day-name">{{ day }}</span>
+                    </label>
+                    <span v-if="!dayEnabled[i]" class="uses-default-badge">Uses default</span>
+                  </div>
+                  <div v-if="dayEnabled[i]" class="schedule-day-fields">
+                    <div class="schedule-field-group">
+                      <span class="schedule-field-label">CPU</span>
+                      <input
+                        v-model.number="getDayPref(i).start_hour"
+                        type="number"
+                        min="0"
+                        max="24"
+                        step="0.5"
+                        class="schedule-input"
+                        placeholder="Start"
+                      />
+                      <span class="schedule-sep">–</span>
+                      <input
+                        v-model.number="getDayPref(i).end_hour"
+                        type="number"
+                        min="0"
+                        max="24"
+                        step="0.5"
+                        class="schedule-input"
+                        placeholder="End"
+                      />
+                    </div>
+                    <div class="schedule-field-group">
+                      <span class="schedule-field-label">Net</span>
+                      <input
+                        v-model.number="getDayPref(i).net_start_hour"
+                        type="number"
+                        min="0"
+                        max="24"
+                        step="0.5"
+                        class="schedule-input"
+                        placeholder="Start"
+                      />
+                      <span class="schedule-sep">–</span>
+                      <input
+                        v-model.number="getDayPref(i).net_end_hour"
+                        type="number"
+                        min="0"
+                        max="24"
+                        step="0.5"
+                        class="schedule-input"
+                        placeholder="End"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Advanced tab -->
@@ -445,16 +522,6 @@ async function save() {
   border-bottom: none;
 }
 
-.pref-row input[type="number"] {
-  width: 100px;
-  padding: 5px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-md);
-  text-align: right;
-  background: var(--color-bg);
-}
-
 .pref-row input[type="checkbox"] {
   width: 18px;
   height: 18px;
@@ -482,38 +549,91 @@ async function save() {
   line-height: 1.5;
 }
 
-.schedule-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-sm);
+/* ── Schedule tab ──────────────────────────────────────────────── */
+
+.schedule-days {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.schedule-table th {
-  text-align: left;
-  padding: 6px 4px;
-  font-weight: 600;
+.schedule-day {
+  border-bottom: 1px solid var(--color-border-light);
+  padding: 8px 0;
+}
+
+.schedule-day:last-child {
+  border-bottom: none;
+}
+
+.schedule-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.day-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.day-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent);
+}
+
+.day-name {
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.uses-default-badge {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
+  background: var(--color-bg-tertiary);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.schedule-day-fields {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  padding-left: 24px;
+}
+
+.schedule-field-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.schedule-field-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.schedule-table td {
-  padding: 4px;
-}
-
-.day-label {
-  font-weight: 500;
-  padding-right: 8px;
+  width: 28px;
 }
 
 .schedule-input {
-  width: 60px;
+  width: 56px;
   padding: 4px 6px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
   text-align: right;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.schedule-sep {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
 }
 
 .advanced-group {

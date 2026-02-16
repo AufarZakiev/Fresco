@@ -22,6 +22,7 @@ import { useStatisticsStore } from "./stores/statistics";
 import { useMessagesStore } from "./stores/messages";
 import { useNoticesStore } from "./stores/notices";
 import { useDiskUsageStore } from "./stores/diskUsage";
+import { usePreferencesStore } from "./stores/preferences";
 import {
   setRunMode,
   setGpuMode,
@@ -42,6 +43,7 @@ const statisticsStore = useStatisticsStore();
 const messagesStore = useMessagesStore();
 const noticesStore = useNoticesStore();
 const diskUsageStore = useDiskUsageStore();
+const preferencesStore = usePreferencesStore();
 const showPreferences = ref(false);
 const showAbout = ref(false);
 const showAcctMgr = ref(false);
@@ -72,6 +74,7 @@ function startAllPolling() {
   messagesStore.startPolling();
   noticesStore.startPolling();
   diskUsageStore.startPolling();
+  preferencesStore.prefetch();
 }
 
 async function autoConnect() {
