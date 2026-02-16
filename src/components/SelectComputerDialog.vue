@@ -131,8 +131,7 @@ async function doConnectLocal() {
 .dialog {
   background: var(--color-bg);
   border-radius: var(--radius-lg);
-  width: 420px;
-  max-width: 90%;
+  width: min(420px, 95vw);
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;

@@ -120,13 +120,34 @@ export const RUN_MODE = {
 
 export type RunMode = (typeof RUN_MODE)[keyof typeof RUN_MODE];
 
+/** Connection state string constants. */
+export const CONNECTION_STATE = {
+  DISCONNECTED: "Disconnected",
+  CONNECTING: "Connecting",
+  CONNECTED: "Connected",
+  RECONNECTING: "Reconnecting",
+  AUTH_ERROR: "AuthError",
+} as const;
+
 export type ConnectionState =
-  | "Disconnected"
-  | "Connecting"
-  | "Connected"
-  | "Reconnecting"
-  | "AuthError"
+  | (typeof CONNECTION_STATE)[keyof typeof CONNECTION_STATE]
   | { Error: string };
+
+/** Sort direction constants. */
+export const SORT_DIR = {
+  ASC: "asc",
+  DESC: "desc",
+} as const;
+
+export type SortDir = (typeof SORT_DIR)[keyof typeof SORT_DIR];
+
+/** Connection mode constants. */
+export const CONNECTION_MODE = {
+  LOCAL: "local",
+  REMOTE: "remote",
+} as const;
+
+export type ConnectionMode = (typeof CONNECTION_MODE)[keyof typeof CONNECTION_MODE];
 
 /** BOINC result state codes (from common_defs.h). */
 export const RESULT_STATE = {

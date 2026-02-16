@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useConnectionStore } from "../stores/connection";
 import { useClientStore } from "../stores/client";
 import { getSuspendReasonText } from "../composables/useSuspendReasons";
+import { CONNECTION_STATE } from "../types/boinc";
 
 const connection = useConnectionStore();
 const client = useClientStore();
@@ -14,38 +15,34 @@ const taskSuspendText = computed(() =>
 const gpuSuspendText = computed(() =>
   getSuspendReasonText(client.status.gpu_suspend_reason),
 );
+
+const statusDotClass = computed(() => {
+  const s = connection.state;
+  if (s === CONNECTION_STATE.CONNECTED) return "status-dot-connected";
+  if (s === CONNECTION_STATE.RECONNECTING) return "status-dot-reconnecting";
+  if (s === CONNECTION_STATE.AUTH_ERROR || (typeof s === "object" && "Error" in s))
+    return "status-dot-error";
+  return "status-dot-disconnected";
+});
+
+const statusText = computed(() => {
+  const s = connection.state;
+  if (s === CONNECTION_STATE.CONNECTED) return "Connected";
+  if (s === CONNECTION_STATE.RECONNECTING)
+    return `Reconnecting (${connection.reconnectAttempt}/${connection.maxReconnectAttempts})...`;
+  if (s === CONNECTION_STATE.CONNECTING) return "Connecting...";
+  if (s === CONNECTION_STATE.AUTH_ERROR) return "Auth Error";
+  if (s === CONNECTION_STATE.DISCONNECTED) return "Disconnected";
+  if (typeof s === "object" && "Error" in s) return "Error";
+  return "Disconnected";
+});
 </script>
 
 <template>
   <div class="status-bar">
     <div class="status-section">
-      <span
-        class="status-dot"
-        :class="{
-          'status-dot-connected': connection.state === 'Connected',
-          'status-dot-reconnecting': connection.state === 'Reconnecting',
-          'status-dot-error':
-            connection.state === 'AuthError' ||
-            (typeof connection.state === 'object' && 'Error' in connection.state),
-          'status-dot-disconnected':
-            connection.state === 'Disconnected' || connection.state === 'Connecting',
-        }"
-      />
-      <span>{{
-        connection.state === "Connected"
-          ? "Connected"
-          : connection.state === "Reconnecting"
-            ? `Reconnecting (${connection.reconnectAttempt}/${connection.maxReconnectAttempts})...`
-            : connection.state === "Connecting"
-              ? "Connecting..."
-              : connection.state === "AuthError"
-                ? "Auth Error"
-                : connection.state === "Disconnected"
-                  ? "Disconnected"
-                  : typeof connection.state === "object" && "Error" in connection.state
-                    ? "Error"
-                    : "Disconnected"
-      }}</span>
+      <span class="status-dot" :class="statusDotClass" />
+      <span>{{ statusText }}</span>
     </div>
 
     <div class="status-section">
@@ -119,5 +116,11 @@ const gpuSuspendText = computed(() =>
 .suspend-text {
   color: var(--color-warning);
   font-weight: 500;
+}
+
+@media (max-width: 767px) {
+  .status-bar {
+    left: 0;
+  }
 }
 </style>

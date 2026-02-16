@@ -86,7 +86,7 @@ function onInput(event: Event) {
 }
 
 .pref-row input[type="number"] {
-  width: 130px;
+  width: min(130px, 40vw);
   padding: 5px 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);

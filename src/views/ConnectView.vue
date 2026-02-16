@@ -11,6 +11,8 @@ import { useNoticesStore } from "../stores/notices";
 import { useDiskUsageStore } from "../stores/diskUsage";
 import { useRouter } from "vue-router";
 import { startBoincClient } from "../composables/useRpc";
+import { CONNECTION_STATE, CONNECTION_MODE } from "../types/boinc";
+import type { ConnectionMode } from "../types/boinc";
 
 const connection = useConnectionStore();
 const tasks = useTasksStore();
@@ -22,8 +24,6 @@ const messages = useMessagesStore();
 const notices = useNoticesStore();
 const diskUsage = useDiskUsageStore();
 const router = useRouter();
-
-type ConnectionMode = "local" | "remote";
 
 interface RecentConnection {
   mode: ConnectionMode;
@@ -38,7 +38,7 @@ interface RecentConnection {
 const RECENT_KEY = "boinc-recent-connections";
 const MAX_RECENT = 5;
 
-const mode = ref<ConnectionMode>("local");
+const mode = ref<ConnectionMode>(CONNECTION_MODE.LOCAL);
 const dataDir = ref(defaultDataDir());
 const host = ref("localhost");
 const port = ref(31416);
@@ -89,7 +89,7 @@ function removeRecent(index: number) {
 
 function applyRecent(entry: RecentConnection) {
   mode.value = entry.mode;
-  if (entry.mode === "local") {
+  if (entry.mode === CONNECTION_MODE.LOCAL) {
     dataDir.value = entry.dataDir ?? defaultDataDir();
   } else {
     host.value = entry.host ?? "localhost";
@@ -99,7 +99,7 @@ function applyRecent(entry: RecentConnection) {
 }
 
 const connectionLabel = computed(() => {
-  if (mode.value === "local") {
+  if (mode.value === CONNECTION_MODE.LOCAL) {
     return dataDir.value;
   }
   return `${host.value}:${port.value}`;
@@ -120,11 +120,11 @@ async function handleConnect() {
   connecting.value = true;
   statusMessage.value = null;
 
-  if (mode.value === "local") {
+  if (mode.value === CONNECTION_MODE.LOCAL) {
     await connection.connectToLocal(dataDir.value);
 
     // If local connection failed with a non-auth error, try auto-starting BOINC
-    if (connection.state !== "Connected" && connection.state !== "AuthError") {
+    if (connection.state !== CONNECTION_STATE.CONNECTED && connection.state !== CONNECTION_STATE.AUTH_ERROR) {
       statusMessage.value = "Starting BOINC client...";
       try {
         await startBoincClient(dataDir.value);
@@ -142,13 +142,13 @@ async function handleConnect() {
 
   connecting.value = false;
 
-  if (connection.state === "Connected") {
+  if (connection.state === CONNECTION_STATE.CONNECTED) {
     const entry: RecentConnection = {
       mode: mode.value,
       label: connectionLabel.value,
       timestamp: Date.now(),
     };
-    if (mode.value === "local") {
+    if (mode.value === CONNECTION_MODE.LOCAL) {
       entry.dataDir = dataDir.value;
     } else {
       entry.host = host.value;
@@ -180,15 +180,15 @@ function formatTimestamp(ts: number): string {
       <div class="mode-toggle">
         <button
           class="toggle-btn"
-          :class="{ active: mode === 'local' }"
-          @click="mode = 'local'"
+          :class="{ active: mode === CONNECTION_MODE.LOCAL }"
+          @click="mode = CONNECTION_MODE.LOCAL"
         >
           Local
         </button>
         <button
           class="toggle-btn"
-          :class="{ active: mode === 'remote' }"
-          @click="mode = 'remote'"
+          :class="{ active: mode === CONNECTION_MODE.REMOTE }"
+          @click="mode = CONNECTION_MODE.REMOTE"
         >
           Remote
         </button>
@@ -196,7 +196,7 @@ function formatTimestamp(ts: number): string {
 
       <div class="form">
         <!-- Local mode -->
-        <label v-if="mode === 'local'" class="field">
+        <label v-if="mode === CONNECTION_MODE.LOCAL" class="field">
           <span class="field-label">BOINC data directory</span>
           <input
             v-model="dataDir"
@@ -208,7 +208,7 @@ function formatTimestamp(ts: number): string {
         </label>
 
         <!-- Remote mode -->
-        <template v-if="mode === 'remote'">
+        <template v-if="mode === CONNECTION_MODE.REMOTE">
           <label class="field">
             <span class="field-label">Host</span>
             <input
@@ -262,7 +262,7 @@ function formatTimestamp(ts: number): string {
             class="recent-item"
           >
             <button class="recent-btn" @click="applyRecent(entry)">
-              <span class="recent-mode-badge">{{ entry.mode === "local" ? "Local" : "Remote" }}</span>
+              <span class="recent-mode-badge">{{ entry.mode === CONNECTION_MODE.LOCAL ? "Local" : "Remote" }}</span>
               <span class="recent-label">{{ entry.label }}</span>
               <span class="recent-time">{{ formatTimestamp(entry.timestamp) }}</span>
             </button>
@@ -483,5 +483,11 @@ function formatTimestamp(ts: number): string {
 .recent-remove:hover {
   background: var(--color-danger-light);
   color: var(--color-danger);
+}
+
+@media (max-width: 767px) {
+  .connect-view {
+    padding: var(--space-lg);
+  }
 }
 </style>

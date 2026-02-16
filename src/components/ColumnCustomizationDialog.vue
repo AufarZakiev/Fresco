@@ -89,7 +89,7 @@ function save() {
 .dialog {
   background: var(--color-bg);
   border-radius: var(--radius-lg);
-  width: 320px;
+  width: min(320px, 95vw);
   box-shadow: var(--shadow-lg);
 }
 

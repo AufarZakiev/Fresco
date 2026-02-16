@@ -169,7 +169,7 @@ async function save() {
 .proxy-dialog {
   background: var(--color-bg);
   border-radius: var(--radius-lg);
-  width: 520px;
+  width: min(520px, 95vw);
   max-height: 80vh;
   display: flex;
   flex-direction: column;

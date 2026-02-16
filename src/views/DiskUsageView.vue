@@ -298,6 +298,9 @@ onUnmounted(() => {
 
 .doughnut-svg {
   flex-shrink: 0;
+  max-width: 240px;
+  width: 100%;
+  height: auto;
 }
 
 .center-label {
@@ -441,5 +444,11 @@ onUnmounted(() => {
   border-radius: var(--radius-full);
   transition: width var(--transition-normal);
   min-width: 2px;
+}
+
+@media (max-width: 767px) {
+  .summary-cards {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

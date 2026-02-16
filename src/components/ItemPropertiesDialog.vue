@@ -303,7 +303,7 @@ function copyAll() {
 .props-dialog {
   background: var(--color-bg);
   border-radius: var(--radius-lg);
-  width: 560px;
+  width: min(560px, 95vw);
   max-height: 85vh;
   display: flex;
   flex-direction: column;

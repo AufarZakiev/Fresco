@@ -19,6 +19,7 @@ defineProps<{
   align-items: center;
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
 }
 
 .page-title {
@@ -32,5 +33,6 @@ defineProps<{
   display: flex;
   gap: var(--space-sm);
   align-items: center;
+  flex-wrap: wrap;
 }
 </style>

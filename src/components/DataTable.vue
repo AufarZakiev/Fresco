@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { SORT_DIR } from "../types/boinc";
+import type { SortDir } from "../types/boinc";
 
 export interface DataTableColumn {
   key: string;
@@ -13,13 +15,13 @@ const props = defineProps<{
   columns: DataTableColumn[];
   emptyMessage?: string;
   sortKey?: string;
-  sortDir?: "asc" | "desc";
+  sortDir?: SortDir;
   selectable?: boolean;
   allSelected?: boolean;
 }>();
 
 const emit = defineEmits<{
-  sort: [key: string, dir: "asc" | "desc"];
+  sort: [key: string, dir: SortDir];
   contextmenu: [event: MouseEvent, index: number];
   "select-all": [selected: boolean];
 }>();
@@ -31,7 +33,7 @@ const visibleColumns = computed(() =>
 function handleHeaderClick(col: DataTableColumn) {
   if (!col.sortable) return;
   const newDir =
-    props.sortKey === col.key && props.sortDir === "asc" ? "desc" : "asc";
+    props.sortKey === col.key && props.sortDir === SORT_DIR.ASC ? SORT_DIR.DESC : SORT_DIR.ASC;
   emit("sort", col.key, newDir);
 }
 
@@ -64,7 +66,7 @@ function handleContextMenu(event: MouseEvent, index: number) {
           >
             {{ col.label }}
             <span v-if="col.sortable && sortKey === col.key" class="sort-indicator">
-              {{ sortDir === "asc" ? "\u25B2" : "\u25BC" }}
+              {{ sortDir === SORT_DIR.ASC ? "\u25B2" : "\u25BC" }}
             </span>
           </th>
         </tr>
@@ -80,7 +82,8 @@ function handleContextMenu(event: MouseEvent, index: number) {
 .data-table-wrapper {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: auto;
+  max-height: calc(100vh - 200px);
 }
 
 .data-table {
@@ -101,6 +104,9 @@ function handleContextMenu(event: MouseEvent, index: number) {
   border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
   user-select: none;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .data-table th.sortable {

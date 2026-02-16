@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useConnectionStore } from "./connection";
+import { CONNECTION_STATE } from "../types/boinc";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
@@ -18,7 +19,7 @@ describe("useConnectionStore", () => {
 
   it("starts disconnected", () => {
     const store = useConnectionStore();
-    expect(store.state).toBe("Disconnected");
+    expect(store.state).toBe(CONNECTION_STATE.DISCONNECTED);
     expect(store.error).toBeNull();
   });
 
@@ -31,7 +32,7 @@ describe("useConnectionStore", () => {
     expect(mockInvoke).toHaveBeenCalledWith("connect_local", {
       dataDir: "C:\\ProgramData\\BOINC",
     });
-    expect(store.state).toBe("Connected");
+    expect(store.state).toBe(CONNECTION_STATE.CONNECTED);
     expect(store.error).toBeNull();
   });
 
@@ -41,7 +42,7 @@ describe("useConnectionStore", () => {
     const store = useConnectionStore();
     await store.connectToLocal("/var/lib/boinc-client");
 
-    expect(store.state).toBe("AuthError");
+    expect(store.state).toBe(CONNECTION_STATE.AUTH_ERROR);
     expect(store.error).toBe("Authentication failed");
   });
 
@@ -60,10 +61,10 @@ describe("useConnectionStore", () => {
 
     const store = useConnectionStore();
     await store.connectToLocal("C:\\ProgramData\\BOINC");
-    expect(store.state).toBe("Connected");
+    expect(store.state).toBe(CONNECTION_STATE.CONNECTED);
 
     await store.disconnect();
-    expect(store.state).toBe("Disconnected");
+    expect(store.state).toBe(CONNECTION_STATE.DISCONNECTED);
     expect(store.error).toBeNull();
   });
 
@@ -78,6 +79,6 @@ describe("useConnectionStore", () => {
       port: 31416,
       password: "secret",
     });
-    expect(store.state).toBe("Connected");
+    expect(store.state).toBe(CONNECTION_STATE.CONNECTED);
   });
 });

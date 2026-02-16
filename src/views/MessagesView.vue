@@ -286,4 +286,14 @@ onUnmounted(() => {
   cursor: pointer;
   user-select: none;
 }
+
+@media (max-width: 767px) {
+  .search-input {
+    min-width: 120px;
+  }
+
+  .filter-select {
+    min-width: 120px;
+  }
+}
 </style>

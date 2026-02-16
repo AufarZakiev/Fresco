@@ -143,7 +143,7 @@ async function save() {
 .logflags-dialog {
   background: var(--color-bg);
   border-radius: var(--radius-lg);
-  width: 420px;
+  width: min(420px, 95vw);
   max-height: 80vh;
   display: flex;
   flex-direction: column;

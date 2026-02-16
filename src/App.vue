@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useConnectionStore } from "./stores/connection";
+import { CONNECTION_STATE } from "./types/boinc";
 import ActivityControls from "./components/ActivityControls.vue";
 import PreferencesDialog from "./components/PreferencesDialog.vue";
 import AboutDialog from "./components/AboutDialog.vue";
@@ -52,6 +53,10 @@ const showAddProject = ref(false);
 const showManagerOptions = ref(false);
 const showExitConfirm = ref(false);
 const initializing = ref(true);
+const sidebarOpen = ref(false);
+const hasSidebar = computed(
+  () => connection.state === CONNECTION_STATE.CONNECTED || connection.state === CONNECTION_STATE.RECONNECTING,
+);
 let autoConnectCancelled = false;
 
 useWindowState();
@@ -82,7 +87,7 @@ async function autoConnect() {
   await connection.connectToLocal(dataDir);
 
   // If connection failed with a non-auth error, try auto-starting BOINC
-  if (connection.state !== "Connected" && connection.state !== "AuthError") {
+  if (connection.state !== CONNECTION_STATE.CONNECTED && connection.state !== CONNECTION_STATE.AUTH_ERROR) {
     try {
       await startBoincClient(dataDir);
       await connection.connectToLocal(dataDir);
@@ -93,7 +98,7 @@ async function autoConnect() {
 
   if (autoConnectCancelled) return;
 
-  if (connection.state === "Connected") {
+  if (connection.state === CONNECTION_STATE.CONNECTED) {
     startAllPolling();
     router.push("/tasks");
   } else {
@@ -204,7 +209,7 @@ let wasConnected = false;
 watch(
   () => connection.state,
   async (newState) => {
-    if (newState === "Connected") {
+    if (newState === CONNECTION_STATE.CONNECTED) {
       wasConnected = true;
       try {
         const { getCurrentWebviewWindow } = await import(
@@ -218,9 +223,9 @@ watch(
       } catch {
         // ignore if not in Tauri environment
       }
-    } else if (newState === "Reconnecting") {
+    } else if (newState === CONNECTION_STATE.RECONNECTING) {
       // Don't reset wasConnected — we're trying to reconnect
-    } else if (wasConnected && newState !== "Connecting") {
+    } else if (wasConnected && newState !== CONNECTION_STATE.CONNECTING) {
       wasConnected = false;
       notifyConnectionLost();
     }
@@ -237,13 +242,23 @@ watch(
       <button class="btn loading-cancel" @click="cancelAutoConnect">Cancel</button>
     </div>
   </div>
-  <div v-else class="app" :class="{ 'has-sidebar': connection.state === 'Connected' || connection.state === 'Reconnecting' }">
-    <aside v-if="connection.state === 'Connected' || connection.state === 'Reconnecting'" class="sidebar">
-      <div class="sidebar-header">
-        <span class="sidebar-logo">BOINC</span>
-        <span class="status-dot"></span>
-      </div>
-
+  <div v-else class="app" :class="{ 'has-sidebar': hasSidebar }">
+    <button
+      v-if="hasSidebar"
+      class="hamburger-btn"
+      aria-label="Toggle sidebar"
+      @click="sidebarOpen = !sidebarOpen"
+    >
+      <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+        <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+      </svg>
+    </button>
+    <div
+      v-if="sidebarOpen && (hasSidebar)"
+      class="sidebar-backdrop"
+      @click="sidebarOpen = false"
+    ></div>
+    <aside v-if="hasSidebar" class="sidebar" :class="{ open: sidebarOpen }">
       <nav class="sidebar-nav">
         <div v-for="group in navGroups" :key="group.label" class="nav-group">
           <span class="nav-group-label">{{ group.label }}</span>
@@ -253,6 +268,7 @@ watch(
             :to="item.path"
             class="nav-item"
             :class="{ active: isActive(item.path) }"
+            @click="sidebarOpen = false"
           >
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
               <template v-if="item.icon === 'cpu'">
@@ -327,7 +343,7 @@ watch(
       <router-view />
     </main>
 
-    <StatusBar v-if="connection.state === 'Connected' || connection.state === 'Reconnecting'" />
+    <StatusBar v-if="hasSidebar" />
 
     <PreferencesDialog
       :open="showPreferences"
@@ -454,27 +470,6 @@ input, textarea, select {
   flex-direction: column;
   z-index: 10;
   overflow-y: auto;
-}
-
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 16px 12px;
-}
-
-.sidebar-logo {
-  font-weight: 700;
-  font-size: var(--font-size-lg);
-  color: var(--color-text-primary);
-  letter-spacing: -0.01em;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-success);
 }
 
 /* ── Nav ──────────────────────────────────────────────────────── */
@@ -611,5 +606,58 @@ input, textarea, select {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── Hamburger button (mobile only) ─────────────────────────── */
+
+.hamburger-btn {
+  display: none;
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 21;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+/* ── Responsive: mobile < 768px ─────────────────────────────── */
+
+@media (max-width: 767px) {
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 9;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--transition-normal);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .app.has-sidebar .main-content {
+    margin-left: 0;
+    padding-top: 52px;
+  }
 }
 </style>

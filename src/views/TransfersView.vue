@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useTransfersStore } from "../stores/transfers";
-import type { FileTransfer } from "../types/boinc";
+import type { FileTransfer, SortDir } from "../types/boinc";
+import { SORT_DIR } from "../types/boinc";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import PageHeader from "../components/PageHeader.vue";
 import DataTable from "../components/DataTable.vue";
@@ -25,7 +26,7 @@ const { sortKey, sortDir, visibleKeys } = useColumnState(
   "transfers",
   ["file", "project", "direction", "progress", "size", "speed"],
   "file",
-  "asc",
+  SORT_DIR.ASC,
 );
 const showColumns = ref(false);
 
@@ -91,7 +92,7 @@ function getSortValue(t: FileTransfer, key: string): number | string {
 const sortedTransfers = computed(() => {
   const transfers = [...store.transfers];
   const key = sortKey.value;
-  const dir = sortDir.value === "asc" ? 1 : -1;
+  const dir = sortDir.value === SORT_DIR.ASC ? 1 : -1;
   return transfers.sort((a, b) => {
     const va = getSortValue(a, key);
     const vb = getSortValue(b, key);
@@ -149,7 +150,7 @@ function isSelected(transfer: FileTransfer): boolean {
   return selectedKeys.value.has(transferKey(transfer));
 }
 
-function handleSort(key: string, dir: "asc" | "desc") {
+function handleSort(key: string, dir: SortDir) {
   sortKey.value = key;
   sortDir.value = dir;
 }
@@ -364,7 +365,7 @@ function isColVisible(key: string): boolean {
 
 .progress-bar {
   position: relative;
-  width: 120px;
+  width: min(120px, 18vw);
   height: 18px;
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-sm);

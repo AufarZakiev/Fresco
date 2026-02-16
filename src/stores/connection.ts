@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import type { ConnectionState } from "../types/boinc";
+import type { ConnectionState, ConnectionMode } from "../types/boinc";
+import { CONNECTION_STATE, CONNECTION_MODE } from "../types/boinc";
 import {
   connectLocal,
   connect,
@@ -8,7 +9,7 @@ import {
 } from "../composables/useRpc";
 
 interface ConnectionParams {
-  mode: "local" | "remote";
+  mode: ConnectionMode;
   dataDir?: string;
   host?: string;
   port?: number;
@@ -16,7 +17,7 @@ interface ConnectionParams {
 }
 
 export const useConnectionStore = defineStore("connection", () => {
-  const state = ref<ConnectionState>("Disconnected");
+  const state = ref<ConnectionState>(CONNECTION_STATE.DISCONNECTED);
   const error = ref<string | null>(null);
   const reconnectAttempt = ref(0);
   const maxReconnectAttempts = 10;
@@ -28,19 +29,19 @@ export const useConnectionStore = defineStore("connection", () => {
   const isReconnecting = computed(() => reconnectAttempt.value > 0);
 
   async function connectToLocal(dataDir: string) {
-    state.value = "Connecting";
+    state.value = CONNECTION_STATE.CONNECTING;
     error.value = null;
-    lastParams.value = { mode: "local", dataDir };
+    lastParams.value = { mode: CONNECTION_MODE.LOCAL, dataDir };
     try {
       await connectLocal(dataDir);
-      state.value = "Connected";
+      state.value = CONNECTION_STATE.CONNECTED;
       reconnectAttempt.value = 0;
       reconnecting = false;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       error.value = msg;
       if (msg.includes("Authentication")) {
-        state.value = "AuthError";
+        state.value = CONNECTION_STATE.AUTH_ERROR;
       } else {
         state.value = { Error: msg };
       }
@@ -52,12 +53,12 @@ export const useConnectionStore = defineStore("connection", () => {
     port: number,
     password: string,
   ) {
-    state.value = "Connecting";
+    state.value = CONNECTION_STATE.CONNECTING;
     error.value = null;
-    lastParams.value = { mode: "remote", host, port, password };
+    lastParams.value = { mode: CONNECTION_MODE.REMOTE, host, port, password };
     try {
       await connect(host, port, password);
-      state.value = "Connected";
+      state.value = CONNECTION_STATE.CONNECTED;
       reconnectAttempt.value = 0;
       reconnecting = false;
     } catch (e) {
@@ -73,7 +74,7 @@ export const useConnectionStore = defineStore("connection", () => {
     reconnectAttempt.value = 0;
     lastParams.value = null;
     await rpcDisconnect();
-    state.value = "Disconnected";
+    state.value = CONNECTION_STATE.DISCONNECTED;
     error.value = null;
   }
 
@@ -85,10 +86,10 @@ export const useConnectionStore = defineStore("connection", () => {
   }
 
   function handleConnectionError() {
-    if (reconnecting || state.value !== "Connected" || !lastParams.value) return;
+    if (reconnecting || state.value !== CONNECTION_STATE.CONNECTED || !lastParams.value) return;
     reconnecting = true;
     reconnectAttempt.value = 1;
-    state.value = "Reconnecting";
+    state.value = CONNECTION_STATE.RECONNECTING;
     scheduleReconnect();
   }
 
@@ -96,7 +97,7 @@ export const useConnectionStore = defineStore("connection", () => {
     if (reconnectAttempt.value > maxReconnectAttempts || !lastParams.value) {
       reconnecting = false;
       reconnectAttempt.value = 0;
-      state.value = "Disconnected";
+      state.value = CONNECTION_STATE.DISCONNECTED;
       error.value = "Reconnection failed after multiple attempts";
       return;
     }
@@ -111,7 +112,7 @@ export const useConnectionStore = defineStore("connection", () => {
     if (!lastParams.value || !reconnecting) return;
 
     try {
-      if (lastParams.value.mode === "local") {
+      if (lastParams.value.mode === CONNECTION_MODE.LOCAL) {
         await connectLocal(lastParams.value.dataDir!);
       } else {
         await connect(
@@ -121,7 +122,7 @@ export const useConnectionStore = defineStore("connection", () => {
         );
       }
       // Success
-      state.value = "Connected";
+      state.value = CONNECTION_STATE.CONNECTED;
       reconnectAttempt.value = 0;
       reconnecting = false;
     } catch {

@@ -53,6 +53,10 @@
   /* Sidebar */
   --sidebar-width: 200px;
 
+  /* Breakpoints (CSS cannot use vars in @media, so documented here):
+     Mobile:  < 768px  — sidebar collapses to hamburger overlay
+     Desktop: >= 768px — standard sidebar layout */
+
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 200ms ease;

@@ -210,6 +210,7 @@ onUnmounted(() => {
 
 .segmented-control {
   display: inline-flex;
+  flex-wrap: wrap;
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-md);
   padding: 2px;
@@ -258,7 +259,7 @@ onUnmounted(() => {
   background: var(--color-bg);
   font-size: var(--font-size-md);
   color: var(--color-text-primary);
-  min-width: 280px;
+  min-width: min(280px, 60vw);
   outline: none;
   transition: border-color var(--transition-fast);
 }

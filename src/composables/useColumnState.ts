@@ -1,9 +1,11 @@
 import { ref, watch } from "vue";
+import { SORT_DIR } from "../types/boinc";
+import type { SortDir } from "../types/boinc";
 
 interface ColumnState {
   visibleKeys: string[];
   sortKey: string;
-  sortDir: "asc" | "desc";
+  sortDir: SortDir;
 }
 
 /**
@@ -18,7 +20,7 @@ export function useColumnState(
   viewId: string,
   defaultVisibleKeys: string[],
   defaultSortKey: string,
-  defaultSortDir: "asc" | "desc" = "asc",
+  defaultSortDir: SortDir = SORT_DIR.ASC,
 ) {
   const storageKey = `boinc-columns-${viewId}`;
 
@@ -46,7 +48,7 @@ export function useColumnState(
   const initial = load();
   const visibleKeys = ref<string[]>(initial.visibleKeys);
   const sortKey = ref(initial.sortKey);
-  const sortDir = ref<"asc" | "desc">(initial.sortDir);
+  const sortDir = ref<SortDir>(initial.sortDir);
 
   watch(
     [visibleKeys, sortKey, sortDir],

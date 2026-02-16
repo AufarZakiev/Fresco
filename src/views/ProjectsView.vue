@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useProjectsStore } from "../stores/projects";
-import type { Project } from "../types/boinc";
+import type { Project, SortDir } from "../types/boinc";
+import { SORT_DIR } from "../types/boinc";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import ProjectAttachWizard from "../components/ProjectAttachWizard.vue";
 import PageHeader from "../components/PageHeader.vue";
@@ -28,7 +29,7 @@ const { sortKey, sortDir, visibleKeys } = useColumnState(
   "projects",
   ["project", "account", "team", "totalCredit", "avgCredit", "status"],
   "project",
-  "asc",
+  SORT_DIR.ASC,
 );
 const showColumns = ref(false);
 const showProperties = ref(false);
@@ -95,7 +96,7 @@ function getSortValue(project: Project, key: string): number | string {
 const sortedProjects = computed(() => {
   const projects = [...store.projects];
   const key = sortKey.value;
-  const dir = sortDir.value === "asc" ? 1 : -1;
+  const dir = sortDir.value === SORT_DIR.ASC ? 1 : -1;
   return projects.sort((a, b) => {
     const va = getSortValue(a, key);
     const vb = getSortValue(b, key);
@@ -155,7 +156,7 @@ function isSelected(project: Project): boolean {
   return selectedUrls.value.has(project.master_url);
 }
 
-function handleSort(key: string, dir: "asc" | "desc") {
+function handleSort(key: string, dir: SortDir) {
   sortKey.value = key;
   sortDir.value = dir;
 }

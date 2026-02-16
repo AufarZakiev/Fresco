@@ -6,7 +6,9 @@ import {
   RESULT_STATE,
   ACTIVE_TASK_STATE,
   SCHEDULER_STATE,
+  SORT_DIR,
 } from "../types/boinc";
+import type { SortDir } from "../types/boinc";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import PageHeader from "../components/PageHeader.vue";
 import DataTable from "../components/DataTable.vue";
@@ -34,7 +36,7 @@ const { sortKey, sortDir, visibleKeys } = useColumnState(
   "tasks",
   ["task", "project", "progress", "elapsed", "remaining", "status"],
   "progress",
-  "desc",
+  SORT_DIR.DESC,
 );
 const showColumns = ref(false);
 const showProperties = ref(false);
@@ -140,7 +142,7 @@ const filteredTasks = computed(() => {
 const sortedTasks = computed(() => {
   const tasks = [...filteredTasks.value];
   const key = sortKey.value;
-  const dir = sortDir.value === "asc" ? 1 : -1;
+  const dir = sortDir.value === SORT_DIR.ASC ? 1 : -1;
   return tasks.sort((a, b) => {
     const va = getSortValue(a, key);
     const vb = getSortValue(b, key);
@@ -206,7 +208,7 @@ function isSelected(task: TaskResult): boolean {
   return selectedNames.value.has(task.name);
 }
 
-function handleSort(key: string, dir: "asc" | "desc") {
+function handleSort(key: string, dir: SortDir) {
   sortKey.value = key;
   sortDir.value = dir;
 }
@@ -536,7 +538,7 @@ function isColVisible(key: string): boolean {
 
 .progress-bar {
   position: relative;
-  width: 120px;
+  width: min(120px, 18vw);
   height: 18px;
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-sm);

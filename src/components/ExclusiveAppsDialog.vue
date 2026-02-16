@@ -171,7 +171,7 @@ async function save() {
 .exclusive-dialog {
   background: var(--color-bg);
   border-radius: var(--radius-lg);
-  width: 480px;
+  width: min(480px, 95vw);
   max-height: 80vh;
   display: flex;
   flex-direction: column;
