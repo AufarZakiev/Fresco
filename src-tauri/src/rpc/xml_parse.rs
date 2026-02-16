@@ -2390,7 +2390,7 @@ mod tests {
 <project_statistics>
     <master_url>https://example.com/</master_url>
     <daily_statistics>
-        <day>19800.000000</day>
+        <day>1710720000.000000</day>
         <user_total_credit>1000.000000</user_total_credit>
         <user_expavg_credit>50.000000</user_expavg_credit>
         <host_total_credit>500.000000</host_total_credit>

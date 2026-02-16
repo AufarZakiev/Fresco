@@ -32,7 +32,7 @@ const chartW = computed(() => svgWidth.value - PADDING.left - PADDING.right);
 const chartH = computed(() => svgHeight.value - PADDING.top - PADDING.bottom);
 
 function dayToDate(day: number): Date {
-  return new Date(day * 86400 * 1000);
+  return new Date(day * 1000);
 }
 
 function formatDateShort(day: number): string {
