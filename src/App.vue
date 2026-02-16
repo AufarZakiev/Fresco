@@ -125,6 +125,7 @@ type UnlistenFn = () => void;
 const unlisteners: UnlistenFn[] = [];
 
 onMounted(async () => {
+  document.addEventListener("contextmenu", (e) => e.preventDefault());
   autoConnect();
 
   try {
