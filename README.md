@@ -2,9 +2,9 @@
 
 [![Build](https://github.com/AufarZakiev/Fresco/actions/workflows/build.yml/badge.svg)](https://github.com/AufarZakiev/Fresco/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Windows](https://img.shields.io/badge/Windows-x86__64-0078D4?logo=windows)](https://github.com/AufarZakiev/Fresco/releases)
+[![Windows](https://img.shields.io/badge/Windows-x86__64%20%7C%20ARM64-0078D4?logo=windows)](https://github.com/AufarZakiev/Fresco/releases)
 [![macOS](https://img.shields.io/badge/macOS-ARM64%20%7C%20x86__64-000000?logo=apple)](https://github.com/AufarZakiev/Fresco/releases)
-[![Linux](https://img.shields.io/badge/Linux-x86__64-FCC624?logo=linux&logoColor=black)](https://github.com/AufarZakiev/Fresco/releases)
+[![Linux](https://img.shields.io/badge/Linux-x86__64%20%7C%20ARM64-FCC624?logo=linux&logoColor=black)](https://github.com/AufarZakiev/Fresco/releases)
 [![Tauri v2](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)](https://v2.tauri.app)
 
 A modern alternative to the official BOINC Manager, built with Tauri.

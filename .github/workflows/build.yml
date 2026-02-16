@@ -18,23 +18,38 @@ jobs:
         include:
           - platform: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
+          - platform: ubuntu-22.04
+            target: aarch64-unknown-linux-gnu
           - platform: macos-latest
             target: aarch64-apple-darwin
           - platform: macos-latest
             target: x86_64-apple-darwin
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
+          - platform: windows-latest
+            target: aarch64-pc-windows-msvc
 
     runs-on: ${{ matrix.platform }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Linux dependencies
-        if: startsWith(matrix.platform, 'ubuntu')
+      - name: Install Linux dependencies (x86_64)
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install Linux dependencies (aarch64 cross)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo sed -i 's/^deb /deb [arch=amd64] /' /etc/apt/sources.list
+          echo "deb [arch=arm64] http://ports.ubuntu.com/ jammy main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+          echo "deb [arch=arm64] http://ports.ubuntu.com/ jammy-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev:arm64 libappindicator3-dev:arm64 librsvg2-dev:arm64
 
       - uses: pnpm/action-setup@v4
         with:
@@ -59,6 +74,9 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          PKG_CONFIG_SYSROOT_DIR: /usr/aarch64-linux-gnu
+          PKG_CONFIG_PATH: /usr/lib/aarch64-linux-gnu/pkgconfig
         with:
           args: --target ${{ matrix.target }}
 
@@ -67,7 +85,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: fresco-${{ matrix.target }}
-          path: src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
+            src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
 
       - name: Upload portable (macOS)
         if: startsWith(matrix.platform, 'macos')
@@ -99,10 +119,19 @@ jobs:
       - name: Prepare release assets
         run: |
           mkdir -p release
-          cp artifacts/fresco-x86_64-unknown-linux-gnu/*.AppImage release/
+          # Linux x86_64
+          cp artifacts/fresco-x86_64-unknown-linux-gnu/*.AppImage release/ 2>/dev/null || true
+          cp artifacts/fresco-x86_64-unknown-linux-gnu/*.deb release/ 2>/dev/null || true
+          # Linux ARM64
+          for f in artifacts/fresco-aarch64-unknown-linux-gnu/*.deb; do
+            [ -f "$f" ] && cp "$f" "release/$(basename "${f%.deb}")-arm64.deb" || true
+          done
+          # macOS
           cd artifacts/fresco-aarch64-apple-darwin && zip -r ../../release/Fresco-aarch64-apple-darwin.app.zip *.app && cd ../..
           cd artifacts/fresco-x86_64-apple-darwin && zip -r ../../release/Fresco-x86_64-apple-darwin.app.zip *.app && cd ../..
+          # Windows
           cp artifacts/fresco-x86_64-pc-windows-msvc/fresco.exe release/Fresco-x86_64-pc-windows-msvc.exe
+          cp artifacts/fresco-aarch64-pc-windows-msvc/fresco.exe release/Fresco-aarch64-pc-windows-msvc.exe 2>/dev/null || true
 
       - name: Delete existing release
         env:
