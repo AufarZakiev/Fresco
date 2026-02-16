@@ -12,7 +12,6 @@ import ProjectAttachWizard from "./components/ProjectAttachWizard.vue";
 import ManagerOptionsDialog from "./components/ManagerOptionsDialog.vue";
 import ExitConfirmDialog from "./components/ExitConfirmDialog.vue";
 import ToastContainer from "./components/ToastContainer.vue";
-import { useManagerSettingsStore } from "./stores/managerSettings";
 import { useWindowState } from "./composables/useWindowState";
 import { notifyConnectionLost } from "./composables/useNotifications";
 import { useTasksStore } from "./stores/tasks";
@@ -33,7 +32,6 @@ import {
 } from "./composables/useRpc";
 
 const connection = useConnectionStore();
-const managerSettings = useManagerSettingsStore();
 const route = useRoute();
 const router = useRouter();
 const tasksStore = useTasksStore();
