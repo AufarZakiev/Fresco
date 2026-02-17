@@ -106,8 +106,15 @@ impl RpcClient {
 
     /// Set a run mode. `mode`: 1=always, 2=auto, 3=never. `duration`: seconds (0=permanent).
     async fn set_mode(&self, tag: &str, mode: i32, duration: f64) -> Result<(), String> {
+        let mode_tag = match mode {
+            1 => "always",
+            2 => "auto",
+            3 => "never",
+            4 => "restore",
+            _ => return Err(format!("Unknown mode: {}", mode)),
+        };
         let req = format!(
-            "<set_{tag}>\n<{tag}>{mode}</{tag}>\n<duration>{duration}</duration>\n</set_{tag}>"
+            "<set_{tag}>\n<{mode_tag}/>\n<duration>{duration}</duration>\n</set_{tag}>"
         );
         let xml = self.rpc_call(&req).await?;
         xml_parse::parse_success(&xml)
