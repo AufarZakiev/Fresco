@@ -13,6 +13,8 @@ Connects to the BOINC client over the standard GUI RPC protocol. Starts the BOIN
 
 The goal is to reach full functional parity with the standard BOINC Manager.
 
+![Fresco screenshot](docs/screenshot.png)
+
 ## Features
 
 - Tasks, projects, transfers, messages, notices, disk usage, and host info views
