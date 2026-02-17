@@ -68,18 +68,28 @@ export const useClientStore = defineStore("client", () => {
   }
 
   async function setRunMode(mode: number) {
+    status.value = { ...status.value, task_mode: mode, task_mode_perm: mode };
     await rpcSetRunMode(mode, 0);
-    await fetchStatus();
+    restartPolling();
   }
 
   async function setGpuMode(mode: number) {
+    status.value = { ...status.value, gpu_mode: mode, gpu_mode_perm: mode };
     await rpcSetGpuMode(mode, 0);
-    await fetchStatus();
+    restartPolling();
   }
 
   async function setNetworkMode(mode: number) {
+    status.value = { ...status.value, network_mode: mode, network_mode_perm: mode };
     await rpcSetNetworkMode(mode, 0);
-    await fetchStatus();
+    restartPolling();
+  }
+
+  function restartPolling() {
+    if (pollTimer !== null) {
+      stopPolling();
+      startPolling();
+    }
   }
 
   async function runBenchmarks() {
