@@ -17,10 +17,18 @@ import { checkForUpdates, useUpdateCheck } from "./useUpdateCheck";
 
 const mockInvoke = vi.mocked(invoke);
 
-function makeRelease(publishedAt: string, assets: { name: string; browser_download_url: string }[] = []) {
+const appBuildTime = "2025-06-01T10:00:00Z";
+const newerBuildTime = "2025-06-15T10:00:00Z";
+
+function makeRelease(
+  publishedAt: string,
+  releaseBuildTime: string,
+  assets: { name: string; browser_download_url: string }[] = [],
+) {
   return {
     published_at: publishedAt,
     html_url: "https://github.com/AufarZakiev/Fresco/releases/latest",
+    body: `build_time:${releaseBuildTime}`,
     assets,
   };
 }
@@ -35,11 +43,8 @@ const windowsAssets = [
 describe("useUpdateCheck", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Clear localStorage
     localStorage.clear();
-    // Reset shared state by calling the composable
     const state = useUpdateCheck();
-    // Reset internal state manually via the refs
     state.updateAvailable.value = false;
     state.releaseDate.value = "";
     state.releaseUrl.value = "";
@@ -54,10 +59,10 @@ describe("useUpdateCheck", () => {
     vi.restoreAllMocks();
   });
 
-  it("detects update when release is newer than build time", async () => {
-    mockInvoke.mockResolvedValue("2025-01-01T00:00:00Z");
+  it("detects update when release build time differs from app build time", async () => {
+    mockInvoke.mockResolvedValue(appBuildTime);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(makeRelease("2025-06-15T12:00:00Z", windowsAssets)), {
+      new Response(JSON.stringify(makeRelease("2025-06-15T12:00:00Z", newerBuildTime, windowsAssets)), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
@@ -70,10 +75,30 @@ describe("useUpdateCheck", () => {
     expect(releaseDate.value).toBe("2025-06-15T12:00:00Z");
   });
 
-  it("reports no update when build time >= release date", async () => {
-    mockInvoke.mockResolvedValue("2025-07-01T00:00:00Z");
+  it("reports no update when build times match", async () => {
+    mockInvoke.mockResolvedValue(appBuildTime);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(makeRelease("2025-06-15T12:00:00Z", windowsAssets)), {
+      new Response(JSON.stringify(makeRelease("2025-06-15T12:00:00Z", appBuildTime, windowsAssets)), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await checkForUpdates(true);
+
+    const { updateAvailable } = useUpdateCheck();
+    expect(updateAvailable.value).toBe(false);
+  });
+
+  it("reports no update when release body has no build_time", async () => {
+    mockInvoke.mockResolvedValue(appBuildTime);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({
+        published_at: "2025-06-15T12:00:00Z",
+        html_url: "https://github.com/AufarZakiev/Fresco/releases/latest",
+        body: "",
+        assets: windowsAssets,
+      }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
@@ -97,13 +122,11 @@ describe("useUpdateCheck", () => {
   });
 
   it("respects 24h throttle", async () => {
-    // Simulate a recent check
     localStorage.setItem("fresco-last-update-check", String(Date.now()));
 
-    mockInvoke.mockResolvedValue("2025-01-01T00:00:00Z");
+    mockInvoke.mockResolvedValue(appBuildTime);
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
-    // Non-forced check should be throttled
     await checkForUpdates(false);
 
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -112,9 +135,9 @@ describe("useUpdateCheck", () => {
   it("ignores throttle when forced", async () => {
     localStorage.setItem("fresco-last-update-check", String(Date.now()));
 
-    mockInvoke.mockResolvedValue("2025-01-01T00:00:00Z");
+    mockInvoke.mockResolvedValue(appBuildTime);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(makeRelease("2025-06-15T12:00:00Z", windowsAssets)), {
+      new Response(JSON.stringify(makeRelease("2025-06-15T12:00:00Z", newerBuildTime, windowsAssets)), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
@@ -127,9 +150,9 @@ describe("useUpdateCheck", () => {
   });
 
   it("matches platform asset URL", async () => {
-    mockInvoke.mockResolvedValue("2025-01-01T00:00:00Z");
+    mockInvoke.mockResolvedValue(appBuildTime);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(makeRelease("2025-06-15T12:00:00Z", windowsAssets)), {
+      new Response(JSON.stringify(makeRelease("2025-06-15T12:00:00Z", newerBuildTime, windowsAssets)), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
@@ -138,12 +161,11 @@ describe("useUpdateCheck", () => {
     await checkForUpdates(true);
 
     const { assetUrl } = useUpdateCheck();
-    // In happy-dom, navigator.platform may vary, but assetUrl should be populated
     expect(typeof assetUrl.value).toBe("string");
   });
 
   it("handles fetch errors gracefully", async () => {
-    mockInvoke.mockResolvedValue("2025-01-01T00:00:00Z");
+    mockInvoke.mockResolvedValue(appBuildTime);
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Network error"));
 
     await checkForUpdates(true);
@@ -154,7 +176,7 @@ describe("useUpdateCheck", () => {
   });
 
   it("handles non-200 API responses", async () => {
-    mockInvoke.mockResolvedValue("2025-01-01T00:00:00Z");
+    mockInvoke.mockResolvedValue(appBuildTime);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("", { status: 403 }),
     );

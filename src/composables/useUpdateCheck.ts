@@ -16,6 +16,7 @@ interface GitHubAsset {
 interface GitHubRelease {
   published_at: string;
   html_url: string;
+  body: string;
   assets: GitHubAsset[];
 }
 
@@ -56,6 +57,11 @@ function matchAsset(assets: GitHubAsset[]): string {
   const pattern = getPlatformAssetPattern();
   const match = assets.find((a) => a.name.includes(pattern));
   return match?.browser_download_url ?? "";
+}
+
+function extractBuildTime(body: string): string {
+  const match = body.match(/build_time:(\S+)/);
+  return match?.[1] ?? "";
 }
 
 function isDismissed(date: string): boolean {
@@ -113,10 +119,12 @@ export async function checkForUpdates(force = false) {
     const release: GitHubRelease = await response.json();
     markChecked();
 
-    const publishedAt = new Date(release.published_at).getTime();
-    const builtAt = new Date(bt).getTime();
+    // Compare the app's embedded build time against the one in the release body.
+    // Both are set from the same CI timestamp, so they match exactly when
+    // the app was built from the same workflow run as the release.
+    const releaseBuildTime = extractBuildTime(release.body ?? "");
 
-    if (publishedAt > builtAt) {
+    if (releaseBuildTime && releaseBuildTime !== bt) {
       updateAvailable.value = true;
       releaseDate.value = release.published_at;
       releaseUrl.value = release.html_url;
