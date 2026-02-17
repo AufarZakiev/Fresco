@@ -1,39 +1,22 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useManagerSettingsStore } from "../stores/managerSettings";
-import { useUpdateCheck } from "../composables/useUpdateCheck";
 
-const props = defineProps<{ open: boolean; updateAvailable?: boolean }>();
+defineProps<{ open: boolean }>();
 const emit = defineEmits<{
   close: [];
-  confirm: [shutdownClient: boolean, applyUpdate: boolean];
+  confirm: [shutdownClient: boolean];
 }>();
 
-const { releaseDate } = useUpdateCheck();
 const store = useManagerSettingsStore();
 const shutdownClient = ref(false);
-const applyUpdate = ref(false);
 const dontAskAgain = ref(false);
-
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
-}
 
 function confirm() {
   if (dontAskAgain.value) {
     store.settings.showExitConfirmation = false;
   }
-  emit("confirm", shutdownClient.value, applyUpdate.value);
+  emit("confirm", shutdownClient.value);
 }
 </script>
 
@@ -46,18 +29,10 @@ function confirm() {
           Are you sure you want to exit? BOINC will continue running in the background.
         </p>
 
-        <p v-if="props.updateAvailable" class="update-notice">
-          A newer version is available (released {{ formatDate(releaseDate) }})
-        </p>
-
         <div class="exit-options">
           <label class="exit-toggle">
             <input type="checkbox" v-model="shutdownClient" />
             <span>Also shut down the BOINC client</span>
-          </label>
-          <label v-if="props.updateAvailable" class="exit-toggle">
-            <input type="checkbox" v-model="applyUpdate" />
-            <span>Apply update before exiting</span>
           </label>
           <label class="exit-toggle">
             <input type="checkbox" v-model="dontAskAgain" />
@@ -67,9 +42,7 @@ function confirm() {
 
         <div class="exit-footer">
           <button class="btn" @click="emit('close')">Cancel</button>
-          <button class="btn btn-primary" @click="confirm">
-            {{ applyUpdate ? "Update & Exit" : "Exit" }}
-          </button>
+          <button class="btn btn-primary" @click="confirm">Exit</button>
         </div>
       </div>
     </div>
@@ -108,13 +81,6 @@ function confirm() {
   font-size: var(--font-size-md);
   line-height: 1.5;
   margin: 0 0 var(--space-lg);
-}
-
-.update-notice {
-  color: var(--color-accent);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  margin: 0 0 var(--space-md);
 }
 
 .exit-options {

@@ -63,7 +63,7 @@ const hasSidebar = computed(
 let autoConnectCancelled = false;
 
 useWindowState();
-const { updateAvailable, dismissed, assetUrl, checkForUpdates: doUpdateCheck } = useUpdateCheck();
+const { updateAvailable, dismissed, assetUrl, updateOnExit, checkForUpdates: doUpdateCheck } = useUpdateCheck();
 
 // ── Auto-connect to local BOINC client on startup ───────────────
 
@@ -162,7 +162,7 @@ onUnmounted(() => {
   unlisteners.forEach((fn) => fn());
 });
 
-async function doExit(doShutdownClient: boolean, applyUpdate = false) {
+async function doExit(doShutdownClient: boolean) {
   showExitConfirm.value = false;
   try {
     if (doShutdownClient) {
@@ -172,7 +172,7 @@ async function doExit(doShutdownClient: boolean, applyUpdate = false) {
   } catch {
     // ignore
   }
-  if (applyUpdate && assetUrl.value) {
+  if (updateOnExit.value && assetUrl.value) {
     try {
       await invoke("download_update", { assetUrl: assetUrl.value });
       const { relaunch } = await import("@tauri-apps/plugin-process");
@@ -386,7 +386,6 @@ watch(
     />
     <ExitConfirmDialog
       :open="showExitConfirm"
-      :update-available="updateAvailable"
       @close="showExitConfirm = false"
       @confirm="doExit"
     />

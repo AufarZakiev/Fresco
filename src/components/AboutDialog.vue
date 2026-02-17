@@ -1,24 +1,32 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 import { useUpdateCheck } from "../composables/useUpdateCheck";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
 const version = ref("0.1.0");
+const updating = ref(false);
+const updateError = ref("");
 const {
   buildTime,
   updateAvailable,
   releaseDate,
+  assetUrl,
+  updateOnExit,
   checking,
-  error: updateError,
+  error: checkError,
   checkForUpdates,
+  dismissUpdate,
 } = useUpdateCheck();
 
 watch(
   () => props.open,
   async (isOpen) => {
     if (isOpen) {
+      updating.value = false;
+      updateError.value = "";
       try {
         const { getVersion } = await import("@tauri-apps/api/app");
         version.value = await getVersion();
@@ -57,6 +65,28 @@ function formatDate(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+async function updateNow() {
+  if (!assetUrl.value) {
+    updateError.value = "No download URL available for your platform";
+    return;
+  }
+  updating.value = true;
+  updateError.value = "";
+  try {
+    await invoke("download_update", { assetUrl: assetUrl.value });
+    const { relaunch } = await import("@tauri-apps/plugin-process");
+    await relaunch();
+  } catch (e) {
+    updateError.value = e instanceof Error ? e.message : String(e);
+    updating.value = false;
+  }
+}
+
+function setUpdateOnExit() {
+  updateOnExit.value = true;
+  dismissUpdate();
 }
 
 async function openWebsite() {
@@ -102,19 +132,40 @@ async function openWebsite() {
 
         <div class="update-section">
           <button
+            v-if="!updateAvailable"
             class="btn"
             :disabled="checking"
             @click="checkForUpdates(true)"
           >
             {{ checking ? "Checking..." : "Check for Updates" }}
           </button>
-          <p v-if="updateAvailable" class="update-available">
-            Update available (released {{ formatDate(releaseDate) }})
-          </p>
-          <p v-else-if="buildTime && buildTime !== 'dev' && !checking && !updateError" class="up-to-date">
+
+          <template v-if="updateAvailable">
+            <p class="update-available">
+              Update available (released {{ formatDate(releaseDate) }})
+            </p>
+            <p v-if="updateError" class="update-error">{{ updateError }}</p>
+            <div class="update-actions">
+              <button
+                class="btn btn-primary"
+                :disabled="updating || !assetUrl"
+                @click="updateNow"
+              >
+                {{ updating ? "Updating..." : "Update now" }}
+              </button>
+              <button class="btn" :disabled="updating" @click="setUpdateOnExit">
+                Update on exit
+              </button>
+              <button class="btn" :disabled="updating" @click="dismissUpdate">
+                Remind me later
+              </button>
+            </div>
+          </template>
+
+          <p v-else-if="buildTime && buildTime !== 'dev' && !checking && !checkError" class="up-to-date">
             You're up to date
           </p>
-          <p v-if="updateError" class="update-error">{{ updateError }}</p>
+          <p v-if="checkError" class="update-error">{{ checkError }}</p>
         </div>
 
         <div class="about-footer">
@@ -198,7 +249,18 @@ async function openWebsite() {
   color: var(--color-accent);
   font-size: var(--font-size-sm);
   font-weight: 500;
-  margin: var(--space-sm) 0 0;
+  margin: 0 0 var(--space-md);
+}
+
+.update-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.update-actions .btn {
+  width: 100%;
+  text-align: center;
 }
 
 .up-to-date {
@@ -210,7 +272,7 @@ async function openWebsite() {
 .update-error {
   color: var(--color-danger);
   font-size: var(--font-size-xs);
-  margin: var(--space-sm) 0 0;
+  margin: 0 0 var(--space-sm);
 }
 
 .about-footer {

@@ -29,6 +29,7 @@ const buildTime = ref("");
 const checking = ref(false);
 const error = ref("");
 const dismissed = ref(false);
+const updateOnExit = ref(false);
 
 function getPlatformAssetPattern(): string {
   const platform = navigator.platform.toLowerCase();
@@ -159,6 +160,7 @@ export function useUpdateCheck() {
     checking,
     error,
     dismissed,
+    updateOnExit,
     checkForUpdates,
     dismissUpdate,
   };

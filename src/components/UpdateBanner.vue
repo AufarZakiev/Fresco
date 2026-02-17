@@ -3,7 +3,7 @@ import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { useUpdateCheck } from "../composables/useUpdateCheck";
 
-const { releaseDate, assetUrl, dismissUpdate } = useUpdateCheck();
+const { releaseDate, assetUrl, updateOnExit, dismissUpdate } = useUpdateCheck();
 const updating = ref(false);
 const updateError = ref("");
 
@@ -21,7 +21,7 @@ function formatDate(iso: string): string {
   }
 }
 
-async function applyUpdate() {
+async function updateNow() {
   if (!assetUrl.value) {
     updateError.value = "No download URL available for your platform";
     return;
@@ -30,7 +30,6 @@ async function applyUpdate() {
   updateError.value = "";
   try {
     await invoke("download_update", { assetUrl: assetUrl.value });
-    // Relaunch
     const { relaunch } = await import("@tauri-apps/plugin-process");
     await relaunch();
   } catch (e) {
@@ -38,81 +37,105 @@ async function applyUpdate() {
     updating.value = false;
   }
 }
+
+function setUpdateOnExit() {
+  updateOnExit.value = true;
+  dismissUpdate();
+}
 </script>
 
 <template>
-  <div class="update-banner">
-    <span class="update-text">
-      A newer version of Fresco is available (released {{ formatDate(releaseDate) }})
-    </span>
-    <button
-      v-if="assetUrl"
-      class="update-btn"
-      :disabled="updating"
-      @click="applyUpdate"
-    >
-      {{ updating ? "Updating..." : "Update & Restart" }}
-    </button>
-    <button class="dismiss-btn" title="Dismiss" @click="dismissUpdate">&times;</button>
-    <span v-if="updateError" class="update-error">{{ updateError }}</span>
-  </div>
+  <Teleport to="body">
+    <div class="update-notification">
+      <div class="update-header">
+        <span class="update-title">Update available</span>
+        <button class="close-btn" title="Dismiss" @click="dismissUpdate">&times;</button>
+      </div>
+      <p class="update-text">
+        A newer version of Fresco was released on {{ formatDate(releaseDate) }}
+      </p>
+      <p v-if="updateError" class="update-error">{{ updateError }}</p>
+      <div class="update-actions">
+        <button
+          class="btn btn-primary"
+          :disabled="updating || !assetUrl"
+          @click="updateNow"
+        >
+          {{ updating ? "Updating..." : "Update now" }}
+        </button>
+        <button class="btn" :disabled="updating" @click="setUpdateOnExit">
+          Update on exit
+        </button>
+        <button class="btn" :disabled="updating" @click="dismissUpdate">
+          Remind me later
+        </button>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
-.update-banner {
+.update-notification {
+  position: fixed;
+  bottom: 40px;
+  right: 16px;
+  width: 320px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-lg);
+  z-index: 900;
+}
+
+.update-header {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: 6px var(--space-lg);
-  background: var(--color-accent-light);
-  border-bottom: 1px solid var(--color-accent);
-  font-size: var(--font-size-sm);
-  color: var(--color-accent-hover);
-  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
 }
 
-.update-text {
-  flex: 1;
-  min-width: 0;
+.update-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
-.update-btn {
-  padding: 3px 12px;
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: white;
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.update-btn:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
-
-.update-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.dismiss-btn {
+.close-btn {
   background: none;
   border: none;
-  color: var(--color-accent-hover);
+  color: var(--color-text-tertiary);
   font-size: 18px;
   cursor: pointer;
-  padding: 0 4px;
+  padding: 0 2px;
   line-height: 1;
 }
 
-.dismiss-btn:hover {
-  opacity: 0.7;
+.close-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.update-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+  margin: 0 0 var(--space-md);
 }
 
 .update-error {
-  width: 100%;
-  color: var(--color-danger);
   font-size: var(--font-size-xs);
+  color: var(--color-danger);
+  margin: 0 0 var(--space-sm);
+}
+
+.update-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.update-actions .btn {
+  width: 100%;
+  text-align: center;
 }
 </style>
