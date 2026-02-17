@@ -115,7 +115,6 @@ jobs:
       - name: Build Tauri
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FRESCO_BUILD_TIME: ${{ needs.lint.outputs.build_time }}
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
           PKG_CONFIG_SYSROOT_DIR: /usr/aarch64-linux-gnu
