@@ -4,6 +4,24 @@ import { useConnectionStore } from "../stores/connection";
 import { useClientStore } from "../stores/client";
 import { getSuspendReasonText } from "../composables/useSuspendReasons";
 import { CONNECTION_STATE } from "../types/boinc";
+import { useUpdateCheck } from "../composables/useUpdateCheck";
+
+const { buildTime } = useUpdateCheck();
+
+const buildLabel = computed(() => {
+  if (!buildTime.value || buildTime.value === "dev") return "dev";
+  try {
+    return new Date(buildTime.value).toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return buildTime.value;
+  }
+});
 
 const connection = useConnectionStore();
 const client = useClientStore();
@@ -55,7 +73,7 @@ const statusText = computed(() => {
     </div>
 
     <div class="status-section">
-      <span>Fresco</span>
+      <span>{{ buildLabel }}</span>
     </div>
   </div>
 </template>

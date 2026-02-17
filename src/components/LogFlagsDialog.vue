@@ -217,7 +217,14 @@ async function save() {
   border-bottom: none;
 }
 
+.pref-row input[type="number"]::-webkit-inner-spin-button,
+.pref-row input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .pref-row input[type="number"] {
+  -moz-appearance: textfield;
   width: 100px;
   padding: 5px 8px;
   border: 1px solid var(--color-border);

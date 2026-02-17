@@ -61,10 +61,10 @@ describe("StatusBar", () => {
     expect(wrapper.text()).not.toContain("suspended");
   });
 
-  it("shows Fresco text", () => {
+  it("shows build time label", () => {
     const conn = useConnectionStore();
     conn.state = CONNECTION_STATE.CONNECTED;
     const wrapper = mount(StatusBar);
-    expect(wrapper.text()).toContain("Fresco");
+    expect(wrapper.text()).toContain("dev");
   });
 });

@@ -284,6 +284,13 @@ async function save() {
 .pref-row input[type="number"] {
   text-align: right;
   background: var(--color-bg);
+  -moz-appearance: textfield;
+}
+
+.pref-row input[type="number"]::-webkit-inner-spin-button,
+.pref-row input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .pref-row input[type="checkbox"] {

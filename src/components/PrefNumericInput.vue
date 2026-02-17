@@ -16,7 +16,6 @@ const props = withDefaults(
   {
     min: 0,
     step: 1,
-    zeroLabel: "Default",
   },
 );
 
@@ -24,19 +23,22 @@ const emit = defineEmits<{ "update:modelValue": [value: number] }>();
 
 const store = usePreferencesStore();
 
-const isDefault = computed(() => props.modelValue === 0);
+const hasOverride = computed(() => props.modelValue !== 0);
 
-const placeholder = computed(() => {
+const effectiveValue = computed(() => {
+  if (hasOverride.value) return props.modelValue;
   const effective = store.getEffectiveValue(props.field);
-  if (effective !== null && effective !== 0) {
-    return `${props.zeroLabel} (${effective})`;
-  }
-  return props.zeroLabel;
+  return effective ?? 0;
 });
 
 const displayValue = computed(() => {
-  if (isDefault.value) return "";
-  return String(props.modelValue);
+  if (effectiveValue.value === 0) return "";
+  return String(effectiveValue.value);
+});
+
+const placeholder = computed(() => {
+  if (effectiveValue.value === 0 && props.zeroLabel) return props.zeroLabel;
+  return "";
 });
 
 function onInput(event: Event) {
@@ -55,7 +57,10 @@ function onInput(event: Event) {
 
 <template>
   <label class="pref-row">
-    <span>{{ label }}</span>
+    <span class="pref-label">
+      <span v-if="hasOverride" class="override-dot" />
+      {{ label }}
+    </span>
     <input
       type="number"
       :value="displayValue"
@@ -63,7 +68,6 @@ function onInput(event: Event) {
       :min="min"
       :max="max"
       :step="step"
-      :class="{ 'is-default': isDefault }"
       @input="onInput"
     />
   </label>
@@ -85,7 +89,29 @@ function onInput(event: Event) {
   border-bottom: none;
 }
 
+.pref-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.override-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.pref-row input[type="number"]::-webkit-inner-spin-button,
+.pref-row input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .pref-row input[type="number"] {
+  -moz-appearance: textfield;
   width: min(130px, 40vw);
   padding: 5px 8px;
   border: 1px solid var(--color-border);
@@ -97,14 +123,8 @@ function onInput(event: Event) {
   transition: border-color var(--transition-fast);
 }
 
-.pref-row input[type="number"].is-default {
-  border-style: dashed;
-  border-color: var(--color-text-tertiary);
-}
-
 .pref-row input[type="number"]::placeholder {
   color: var(--color-text-tertiary);
   font-size: var(--font-size-sm);
-  text-align: right;
 }
 </style>

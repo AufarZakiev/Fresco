@@ -354,7 +354,67 @@ async fn set_preferences(
 async fn get_host_info(state: State<'_, AppState>) -> Result<HostInfo, String> {
     let guard = state.client.lock().await;
     let client = guard.as_ref().ok_or("Not connected")?;
-    client.get_host_info().await
+    let mut info = client.get_host_info().await?;
+
+    // Override OS info with actual local OS when connected locally,
+    // since BOINC may report the wrong OS (e.g. Docker container's OS)
+    if client.is_local() {
+        info.os_name = std::env::consts::OS.to_string();
+        info.os_name = match info.os_name.as_str() {
+            "windows" => "Microsoft Windows".to_string(),
+            "macos" => "macOS".to_string(),
+            "linux" => "Linux".to_string(),
+            other => other.to_string(),
+        };
+        // Get OS version from the system
+        #[cfg(target_os = "windows")]
+        {
+            use std::process::Command;
+            if let Ok(output) = Command::new("cmd")
+                .args(["/C", "ver"])
+                .output()
+            {
+                let ver = String::from_utf8_lossy(&output.stdout);
+                let ver = ver.trim();
+                // Extract just the version number from "Microsoft Windows [Version 10.0.26200.5516]"
+                if let Some(start) = ver.find("Version ") {
+                    let rest = &ver[start + 8..];
+                    if let Some(end) = rest.find(']') {
+                        info.os_version = rest[..end].to_string();
+                    }
+                } else if !ver.is_empty() {
+                    info.os_version = ver.to_string();
+                }
+            }
+        }
+        #[cfg(target_os = "macos")]
+        {
+            use std::process::Command;
+            if let Ok(output) = Command::new("sw_vers")
+                .arg("-productVersion")
+                .output()
+            {
+                let ver = String::from_utf8_lossy(&output.stdout);
+                let ver = ver.trim();
+                if !ver.is_empty() {
+                    info.os_version = ver.to_string();
+                }
+            }
+        }
+        #[cfg(target_os = "linux")]
+        {
+            if let Ok(content) = std::fs::read_to_string("/etc/os-release") {
+                for line in content.lines() {
+                    if let Some(val) = line.strip_prefix("PRETTY_NAME=") {
+                        info.os_version = val.trim_matches('"').to_string();
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(info)
 }
 
 // ── Project attach ──────────────────────────────────────────────

@@ -32,6 +32,10 @@ impl RpcClient {
         Self::new("127.0.0.1", DEFAULT_PORT)
     }
 
+    pub fn is_local(&self) -> bool {
+        self.host == "127.0.0.1" || self.host == "localhost" || self.host == "::1"
+    }
+
     pub async fn connection_state(&self) -> ConnectionState {
         self.state.lock().await.clone()
     }

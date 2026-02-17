@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { usePreferencesStore } from "../stores/preferences";
 import type { GlobalPreferences } from "../types/boinc";
 import PrefNumericInput from "./PrefNumericInput.vue";
@@ -17,6 +17,12 @@ const showProxy = ref(false);
 const showExclusiveApps = ref(false);
 const showLogFlags = ref(false);
 const dayEnabled = ref<boolean[]>([false, false, false, false, false, false, false]);
+const originalSnapshot = ref("");
+
+const hasChanges = computed(() => {
+  if (!form.value) return false;
+  return JSON.stringify(form.value) !== originalSnapshot.value;
+});
 
 watch(
   () => props.open,
@@ -38,7 +44,9 @@ watch(
 
 function initForm(prefs: GlobalPreferences) {
   // Deep clone to avoid mutating store state (day_prefs is an array of objects)
-  form.value = JSON.parse(JSON.stringify(prefs));
+  const snapshot = JSON.stringify(prefs);
+  form.value = JSON.parse(snapshot);
+  originalSnapshot.value = snapshot;
   // Initialize dayEnabled from existing day_prefs
   const enabled = [false, false, false, false, false, false, false];
   if (form.value!.day_prefs) {
@@ -167,7 +175,6 @@ async function save() {
                 :min="0"
                 :max="1"
                 :step="0.05"
-                zero-label="Default"
               />
               <PrefNumericInput
                 v-model="form.ram_max_used_idle_frac"
@@ -176,7 +183,6 @@ async function save() {
                 :min="0"
                 :max="1"
                 :step="0.05"
-                zero-label="Default"
               />
               <PrefNumericInput
                 v-model="form.start_hour"
@@ -223,7 +229,6 @@ async function save() {
                 field="work_buf_additional_days"
                 :min="0"
                 :step="0.1"
-                zero-label="Default"
               />
               <PrefNumericInput
                 v-model="form.cpu_scheduling_period_minutes"
@@ -231,7 +236,6 @@ async function save() {
                 field="cpu_scheduling_period_minutes"
                 :min="0"
                 :step="1"
-                zero-label="Default"
               />
             </div>
 
@@ -306,7 +310,6 @@ async function save() {
                 field="disk_min_free_gb"
                 :min="0"
                 :step="0.1"
-                zero-label="Default"
               />
               <PrefNumericInput
                 v-model="form.work_buf_min_days"
@@ -314,7 +317,6 @@ async function save() {
                 field="work_buf_min_days"
                 :min="0"
                 :step="0.1"
-                zero-label="Default"
               />
             </div>
 
@@ -398,7 +400,7 @@ async function save() {
 
           <div class="prefs-footer">
             <button class="btn" @click="emit('close')">Cancel</button>
-            <button class="btn btn-primary" :disabled="store.saving" @click="save">
+            <button class="btn btn-primary" :disabled="store.saving || !hasChanges" @click="save">
               {{ store.saving ? "Saving..." : "Save" }}
             </button>
           </div>
@@ -582,7 +584,7 @@ async function save() {
 .day-toggle input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: var(--color-accent);
+  top: 0;
 }
 
 .day-name {
@@ -620,7 +622,14 @@ async function save() {
   width: 28px;
 }
 
+.schedule-input::-webkit-inner-spin-button,
+.schedule-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .schedule-input {
+  -moz-appearance: textfield;
   width: 56px;
   padding: 4px 6px;
   border: 1px solid var(--color-border);

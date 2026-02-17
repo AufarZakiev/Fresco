@@ -338,12 +338,12 @@ function isColVisible(key: string): boolean {
 .col-checkbox {
   width: 36px;
   text-align: center;
+  vertical-align: middle;
 }
 
 .col-checkbox input[type="checkbox"] {
   width: 15px;
   height: 15px;
-  accent-color: var(--color-accent);
 }
 
 .col-name {

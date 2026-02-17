@@ -35,11 +35,22 @@ function load(): ManagerSettings {
   return { ...defaults };
 }
 
-function applyTheme(theme: ManagerSettings["theme"]) {
+async function applyTheme(theme: ManagerSettings["theme"]) {
   if (theme === "system") {
     delete document.documentElement.dataset.theme;
   } else {
     document.documentElement.dataset.theme = theme;
+  }
+  try {
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    const win = getCurrentWindow();
+    if (theme === "system") {
+      await win.setTheme(null);
+    } else {
+      await win.setTheme(theme);
+    }
+  } catch {
+    // Not in Tauri environment
   }
 }
 

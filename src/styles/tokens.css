@@ -64,6 +64,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
+
     /* Palette */
     --color-bg: #1a1a2e;
     --color-bg-secondary: #16213e;
@@ -95,6 +97,8 @@
 
 /* Manual light override (when OS is dark but user picks Light) */
 [data-theme="light"] {
+  color-scheme: light;
+
   --color-bg: #ffffff;
   --color-bg-secondary: #f9fafb;
   --color-bg-tertiary: #f3f4f6;
@@ -123,6 +127,8 @@
 
 /* Manual dark override (when OS is light but user picks Dark) */
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --color-bg: #1a1a2e;
   --color-bg-secondary: #16213e;
   --color-bg-tertiary: #0f3460;
@@ -147,4 +153,63 @@
     0 2px 4px -2px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5),
     0 4px 6px -4px rgba(0, 0, 0, 0.4);
+}
+
+/* Custom checkbox styling for dark mode compatibility */
+/* macOS-style thin scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-text-tertiary);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--color-text-tertiary);
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  top: 3px;
+  flex-shrink: 0;
+}
+
+input[type="checkbox"]:checked {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -50%) rotate(45deg);
 }

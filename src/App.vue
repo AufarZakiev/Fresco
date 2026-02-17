@@ -27,6 +27,7 @@ import { useMessagesStore } from "./stores/messages";
 import { useNoticesStore } from "./stores/notices";
 import { useDiskUsageStore } from "./stores/diskUsage";
 import { usePreferencesStore } from "./stores/preferences";
+import { useManagerSettingsStore } from "./stores/managerSettings";
 import {
   setRunMode,
   setGpuMode,
@@ -48,6 +49,7 @@ const messagesStore = useMessagesStore();
 const noticesStore = useNoticesStore();
 const diskUsageStore = useDiskUsageStore();
 const preferencesStore = usePreferencesStore();
+useManagerSettingsStore(); // Initialize early to apply theme before ConnectView renders
 const showPreferences = ref(false);
 const showAbout = ref(false);
 const showAcctMgr = ref(false);
@@ -440,6 +442,11 @@ body {
 .btn-primary:hover {
   background: var(--color-accent-hover);
   border-color: var(--color-accent-hover);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .btn-danger {

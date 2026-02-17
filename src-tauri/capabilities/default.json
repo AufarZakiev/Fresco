@@ -8,6 +8,7 @@
     "opener:default",
     "core:tray:default",
     "notification:default",
-    "process:default"
+    "process:default",
+    "core:window:allow-set-theme"
   ]
 }
