@@ -23,9 +23,15 @@ The goal is to reach full functional parity with the standard BOINC Manager.
 - System tray with status indicator
 - Cross-platform (Windows, macOS, Linux)
 
+## Prerequisites
+
+Fresco is a manager UI only — it requires the **standard BOINC client** to be installed on your system. Install it from [boinc.berkeley.edu](https://boinc.berkeley.edu/download.php) if you haven't already.
+
+Fresco will automatically find and start the BOINC client if it is installed in the default location. No additional configuration is needed.
+
 ## Installation
 
-Download the latest release from the [Releases](https://github.com/AufarZakiev/Fresco/releases) page.
+Download the latest release from the [Releases](https://github.com/AufarZakiev/Fresco/releases) page. Fresco is a single portable binary — no installer required.
 
 ## License
 
