@@ -198,5 +198,5 @@ jobs:
           gh release create latest release/* \
             --title "Release $(date -u +'%Y-%m-%d %H:%M UTC')" \
             --notes "build_time:${{ needs.lint.outputs.build_time }}" \
-            --latest
-          gh release edit latest --draft=false
+            --latest \
+            --draft=false

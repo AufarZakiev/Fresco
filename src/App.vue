@@ -57,6 +57,7 @@ const showAddProject = ref(false);
 const prefsInitialTab = ref<"computing" | "manager">("computing");
 const showExitConfirm = ref(false);
 const initializing = ref(true);
+const loadingStatus = ref("Connecting to a local BOINC...");
 const sidebarOpen = ref(false);
 const hasSidebar = computed(
   () => connection.state === CONNECTION_STATE.CONNECTED || connection.state === CONNECTION_STATE.RECONNECTING,
@@ -89,12 +90,15 @@ function startAllPolling() {
 
 async function autoConnect() {
   const dataDir = defaultDataDir();
+  loadingStatus.value = "Connecting to a local BOINC...";
   await connection.connectToLocal(dataDir);
 
   // If connection failed with a non-auth error, try auto-starting BOINC
   if (connection.state !== CONNECTION_STATE.CONNECTED && connection.state !== CONNECTION_STATE.AUTH_ERROR) {
+    loadingStatus.value = "BOINC not running, trying to start it...";
     try {
       await startBoincClient(dataDir);
+      loadingStatus.value = "BOINC started, connecting...";
       await connection.connectToLocal(dataDir);
     } catch {
       // BOINC not installed or failed to start — fall back to ConnectView
@@ -256,7 +260,7 @@ watch(
     <div class="loading-content">
       <span class="loading-logo">Fresco</span>
       <div class="loading-spinner"></div>
-      <span class="loading-text">Connecting to a local BOINC...</span>
+      <span class="loading-text">{{ loadingStatus }}</span>
       <button class="btn loading-cancel" @click="cancelAutoConnect">Cancel</button>
     </div>
   </div>
