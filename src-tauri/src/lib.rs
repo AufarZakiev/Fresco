@@ -737,44 +737,70 @@ async fn get_daily_xfer_history(
 
 // ── BOINC client launcher ────────────────────────────────────────
 
-#[tauri::command]
-async fn start_boinc_client(data_dir: String) -> Result<(), String> {
-    let exe_path = if cfg!(target_os = "windows") {
-        r"C:\Program Files\BOINC\boinc.exe".to_string()
-    } else if cfg!(target_os = "macos") {
-        "/Applications/BOINCManager.app/Contents/Resources/boinc".to_string()
-    } else {
-        "/usr/bin/boinc".to_string()
-    };
-
-    if !std::path::Path::new(&exe_path).exists() {
-        return Err(format!("BOINC client not found at {exe_path}"));
-    }
-
-    let mut cmd = std::process::Command::new(&exe_path);
-    cmd.arg("--dir")
-        .arg(&data_dir)
-        .arg("--redirectio");
-
-    // On Windows, --daemon causes BOINC to skip GPU detection entirely,
-    // so use CREATE_NO_WINDOW instead to hide the console.
-    // On other platforms, --daemon is needed to detach from the terminal.
+fn is_boinc_running() -> bool {
     #[cfg(target_os = "windows")]
     {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        let output = std::process::Command::new("tasklist")
+            .args(["/FI", "IMAGENAME eq boinc.exe", "/NH", "/FO", "CSV"])
+            .output();
+        match output {
+            Ok(o) => String::from_utf8_lossy(&o.stdout).contains("boinc.exe"),
+            Err(_) => false,
+        }
     }
-
     #[cfg(not(target_os = "windows"))]
     {
-        cmd.arg("--daemon");
+        let output = std::process::Command::new("pgrep")
+            .args(["-x", "boinc"])
+            .output();
+        matches!(output, Ok(o) if o.status.success())
+    }
+}
+
+#[tauri::command]
+async fn start_boinc_client(data_dir: String) -> Result<(), String> {
+    let already_running = is_boinc_running();
+
+    if !already_running {
+        let exe_path = if cfg!(target_os = "windows") {
+            r"C:\Program Files\BOINC\boinc.exe".to_string()
+        } else if cfg!(target_os = "macos") {
+            "/Applications/BOINCManager.app/Contents/Resources/boinc".to_string()
+        } else {
+            "/usr/bin/boinc".to_string()
+        };
+
+        if !std::path::Path::new(&exe_path).exists() {
+            return Err(format!("BOINC client not found at {exe_path}"));
+        }
+
+        let mut cmd = std::process::Command::new(&exe_path);
+        cmd.arg("--dir")
+            .arg(&data_dir)
+            .arg("--redirectio");
+
+        // On Windows, --daemon causes BOINC to skip GPU detection entirely,
+        // so use CREATE_NO_WINDOW instead to hide the console.
+        // On other platforms, --daemon is needed to detach from the terminal.
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            cmd.arg("--daemon");
+        }
+
+        cmd.spawn()
+            .map_err(|e| format!("Failed to start BOINC client: {e}"))?;
     }
 
-    cmd.spawn()
-        .map_err(|e| format!("Failed to start BOINC client: {e}"))?;
-
-    // Poll port 31416 until it responds or timeout after 15s
-    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(15);
+    // BOINC startup is slow: GPU detection ~80s, Docker detection ~40s.
+    // Wait longer if already running (may be further from finishing init).
+    let timeout_secs = if already_running { 300 } else { 180 };
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(timeout_secs);
     loop {
         if tokio::net::TcpStream::connect("127.0.0.1:31416")
             .await
@@ -783,7 +809,9 @@ async fn start_boinc_client(data_dir: String) -> Result<(), String> {
             return Ok(());
         }
         if tokio::time::Instant::now() >= deadline {
-            return Err("BOINC client started but not responding on port 31416 after 15s".to_string());
+            return Err(format!(
+                "BOINC client not responding on port 31416 after {timeout_secs}s"
+            ));
         }
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
     }

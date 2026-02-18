@@ -95,7 +95,7 @@ async function autoConnect() {
 
   // If connection failed with a non-auth error, try auto-starting BOINC
   if (connection.state !== CONNECTION_STATE.CONNECTED && connection.state !== CONNECTION_STATE.AUTH_ERROR) {
-    loadingStatus.value = "BOINC not running, trying to start it...";
+    loadingStatus.value = "Starting BOINC, this may take a while...";
     try {
       await startBoincClient(dataDir);
       loadingStatus.value = "BOINC started, connecting...";
@@ -110,7 +110,6 @@ async function autoConnect() {
   if (connection.state === CONNECTION_STATE.CONNECTED) {
     startAllPolling();
     router.push("/tasks");
-    doUpdateCheck();
     invoke("cleanup_old_binary").catch(() => {});
   } else {
     // Auto-connect failed — show ConnectView
@@ -131,6 +130,7 @@ const unlisteners: UnlistenFn[] = [];
 
 onMounted(async () => {
   document.addEventListener("contextmenu", (e) => e.preventDefault());
+  doUpdateCheck();
   autoConnect();
 
   try {
