@@ -366,6 +366,10 @@ export async function getGlobalPrefsWorking(): Promise<GlobalPreferences> {
   return invoke("get_global_prefs_working");
 }
 
+export async function getGlobalPrefsFile(): Promise<GlobalPreferences> {
+  return invoke("get_global_prefs_file");
+}
+
 // ── Language ────────────────────────────────────────────────────
 
 export async function setLanguage(lang: string): Promise<void> {

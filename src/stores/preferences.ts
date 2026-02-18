@@ -4,27 +4,32 @@ import {
   getPreferences,
   setPreferences as setPrefsRpc,
   getGlobalPrefsWorking,
+  getGlobalPrefsFile,
 } from "../composables/useRpc";
 import type { GlobalPreferences } from "../types/boinc";
 
 export const usePreferencesStore = defineStore("preferences", () => {
   const prefs = ref<GlobalPreferences | null>(null);
   const workingPrefs = ref<GlobalPreferences | null>(null);
+  const filePrefs = ref<GlobalPreferences | null>(null);
   const loading = ref(false);
   const saving = ref(false);
   const error = ref<string | null>(null);
   const prefetched = ref(false);
+  const activePopoverField = ref<keyof GlobalPreferences | null>(null);
 
   async function fetchPreferences() {
     loading.value = true;
     error.value = null;
     try {
-      const [overridePrefs, effectivePrefs] = await Promise.all([
+      const [overridePrefs, effectivePrefs, filePrefResult] = await Promise.all([
         getPreferences(),
         getGlobalPrefsWorking(),
+        getGlobalPrefsFile().catch(() => null),
       ]);
       prefs.value = overridePrefs;
       workingPrefs.value = effectivePrefs;
+      filePrefs.value = filePrefResult;
       prefetched.value = true;
     } catch (e) {
       error.value = String(e);
@@ -38,12 +43,14 @@ export const usePreferencesStore = defineStore("preferences", () => {
     if (prefetched.value) return;
     error.value = null;
     try {
-      const [overridePrefs, effectivePrefs] = await Promise.all([
+      const [overridePrefs, effectivePrefs, filePrefResult] = await Promise.all([
         getPreferences(),
         getGlobalPrefsWorking(),
+        getGlobalPrefsFile().catch(() => null),
       ]);
       prefs.value = overridePrefs;
       workingPrefs.value = effectivePrefs;
+      filePrefs.value = filePrefResult;
       prefetched.value = true;
     } catch {
       // Silent failure — dialog will fetch on open if needed
@@ -54,6 +61,13 @@ export const usePreferencesStore = defineStore("preferences", () => {
   function getEffectiveValue(field: keyof GlobalPreferences): number | null {
     if (!workingPrefs.value) return null;
     const val = workingPrefs.value[field];
+    return typeof val === "number" ? val : null;
+  }
+
+  /** Get the project/account-manager default value for a numeric field. */
+  function getFileValue(field: keyof GlobalPreferences): number | null {
+    if (!filePrefs.value) return null;
+    const val = filePrefs.value[field];
     return typeof val === "number" ? val : null;
   }
 
@@ -79,13 +93,16 @@ export const usePreferencesStore = defineStore("preferences", () => {
   return {
     prefs,
     workingPrefs,
+    filePrefs,
     loading,
     saving,
     error,
     prefetched,
+    activePopoverField,
     fetchPreferences,
     prefetch,
     getEffectiveValue,
+    getFileValue,
     savePreferences,
   };
 });

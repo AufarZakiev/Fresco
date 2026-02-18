@@ -155,11 +155,15 @@ async function save() {
             <div v-if="activeTab === 'computing'" class="prefs-section">
               <label class="pref-row">
                 <span>Run on batteries</span>
-                <input v-model="form.run_on_batteries" type="checkbox" />
+                <span class="toggle-switch" :class="{ on: form.run_on_batteries }" @click.prevent="form.run_on_batteries = !form.run_on_batteries">
+                  <span class="toggle-knob" />
+                </span>
               </label>
               <label class="pref-row">
                 <span>Run if user is active</span>
-                <input v-model="form.run_if_user_active" type="checkbox" />
+                <span class="toggle-switch" :class="{ on: form.run_if_user_active }" @click.prevent="form.run_if_user_active = !form.run_if_user_active">
+                  <span class="toggle-knob" />
+                </span>
               </label>
               <PrefNumericInput
                 v-model="form.idle_time_to_run"
@@ -234,7 +238,9 @@ async function save() {
               />
               <label class="pref-row">
                 <span>Leave apps in memory</span>
-                <input v-model="form.leave_apps_in_memory" type="checkbox" />
+                <span class="toggle-switch" :class="{ on: form.leave_apps_in_memory }" @click.prevent="form.leave_apps_in_memory = !form.leave_apps_in_memory">
+                  <span class="toggle-knob" />
+                </span>
               </label>
               <PrefNumericInput
                 v-model="form.work_buf_additional_days"
@@ -490,7 +496,8 @@ async function save() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 0;
+  height: 42px;
+  padding: 0;
   border-bottom: 1px solid var(--color-border-light);
   font-size: var(--font-size-md);
   color: var(--color-text-primary);
@@ -501,10 +508,36 @@ async function save() {
   border-bottom: none;
 }
 
-.pref-row input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--color-accent);
+.toggle-switch {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--color-text-tertiary);
+  opacity: 0.4;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.toggle-switch.on {
+  background: var(--color-accent);
+  opacity: 1;
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  transition: left 0.2s;
+}
+
+.toggle-switch.on .toggle-knob {
+  left: 18px;
 }
 
 .prefs-error {

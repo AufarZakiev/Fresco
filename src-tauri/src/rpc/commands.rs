@@ -424,6 +424,11 @@ impl RpcClient {
         Ok(xml_parse::parse_global_preferences(&xml))
     }
 
+    pub async fn get_global_prefs_file(&self) -> Result<GlobalPreferences, String> {
+        let xml = self.rpc_call("<get_global_prefs_file/>").await?;
+        Ok(xml_parse::parse_global_preferences(&xml))
+    }
+
     // ── Language ────────────────────────────────────────────────
 
     pub async fn set_language(&self, lang: &str) -> Result<(), String> {

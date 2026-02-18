@@ -192,8 +192,6 @@ input[type="checkbox"] {
   border-radius: 3px;
   background: transparent;
   cursor: pointer;
-  position: relative;
-  top: 3px;
   flex-shrink: 0;
 }
 

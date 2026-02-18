@@ -661,6 +661,15 @@ async fn get_global_prefs_working(
     client.get_global_prefs_working().await
 }
 
+#[tauri::command]
+async fn get_global_prefs_file(
+    state: State<'_, AppState>,
+) -> Result<GlobalPreferences, String> {
+    let guard = state.client.lock().await;
+    let client = guard.as_ref().ok_or("Not connected")?;
+    client.get_global_prefs_file().await
+}
+
 // ── Language ────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -967,6 +976,7 @@ pub fn run() {
             read_global_prefs_override,
             read_cc_config,
             get_global_prefs_working,
+            get_global_prefs_file,
             set_language,
             get_project_init_status,
             project_attach_from_file,
