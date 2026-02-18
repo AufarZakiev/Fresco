@@ -3,9 +3,12 @@ import { ref, computed, watch } from "vue";
 import { usePreferencesStore } from "../stores/preferences";
 import type { GlobalPreferences } from "../types/boinc";
 import PrefNumericInput from "./PrefNumericInput.vue";
+import PrefTimeInput from "./PrefTimeInput.vue";
 import ProxySettingsDialog from "./ProxySettingsDialog.vue";
 import ExclusiveAppsDialog from "./ExclusiveAppsDialog.vue";
 import LogFlagsDialog from "./LogFlagsDialog.vue";
+import TimeRangeSlider from "./TimeRangeSlider.vue";
+import { decimalHoursToTimeString } from "../utils/timeConversion";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
@@ -84,6 +87,22 @@ function toggleDay(dayOfWeek: number, enabled: boolean) {
   }
 }
 
+function fmtRange(start: number, end: number): string {
+  if (start === 0 && end === 0) return "All day";
+  return `${decimalHoursToTimeString(start)} – ${decimalHoursToTimeString(end)}`;
+}
+
+function defaultBadge(): string {
+  if (!form.value) return "Uses default";
+  const cpu = fmtRange(form.value.start_hour, form.value.end_hour);
+  const net = fmtRange(form.value.net_start_hour, form.value.net_end_hour);
+  return `CPU ${cpu} · Net ${net}`;
+}
+
+function setDayField(dayOfWeek: number, field: "start_hour" | "end_hour" | "net_start_hour" | "net_end_hour", value: number) {
+  getDayPref(dayOfWeek)[field] = value;
+}
+
 async function save() {
   if (!form.value) return;
   await store.savePreferences(form.value);
@@ -95,7 +114,7 @@ async function save() {
 
 <template>
   <Teleport to="body">
-    <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
+    <div v-if="open" class="dialog-overlay">
       <div class="prefs-dialog">
         <div class="prefs-header">
           <h3>Preferences</h3>
@@ -184,22 +203,16 @@ async function save() {
                 :max="1"
                 :step="0.05"
               />
-              <PrefNumericInput
+              <PrefTimeInput
                 v-model="form.start_hour"
                 label="Computing start hour"
                 field="start_hour"
-                :min="0"
-                :max="24"
-                :step="0.5"
                 zero-label="All day"
               />
-              <PrefNumericInput
+              <PrefTimeInput
                 v-model="form.end_hour"
                 label="Computing end hour"
                 field="end_hour"
-                :min="0"
-                :max="24"
-                :step="0.5"
                 zero-label="All day"
               />
               <PrefNumericInput
@@ -265,22 +278,16 @@ async function save() {
                 :step="100"
                 zero-label="No limit"
               />
-              <PrefNumericInput
+              <PrefTimeInput
                 v-model="form.net_start_hour"
                 label="Network start hour"
                 field="net_start_hour"
-                :min="0"
-                :max="24"
-                :step="0.5"
                 zero-label="All day"
               />
-              <PrefNumericInput
+              <PrefTimeInput
                 v-model="form.net_end_hour"
                 label="Network end hour"
                 field="net_end_hour"
-                :min="0"
-                :max="24"
-                :step="0.5"
                 zero-label="All day"
               />
             </div>
@@ -334,53 +341,23 @@ async function save() {
                       />
                       <span class="day-name">{{ day }}</span>
                     </label>
-                    <span v-if="!dayEnabled[i]" class="uses-default-badge">Uses default</span>
+                    <span v-if="!dayEnabled[i]" class="uses-default-badge">{{ defaultBadge() }}</span>
                   </div>
                   <div v-if="dayEnabled[i]" class="schedule-day-fields">
-                    <div class="schedule-field-group">
-                      <span class="schedule-field-label">CPU</span>
-                      <input
-                        v-model.number="getDayPref(i).start_hour"
-                        type="number"
-                        min="0"
-                        max="24"
-                        step="0.5"
-                        class="schedule-input"
-                        placeholder="Start"
-                      />
-                      <span class="schedule-sep">–</span>
-                      <input
-                        v-model.number="getDayPref(i).end_hour"
-                        type="number"
-                        min="0"
-                        max="24"
-                        step="0.5"
-                        class="schedule-input"
-                        placeholder="End"
-                      />
-                    </div>
-                    <div class="schedule-field-group">
-                      <span class="schedule-field-label">Net</span>
-                      <input
-                        v-model.number="getDayPref(i).net_start_hour"
-                        type="number"
-                        min="0"
-                        max="24"
-                        step="0.5"
-                        class="schedule-input"
-                        placeholder="Start"
-                      />
-                      <span class="schedule-sep">–</span>
-                      <input
-                        v-model.number="getDayPref(i).net_end_hour"
-                        type="number"
-                        min="0"
-                        max="24"
-                        step="0.5"
-                        class="schedule-input"
-                        placeholder="End"
-                      />
-                    </div>
+                    <TimeRangeSlider
+                      :start-hour="getDayPref(i).start_hour"
+                      :end-hour="getDayPref(i).end_hour"
+                      label="CPU"
+                      @update:start-hour="setDayField(i, 'start_hour', $event)"
+                      @update:end-hour="setDayField(i, 'end_hour', $event)"
+                    />
+                    <TimeRangeSlider
+                      :start-hour="getDayPref(i).net_start_hour"
+                      :end-hour="getDayPref(i).net_end_hour"
+                      label="Net"
+                      @update:start-hour="setDayField(i, 'net_start_hour', $event)"
+                      @update:end-hour="setDayField(i, 'net_end_hour', $event)"
+                    />
                   </div>
                 </div>
               </div>
@@ -603,46 +580,10 @@ async function save() {
 
 .schedule-day-fields {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 6px;
   margin-top: 8px;
   padding-left: 24px;
-}
-
-.schedule-field-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.schedule-field-label {
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--color-text-tertiary);
-  text-transform: uppercase;
-  width: 28px;
-}
-
-.schedule-input::-webkit-inner-spin-button,
-.schedule-input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.schedule-input {
-  -moz-appearance: textfield;
-  width: 56px;
-  padding: 4px 6px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  text-align: right;
-  background: var(--color-bg);
-  color: var(--color-text-primary);
-}
-
-.schedule-sep {
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-sm);
 }
 
 .advanced-group {
