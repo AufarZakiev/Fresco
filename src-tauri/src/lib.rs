@@ -985,6 +985,7 @@ pub fn run() {
             get_daily_xfer_history,
             get_build_time,
             updater::download_update,
+            updater::install_update,
             updater::cleanup_old_binary,
         ])
         .run(tauri::generate_context!())

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import { useUpdateCheck } from "../composables/useUpdateCheck";
+import { useUpdateCheck, startBackgroundDownload } from "../composables/useUpdateCheck";
 
-const { releaseDate, assetUrl, updateOnExit, dismissUpdate } = useUpdateCheck();
+const { releaseDate, assetUrl, updateOnExit, downloaded, dismissUpdate } = useUpdateCheck();
 const updating = ref(false);
 const updateError = ref("");
 
@@ -29,7 +29,10 @@ async function updateNow() {
   updating.value = true;
   updateError.value = "";
   try {
-    await invoke("download_update", { assetUrl: assetUrl.value });
+    if (!downloaded.value) {
+      await invoke("download_update", { assetUrl: assetUrl.value });
+    }
+    await invoke("install_update");
     const { relaunch } = await import("@tauri-apps/plugin-process");
     await relaunch();
   } catch (e) {
@@ -40,6 +43,7 @@ async function updateNow() {
 
 function setUpdateOnExit() {
   updateOnExit.value = true;
+  startBackgroundDownload();
   dismissUpdate();
 }
 </script>

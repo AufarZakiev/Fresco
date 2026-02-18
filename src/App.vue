@@ -64,7 +64,7 @@ const hasSidebar = computed(
 let autoConnectCancelled = false;
 
 useWindowState();
-const { updateAvailable, dismissed, assetUrl, updateOnExit, checkForUpdates: doUpdateCheck } = useUpdateCheck();
+const { updateAvailable, dismissed, updateOnExit, downloaded, downloading, checkForUpdates: doUpdateCheck } = useUpdateCheck();
 
 // ── Auto-connect to local BOINC client on startup ───────────────
 
@@ -173,14 +173,14 @@ async function doExit(doShutdownClient: boolean) {
   } catch {
     // ignore
   }
-  if (updateOnExit.value && assetUrl.value) {
+  if (updateOnExit.value && downloaded.value && !downloading.value) {
     try {
-      await invoke("download_update", { assetUrl: assetUrl.value });
+      await invoke("install_update");
       const { relaunch } = await import("@tauri-apps/plugin-process");
       await relaunch();
       return;
     } catch {
-      // Update failed — exit normally
+      // Install failed — exit normally
     }
   }
   try {

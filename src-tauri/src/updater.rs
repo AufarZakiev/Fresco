@@ -55,23 +55,29 @@ pub async fn download_update(asset_url: String) -> Result<(), String> {
             .output();
     }
 
-    // Replace the current binary
-    let old_path = exe_path.with_extension("old");
+    Ok(())
+}
 
-    // Remove any previous .old file
+#[tauri::command]
+pub fn install_update() -> Result<(), String> {
+    let exe_path = current_exe_path()?;
+    let update_path = exe_path.with_extension("update");
+
+    if !update_path.exists() {
+        return Err("No update file found".into());
+    }
+
+    let old_path = exe_path.with_extension("old");
     let _ = std::fs::remove_file(&old_path);
 
-    // Rename current -> .old
+    // current -> .old
     std::fs::rename(&exe_path, &old_path).map_err(|e| {
-        format!(
-            "Failed to rename current binary. Is it in a writable location? Error: {e}"
-        )
+        format!("Failed to rename current binary: {e}")
     })?;
 
-    // Rename update -> current
+    // .update -> current
     if let Err(e) = std::fs::rename(&update_path, &exe_path) {
-        // Try to restore the original binary
-        let _ = std::fs::rename(&old_path, &exe_path);
+        let _ = std::fs::rename(&old_path, &exe_path); // rollback
         return Err(format!("Failed to install update: {e}"));
     }
 

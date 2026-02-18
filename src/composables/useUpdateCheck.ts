@@ -30,6 +30,9 @@ const checking = ref(false);
 const error = ref("");
 const dismissed = ref(false);
 const updateOnExit = ref(false);
+const downloading = ref(false);
+const downloaded = ref(false);
+const downloadError = ref("");
 
 function getPlatformAssetPattern(): string {
   const platform = navigator.platform.toLowerCase();
@@ -141,6 +144,20 @@ export async function checkForUpdates(force = false) {
   }
 }
 
+export async function startBackgroundDownload() {
+  if (downloading.value || downloaded.value || !assetUrl.value) return;
+  downloading.value = true;
+  downloadError.value = "";
+  try {
+    await invoke("download_update", { assetUrl: assetUrl.value });
+    downloaded.value = true;
+  } catch (e) {
+    downloadError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    downloading.value = false;
+  }
+}
+
 export function dismissUpdate() {
   dismissed.value = true;
   try {
@@ -161,7 +178,11 @@ export function useUpdateCheck() {
     error,
     dismissed,
     updateOnExit,
+    downloading,
+    downloaded,
+    downloadError,
     checkForUpdates,
     dismissUpdate,
+    startBackgroundDownload,
   };
 }
