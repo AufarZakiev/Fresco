@@ -11,7 +11,6 @@ import StatusBar from "./components/StatusBar.vue";
 import AccountManagerWizard from "./components/AccountManagerWizard.vue";
 import SelectComputerDialog from "./components/SelectComputerDialog.vue";
 import ProjectAttachWizard from "./components/ProjectAttachWizard.vue";
-import ManagerOptionsDialog from "./components/ManagerOptionsDialog.vue";
 import ExitConfirmDialog from "./components/ExitConfirmDialog.vue";
 import ToastContainer from "./components/ToastContainer.vue";
 import UpdateBanner from "./components/UpdateBanner.vue";
@@ -55,7 +54,7 @@ const showAbout = ref(false);
 const showAcctMgr = ref(false);
 const showSelectComputer = ref(false);
 const showAddProject = ref(false);
-const showManagerOptions = ref(false);
+const prefsInitialTab = ref<"computing" | "manager">("computing");
 const showExitConfirm = ref(false);
 const initializing = ref(true);
 const sidebarOpen = ref(false);
@@ -340,19 +339,9 @@ watch(
               <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
             </svg>
           </button>
-          <button class="sidebar-action-btn" title="Preferences" @click="showPreferences = true">
+          <button class="sidebar-action-btn" title="Preferences" @click="prefsInitialTab = 'computing'; showPreferences = true">
             <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
               <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
-            </svg>
-          </button>
-          <button class="sidebar-action-btn" title="Options" @click="showManagerOptions = true">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-              <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
-            </svg>
-          </button>
-          <button class="sidebar-action-btn" title="About" @click="showAbout = true">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
             </svg>
           </button>
         </div>
@@ -363,10 +352,11 @@ watch(
       <router-view />
     </main>
 
-    <StatusBar v-if="hasSidebar" />
+    <StatusBar v-if="hasSidebar" @show-about="showAbout = true" />
 
     <PreferencesDialog
       :open="showPreferences"
+      :initial-tab="prefsInitialTab"
       @close="showPreferences = false"
     />
     <AboutDialog :open="showAbout" @close="showAbout = false" />
@@ -381,10 +371,6 @@ watch(
     <ProjectAttachWizard
       :open="showAddProject"
       @close="showAddProject = false"
-    />
-    <ManagerOptionsDialog
-      :open="showManagerOptions"
-      @close="showManagerOptions = false"
     />
     <ExitConfirmDialog
       :open="showExitConfirm"
@@ -563,7 +549,7 @@ input, textarea, select {
 
 .sidebar-actions {
   display: flex;
-  gap: 4px;
+  justify-content: space-between;
   margin-top: 8px;
 }
 

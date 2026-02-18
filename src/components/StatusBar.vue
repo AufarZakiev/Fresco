@@ -4,24 +4,8 @@ import { useConnectionStore } from "../stores/connection";
 import { useClientStore } from "../stores/client";
 import { getSuspendReasonText } from "../composables/useSuspendReasons";
 import { CONNECTION_STATE } from "../types/boinc";
-import { useUpdateCheck } from "../composables/useUpdateCheck";
 
-const { buildTime } = useUpdateCheck();
-
-const buildLabel = computed(() => {
-  if (!buildTime.value || buildTime.value === "dev") return "dev";
-  try {
-    return new Date(buildTime.value).toLocaleString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return buildTime.value;
-  }
-});
+const emit = defineEmits<{ "show-about": [] }>();
 
 const connection = useConnectionStore();
 const client = useClientStore();
@@ -72,9 +56,11 @@ const statusText = computed(() => {
       </span>
     </div>
 
-    <div class="status-section">
-      <span>{{ buildLabel }}</span>
-    </div>
+    <button class="about-btn" title="About" @click="emit('show-about')">
+      <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -134,6 +120,25 @@ const statusText = computed(() => {
 .suspend-text {
   color: var(--color-warning);
   font-weight: 500;
+}
+
+.about-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  padding: 0;
+}
+
+.about-btn:hover {
+  color: var(--color-text-primary);
 }
 
 @media (max-width: 767px) {

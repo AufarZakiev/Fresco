@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { usePreferencesStore } from "../stores/preferences";
+import { useManagerSettingsStore } from "../stores/managerSettings";
 import type { GlobalPreferences } from "../types/boinc";
 import PrefNumericInput from "./PrefNumericInput.vue";
 import PrefTimeInput from "./PrefTimeInput.vue";
@@ -10,11 +11,17 @@ import LogFlagsDialog from "./LogFlagsDialog.vue";
 import TimeRangeSlider from "./TimeRangeSlider.vue";
 import { decimalHoursToTimeString } from "../utils/timeConversion";
 
-const props = defineProps<{ open: boolean }>();
+type TabName = "computing" | "network" | "storage" | "schedule" | "advanced" | "manager";
+
+const props = withDefaults(defineProps<{ open: boolean; initialTab?: TabName }>(), {
+  initialTab: "computing",
+});
 const emit = defineEmits<{ close: [] }>();
 
 const store = usePreferencesStore();
-const activeTab = ref<"computing" | "network" | "storage" | "schedule" | "advanced">("computing");
+const managerStore = useManagerSettingsStore();
+const activeTab = ref<TabName>("computing");
+const managerForm = ref({ ...managerStore.settings });
 const form = ref<GlobalPreferences | null>(null);
 const showProxy = ref(false);
 const showExclusiveApps = ref(false);
@@ -23,14 +30,17 @@ const dayEnabled = ref<boolean[]>([false, false, false, false, false, false, fal
 const originalSnapshot = ref("");
 
 const hasChanges = computed(() => {
-  if (!form.value) return false;
-  return JSON.stringify(form.value) !== originalSnapshot.value;
+  const prefsChanged = form.value && JSON.stringify(form.value) !== originalSnapshot.value;
+  const managerChanged = JSON.stringify(managerForm.value) !== JSON.stringify(managerStore.settings);
+  return prefsChanged || managerChanged;
 });
 
 watch(
   () => props.open,
   async (isOpen) => {
     if (isOpen) {
+      activeTab.value = props.initialTab;
+      managerForm.value = { ...managerStore.settings };
       if (store.prefetched && store.prefs) {
         // Data already cached — show instantly
         initForm(store.prefs);
@@ -104,7 +114,12 @@ function setDayField(dayOfWeek: number, field: "start_hour" | "end_hour" | "net_
 }
 
 async function save() {
-  if (!form.value) return;
+  // Always save manager settings
+  Object.assign(managerStore.settings, managerForm.value);
+  if (!form.value) {
+    emit("close");
+    return;
+  }
   await store.savePreferences(form.value);
   if (!store.error) {
     emit("close");
@@ -148,6 +163,7 @@ async function save() {
             </button>
             <button class="tab" :class="{ active: activeTab === 'schedule' }" @click="activeTab = 'schedule'">Schedule</button>
             <button class="tab" :class="{ active: activeTab === 'advanced' }" @click="activeTab = 'advanced'">Advanced</button>
+            <button class="tab" :class="{ active: activeTab === 'manager' }" @click="activeTab = 'manager'">Manager</button>
           </div>
 
           <div class="prefs-body">
@@ -377,6 +393,73 @@ async function save() {
                 <button class="btn" @click="showLogFlags = true">Log Flags &amp; Config...</button>
               </div>
             </div>
+
+            <!-- Manager tab -->
+            <div v-if="activeTab === 'manager'" class="prefs-section">
+              <div class="manager-row">
+                <span class="manager-label">Appearance</span>
+                <select v-model="managerForm.theme" class="manager-select">
+                  <option value="system">System</option>
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </div>
+
+              <div class="manager-row">
+                <span class="manager-label">Language</span>
+                <select v-model="managerForm.language" class="manager-select">
+                  <option value="auto">Auto-detect</option>
+                  <option value="en">English</option>
+                  <option value="de">Deutsch</option>
+                  <option value="fr">Français</option>
+                  <option value="es">Español</option>
+                  <option value="pt">Português</option>
+                  <option value="zh">中文</option>
+                  <option value="ja">日本語</option>
+                  <option value="ru">Русский</option>
+                </select>
+              </div>
+
+              <div class="manager-row">
+                <span class="manager-label">Notice reminder</span>
+                <select v-model="managerForm.reminderFrequency" class="manager-select">
+                  <option value="always">Every time</option>
+                  <option value="1h">Every hour</option>
+                  <option value="6h">Every 6 hours</option>
+                  <option value="1d">Once a day</option>
+                  <option value="1w">Once a week</option>
+                  <option value="never">Never</option>
+                </select>
+              </div>
+
+              <label class="pref-row">
+                <span>Show exit confirmation</span>
+                <span class="toggle-switch" :class="{ on: managerForm.showExitConfirmation }" @click.prevent="managerForm.showExitConfirmation = !managerForm.showExitConfirmation">
+                  <span class="toggle-knob" />
+                </span>
+              </label>
+
+              <label class="pref-row">
+                <span>Show shutdown confirmation</span>
+                <span class="toggle-switch" :class="{ on: managerForm.showShutdownConfirmation }" @click.prevent="managerForm.showShutdownConfirmation = !managerForm.showShutdownConfirmation">
+                  <span class="toggle-knob" />
+                </span>
+              </label>
+
+              <label class="pref-row">
+                <span>Minimize to tray on close</span>
+                <span class="toggle-switch" :class="{ on: managerForm.minimizeToTrayOnClose }" @click.prevent="managerForm.minimizeToTrayOnClose = !managerForm.minimizeToTrayOnClose">
+                  <span class="toggle-knob" />
+                </span>
+              </label>
+
+              <label class="pref-row">
+                <span>Start minimized to tray</span>
+                <span class="toggle-switch" :class="{ on: managerForm.startMinimizedToTray }" @click.prevent="managerForm.startMinimizedToTray = !managerForm.startMinimizedToTray">
+                  <span class="toggle-knob" />
+                </span>
+              </label>
+            </div>
           </div>
 
           <div v-if="store.error" class="prefs-error">{{ store.error }}</div>
@@ -411,7 +494,7 @@ async function save() {
 .prefs-dialog {
   background: var(--color-bg);
   border-radius: var(--radius-lg);
-  width: min(520px, 95vw);
+  width: min(580px, 95vw);
   max-height: 80vh;
   display: flex;
   flex-direction: column;
@@ -627,5 +710,31 @@ async function save() {
 
 .advanced-group .btn {
   text-align: left;
+}
+
+/* ── Manager tab ─────────────────────────────────────────────────── */
+
+.manager-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 42px;
+  padding: 0;
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+
+.manager-row:last-child {
+  border-bottom: none;
+}
+
+.manager-select {
+  padding: 5px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
 }
 </style>
