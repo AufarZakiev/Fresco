@@ -237,6 +237,38 @@ pub struct GlobalPreferences {
     pub day_prefs: Vec<DayOfWeekPrefs>,
 }
 
+/// GPU coprocessor information (CUDA or OpenCL).
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct Coproc {
+    pub coproc_type: String,
+    pub name: String,
+    pub count: i32,
+    pub available_ram: f64,
+    pub driver_version: String,
+    pub cuda_version: i32,
+    pub compute_cap_major: i32,
+    pub compute_cap_minor: i32,
+    pub clock_rate: f64,
+    pub multiprocessor_count: i32,
+    pub peak_flops: f64,
+    pub opencl_device_version: String,
+    pub opencl_driver_version: String,
+    pub vendor: String,
+}
+
+/// A WSL distribution.
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct WslDistro {
+    pub distro_name: String,
+    pub os_name: String,
+    pub os_version: String,
+    pub wsl_version: String,
+    pub is_buda_runner: bool,
+    pub buda_runner_version: i32,
+    pub docker_version: String,
+    pub docker_type: String,
+}
+
 /// Host information.
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct HostInfo {
@@ -264,6 +296,8 @@ pub struct HostInfo {
     pub p_vm_extensions_disabled: bool,
     pub mac_address: String,
     pub docker_version: String,
+    pub coprocs: Vec<Coproc>,
+    pub wsl_distros: Vec<WslDistro>,
 }
 
 /// Entry in the all-projects list.

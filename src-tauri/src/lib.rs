@@ -356,6 +356,18 @@ async fn get_host_info(state: State<'_, AppState>) -> Result<HostInfo, String> {
     let client = guard.as_ref().ok_or("Not connected")?;
     let mut info = client.get_host_info().await?;
 
+    // get_host_info often lacks coproc/WSL data; fall back to get_state
+    if info.coprocs.is_empty() && info.wsl_distros.is_empty() {
+        if let Ok(state) = client.get_state().await {
+            if !state.host_info.coprocs.is_empty() {
+                info.coprocs = state.host_info.coprocs;
+            }
+            if !state.host_info.wsl_distros.is_empty() {
+                info.wsl_distros = state.host_info.wsl_distros;
+            }
+        }
+    }
+
     // Override OS info with actual local OS when connected locally,
     // since BOINC may report the wrong OS (e.g. Docker container's OS)
     if client.is_local() {

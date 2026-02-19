@@ -304,6 +304,36 @@ export interface GlobalPreferences {
   day_prefs: DayOfWeekPrefs[];
 }
 
+/** GPU coprocessor information (CUDA or OpenCL). */
+export interface Coproc {
+  coproc_type: string;
+  name: string;
+  count: number;
+  available_ram: number;
+  driver_version: string;
+  cuda_version: number;
+  compute_cap_major: number;
+  compute_cap_minor: number;
+  clock_rate: number;
+  multiprocessor_count: number;
+  peak_flops: number;
+  opencl_device_version: string;
+  opencl_driver_version: string;
+  vendor: string;
+}
+
+/** A WSL distribution. */
+export interface WslDistro {
+  distro_name: string;
+  os_name: string;
+  os_version: string;
+  wsl_version: string;
+  is_buda_runner: boolean;
+  buda_runner_version: number;
+  docker_version: string;
+  docker_type: string;
+}
+
 /** Host information. */
 export interface HostInfo {
   domain_name: string;
@@ -330,6 +360,8 @@ export interface HostInfo {
   p_vm_extensions_disabled: boolean;
   mac_address: string;
   docker_version: string;
+  coprocs: Coproc[];
+  wsl_distros: WslDistro[];
 }
 
 /** Entry in the all-projects list. */

@@ -2,11 +2,11 @@ use quick_xml::events::Event;
 use quick_xml::Reader;
 
 use super::types::{
-    AccountOut, AcctMgrInfo, AcctMgrRpcReply, CcConfig, CcState, CcStatus, DailyStats,
+    AccountOut, AcctMgrInfo, AcctMgrRpcReply, CcConfig, CcState, CcStatus, Coproc, DailyStats,
     DailyXfer, DailyXferHistory, DayOfWeekPrefs, DiskUsage, DiskUsageProject, FileTransfer,
     GlobalPreferences, GuiUrl, HostInfo, LogFlags, Message, NewerVersionInfo, Notice, OldResult,
     Project, ProjectAttachReply, ProjectConfig, ProjectInitStatus, ProjectListEntry,
-    ProjectStatistics, ProxyInfo, TaskResult, VersionInfo,
+    ProjectStatistics, ProxyInfo, TaskResult, VersionInfo, WslDistro,
 };
 
 /// Extract text content of an XML element, advancing the reader past its end tag.
@@ -1138,6 +1138,11 @@ pub fn parse_host_info(xml: &str) -> HostInfo {
     let mut buf = Vec::new();
     let mut info = HostInfo::default();
     let mut in_host_info = false;
+    let mut in_coproc = false;
+    let mut in_wsl = false;
+    let mut in_distro = false;
+    let mut current_coproc = Coproc::default();
+    let mut current_distro = WslDistro::default();
 
     loop {
         match reader.read_event_into(&mut buf) {
@@ -1146,6 +1151,92 @@ pub fn parse_host_info(xml: &str) -> HostInfo {
                 match tag.as_str() {
                     "host_info" => {
                         in_host_info = true;
+                    }
+                    "coproc_cuda" if in_host_info => {
+                        in_coproc = true;
+                        current_coproc = Coproc::default();
+                        current_coproc.coproc_type = "CUDA".to_string();
+                    }
+                    "coproc_opencl" if in_host_info => {
+                        in_coproc = true;
+                        current_coproc = Coproc::default();
+                        current_coproc.coproc_type = "OpenCL".to_string();
+                    }
+                    "wsl" if in_host_info => {
+                        in_wsl = true;
+                    }
+                    "distro" if in_wsl => {
+                        in_distro = true;
+                        current_distro = WslDistro::default();
+                    }
+                    _ if in_coproc => {
+                        let text = read_text(&mut reader);
+                        match tag.as_str() {
+                            "name" => current_coproc.name = text,
+                            "count" => current_coproc.count = text.parse().unwrap_or(0),
+                            // CUDA uses available_ram + totalGlobalMem; OpenCL uses global_mem_size
+                            "available_ram" | "totalGlobalMem" | "global_mem_size" => {
+                                let v: f64 = text.parse().unwrap_or(0.0);
+                                if v > current_coproc.available_ram {
+                                    current_coproc.available_ram = v;
+                                }
+                            }
+                            // CUDA: drvVersion (int); also accept driver_version string
+                            "drvVersion" => {
+                                let v: i32 = text.parse().unwrap_or(0);
+                                if v > 0 {
+                                    // NVIDIA int format: major*100 + minor, e.g. 56070 → 560.70
+                                    let major = v / 100;
+                                    let minor = v % 100;
+                                    current_coproc.driver_version = format!("{major}.{minor:02}");
+                                }
+                            }
+                            "driver_version" | "display_driver_version" => {
+                                if current_coproc.driver_version.is_empty() {
+                                    current_coproc.driver_version = text;
+                                }
+                            }
+                            // CUDA XML uses cudaVersion
+                            "cudaVersion" | "cuda_version" => {
+                                current_coproc.cuda_version = text.parse().unwrap_or(0);
+                            }
+                            // CUDA: major/minor; OpenCL: nv_compute_capability_major/minor
+                            "major" | "nv_compute_capability_major" => {
+                                current_coproc.compute_cap_major = text.parse().unwrap_or(0);
+                            }
+                            "minor" | "nv_compute_capability_minor" => {
+                                current_coproc.compute_cap_minor = text.parse().unwrap_or(0);
+                            }
+                            "clockRate" | "max_clock_frequency" => {
+                                current_coproc.clock_rate = text.parse().unwrap_or(0.0);
+                            }
+                            "multiProcessorCount" | "max_compute_units" => {
+                                current_coproc.multiprocessor_count = text.parse().unwrap_or(0);
+                            }
+                            "peak_flops" => current_coproc.peak_flops = text.parse().unwrap_or(0.0),
+                            "opencl_device_version" => current_coproc.opencl_device_version = text,
+                            "opencl_driver_version" => current_coproc.opencl_driver_version = text,
+                            "vendor" => current_coproc.vendor = text,
+                            _ => {}
+                        }
+                    }
+                    _ if in_distro => {
+                        let text = read_text(&mut reader);
+                        match tag.as_str() {
+                            "distro_name" => {
+                                current_distro.distro_name = text.clone();
+                                current_distro.is_buda_runner = text == "boinc-buda-runner";
+                            }
+                            "os_name" => current_distro.os_name = text,
+                            "os_version" => current_distro.os_version = text,
+                            "wsl_version" => current_distro.wsl_version = text,
+                            "distro_version" => {
+                                current_distro.buda_runner_version = text.parse().unwrap_or(0);
+                            }
+                            "docker_version" => current_distro.docker_version = text,
+                            "docker_type" => current_distro.docker_type = text,
+                            _ => {}
+                        }
                     }
                     _ if in_host_info => {
                         let text = read_text(&mut reader);
@@ -1187,8 +1278,26 @@ pub fn parse_host_info(xml: &str) -> HostInfo {
             }
             Ok(Event::End(ref e)) => {
                 let tag = String::from_utf8_lossy(e.name().as_ref()).to_string();
-                if tag == "host_info" {
-                    in_host_info = false;
+                match tag.as_str() {
+                    "coproc_cuda" | "coproc_opencl" => {
+                        if in_coproc {
+                            info.coprocs.push(current_coproc.clone());
+                            in_coproc = false;
+                        }
+                    }
+                    "distro" => {
+                        if in_distro {
+                            info.wsl_distros.push(current_distro.clone());
+                            in_distro = false;
+                        }
+                    }
+                    "wsl" => {
+                        in_wsl = false;
+                    }
+                    "host_info" => {
+                        in_host_info = false;
+                    }
+                    _ => {}
                 }
             }
             Ok(Event::Eof) => break,

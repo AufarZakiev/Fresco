@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { getHostInfo } from "../composables/useRpc";
-import type { HostInfo } from "../types/boinc";
+import type { Coproc, HostInfo } from "../types/boinc";
 import PageHeader from "../components/PageHeader.vue";
 
 const hostInfo = ref<HostInfo | null>(null);
@@ -27,6 +27,53 @@ function formatGIOPS(iops: number): string {
   if (iops <= 0) return "---";
   return `${(iops / 1e9).toFixed(2)} GIOPS`;
 }
+
+function formatCudaVersion(v: number): string {
+  if (v <= 0) return "";
+  const major = Math.floor(v / 1000);
+  const minor = Math.floor((v % 1000) / 10);
+  return minor > 0 ? `${major}.${minor}` : `${major}.0`;
+}
+
+/** Deduplicate CUDA + OpenCL entries for the same GPU. Prefer CUDA, merge OpenCL-only fields. */
+const mergedGpus = computed(() => {
+  if (!hostInfo.value) return [];
+  const coprocs = hostInfo.value.coprocs;
+  const cudaEntries = coprocs.filter((c) => c.coproc_type === "CUDA");
+  const openclEntries = coprocs.filter((c) => c.coproc_type === "OpenCL");
+
+  if (cudaEntries.length === 0) return openclEntries;
+
+  return cudaEntries.map((cuda) => {
+    // Find matching OpenCL entry by name similarity
+    const ocl = openclEntries.find(
+      (o) =>
+        o.name === cuda.name ||
+        cuda.name.includes(o.name) ||
+        o.name.includes(cuda.name),
+    );
+    if (!ocl) return cuda;
+    // Merge OpenCL-only fields into the CUDA entry
+    const merged: Coproc = { ...cuda };
+    if (!merged.vendor && ocl.vendor) merged.vendor = ocl.vendor;
+    if (!merged.opencl_device_version && ocl.opencl_device_version)
+      merged.opencl_device_version = ocl.opencl_device_version;
+    if (!merged.opencl_driver_version && ocl.opencl_driver_version)
+      merged.opencl_driver_version = ocl.opencl_driver_version;
+    if (merged.available_ram <= 0 && ocl.available_ram > 0)
+      merged.available_ram = ocl.available_ram;
+    if (merged.peak_flops <= 0 && ocl.peak_flops > 0)
+      merged.peak_flops = ocl.peak_flops;
+    return merged;
+  });
+});
+
+const budaRunner = computed(() => {
+  if (!hostInfo.value) return null;
+  return hostInfo.value.wsl_distros.find((d) => d.is_buda_runner) ?? null;
+});
+
+const wslExpanded = ref(false);
 
 onMounted(async () => {
   loading.value = true;
@@ -107,6 +154,41 @@ onMounted(async () => {
           </div>
         </div>
 
+        <!-- GPU (one card per merged GPU) -->
+        <div v-for="(gpu, i) in mergedGpus" :key="i" class="info-card">
+          <h3 class="card-title">GPU{{ mergedGpus.length > 1 ? ` ${i + 1}` : "" }}</h3>
+          <div class="info-rows">
+            <div class="info-row">
+              <span class="info-label">Name</span>
+              <span class="info-value">{{ gpu.name || "---" }}</span>
+            </div>
+            <div v-if="gpu.vendor" class="info-row">
+              <span class="info-label">Vendor</span>
+              <span class="info-value">{{ gpu.vendor }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">VRAM</span>
+              <span class="info-value">{{ formatGB(gpu.available_ram) }}</span>
+            </div>
+            <div v-if="gpu.driver_version" class="info-row">
+              <span class="info-label">Driver Version</span>
+              <span class="info-value">{{ gpu.driver_version }}</span>
+            </div>
+            <div v-if="gpu.cuda_version > 0" class="info-row">
+              <span class="info-label">CUDA Version</span>
+              <span class="info-value">{{ formatCudaVersion(gpu.cuda_version) }}</span>
+            </div>
+            <div v-if="gpu.compute_cap_major > 0" class="info-row">
+              <span class="info-label">Compute Capability</span>
+              <span class="info-value">{{ gpu.compute_cap_major }}.{{ gpu.compute_cap_minor }}</span>
+            </div>
+            <div v-if="gpu.opencl_device_version" class="info-row">
+              <span class="info-label">OpenCL Version</span>
+              <span class="info-value">{{ gpu.opencl_device_version }}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Memory -->
         <div class="info-card">
           <h3 class="card-title">Memory</h3>
@@ -151,6 +233,46 @@ onMounted(async () => {
                 {{ hostInfo.virtualbox_version || "Not installed" }}
               </span>
             </div>
+            <div class="info-row">
+              <span class="info-label">VM Extensions</span>
+              <span class="info-value">
+                {{ hostInfo.p_vm_extensions_disabled ? "Disabled" : "Enabled" }}
+              </span>
+            </div>
+            <div
+              class="info-row wsl-header"
+              :class="{ clickable: !!budaRunner }"
+              @click="budaRunner && (wslExpanded = !wslExpanded)"
+            >
+              <span class="info-label">
+                <span v-if="budaRunner" class="expand-icon">{{ wslExpanded ? "\u25BE" : "\u25B8" }}</span>
+                WSL (boinc-buda-runner)
+              </span>
+              <span v-if="budaRunner" class="info-value">Installed</span>
+              <span v-else class="info-value">
+                Not installed
+                (<a
+                  href="https://github.com/BOINC/boinc/wiki/Installing-Docker-on-Windows"
+                  target="_blank"
+                  rel="noopener"
+                  @click.stop
+                >install</a>)
+              </span>
+            </div>
+            <template v-if="budaRunner && wslExpanded">
+              <div class="info-row sub-row">
+                <span class="info-label">Distro</span>
+                <span class="info-value">{{ budaRunner.distro_name }}</span>
+              </div>
+              <div v-if="budaRunner.os_version" class="info-row sub-row">
+                <span class="info-label">OS</span>
+                <span class="info-value">{{ budaRunner.os_version }}</span>
+              </div>
+              <div class="info-row sub-row">
+                <span class="info-label">Docker</span>
+                <span class="info-value">{{ budaRunner.docker_version || "Not installed" }}</span>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -219,6 +341,25 @@ onMounted(async () => {
 
 .info-row:last-child {
   border-bottom: none;
+}
+
+.info-row.sub-row {
+  padding-left: var(--space-lg);
+}
+
+.wsl-header.clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.wsl-header.clickable:hover {
+  background: var(--color-bg-hover, rgba(0, 0, 0, 0.03));
+}
+
+.expand-icon {
+  display: inline-block;
+  width: 1em;
+  font-size: var(--font-size-sm);
 }
 
 .info-label {
