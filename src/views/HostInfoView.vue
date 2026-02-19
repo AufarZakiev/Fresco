@@ -249,15 +249,14 @@ onMounted(async () => {
                 WSL (boinc-buda-runner)
               </span>
               <span v-if="budaRunner" class="info-value">Installed</span>
-              <span v-else class="info-value">
-                Not installed
-                (<a
-                  href="https://github.com/BOINC/boinc/wiki/Installing-Docker-on-Windows"
-                  target="_blank"
-                  rel="noopener"
-                  @click.stop
-                >install</a>)
-              </span>
+              <a
+                v-else
+                class="install-btn"
+                href="https://github.com/BOINC/boinc/wiki/Installing-Docker-on-Windows"
+                target="_blank"
+                rel="noopener"
+                @click.stop
+              >Install</a>
             </div>
             <template v-if="budaRunner && wslExpanded">
               <div class="info-row sub-row">
@@ -360,6 +359,24 @@ onMounted(async () => {
   display: inline-block;
   width: 1em;
   font-size: var(--font-size-sm);
+}
+
+.install-btn {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-primary, #4a90d9);
+  border: 1px solid var(--color-primary, #4a90d9);
+  border-radius: var(--radius-md, 6px);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition-normal), color var(--transition-normal);
+}
+
+.install-btn:hover {
+  background: var(--color-primary, #4a90d9);
+  color: #fff;
 }
 
 .info-label {
