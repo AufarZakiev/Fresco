@@ -186,6 +186,7 @@
 input[type="checkbox"] {
   -webkit-appearance: none;
   appearance: none;
+  position: relative;
   width: 16px;
   height: 16px;
   border: 1.5px solid var(--color-text-tertiary);
