@@ -37,28 +37,57 @@ Download the latest release from the [Releases](https://github.com/AufarZakiev/F
 
 ## Building from source
 
-### Prerequisites
+### Windows
 
-- [Rust](https://rustup.rs/) (stable)
-- [Node.js](https://nodejs.org/) (v18+)
-- [pnpm](https://pnpm.io/)
-- Platform-specific dependencies for [Tauri v2](https://v2.tauri.app/start/prerequisites/)
+```powershell
+# Install Rust
+winget install Rustlang.Rustup
+# Install Node.js
+winget install OpenJS.NodeJS.LTS
+# Install pnpm
+npm install -g pnpm
 
-### Build
+# Build
+pnpm install
+pnpm tauri build
+```
+
+### macOS
 
 ```bash
+# Install Xcode Command Line Tools
+xcode-select --install
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# Install Node.js and pnpm
+brew install node
+npm install -g pnpm
+
+# Build
+pnpm install
+pnpm tauri build
+```
+
+### Linux (Debian/Ubuntu)
+
+```bash
+# Install system dependencies
+sudo apt-get update
+sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# Install Node.js and pnpm
+sudo apt-get install -y nodejs npm
+npm install -g pnpm
+
+# Build
 pnpm install
 pnpm tauri build
 ```
 
 The compiled binary will be in `src-tauri/target/release/`.
 
-### Development
-
-```bash
-pnpm install
-pnpm tauri dev
-```
+For development with hot-reload, use `pnpm tauri dev` instead of `pnpm tauri build`.
 
 ## License
 
