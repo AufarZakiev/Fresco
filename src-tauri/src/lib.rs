@@ -770,16 +770,28 @@ fn is_boinc_running() -> bool {
 }
 
 #[tauri::command]
-async fn start_boinc_client(data_dir: String) -> Result<(), String> {
+async fn start_boinc_client(data_dir: String, client_dir: String) -> Result<(), String> {
     let already_running = is_boinc_running();
 
     if !already_running {
-        let exe_path = if cfg!(target_os = "windows") {
+        let default_exe = if cfg!(target_os = "windows") {
             r"C:\Program Files\BOINC\boinc.exe".to_string()
         } else if cfg!(target_os = "macos") {
             "/Applications/BOINCManager.app/Contents/Resources/boinc".to_string()
         } else {
             "/usr/bin/boinc".to_string()
+        };
+        let exe_path = if client_dir.is_empty() {
+            default_exe
+        } else {
+            let p = std::path::Path::new(&client_dir);
+            if p.is_file() {
+                client_dir.clone()
+            } else {
+                // Treat as directory — append the binary name
+                let name = if cfg!(target_os = "windows") { "boinc.exe" } else { "boinc" };
+                p.join(name).to_string_lossy().to_string()
+            }
         };
 
         if !std::path::Path::new(&exe_path).exists() {

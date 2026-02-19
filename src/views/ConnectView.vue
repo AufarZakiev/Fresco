@@ -29,6 +29,7 @@ interface RecentConnection {
   mode: ConnectionMode;
   label: string;
   dataDir?: string;
+  clientDir?: string;
   host?: string;
   port?: number;
   password?: string;
@@ -40,6 +41,7 @@ const MAX_RECENT = 5;
 
 const mode = ref<ConnectionMode>(CONNECTION_MODE.LOCAL);
 const dataDir = ref(defaultDataDir());
+const clientDir = ref(defaultClientDir());
 const host = ref("localhost");
 const port = ref(31416);
 const password = ref("");
@@ -56,6 +58,13 @@ function defaultDataDir(): string {
   if (platform.includes("win")) return "C:\\ProgramData\\BOINC";
   if (platform.includes("mac")) return "/Library/Application Support/BOINC Data";
   return "/var/lib/boinc-client";
+}
+
+function defaultClientDir(): string {
+  const platform = navigator.platform.toLowerCase();
+  if (platform.includes("win")) return "C:\\Program Files\\BOINC";
+  if (platform.includes("mac")) return "/Applications/BOINCManager.app/Contents/Resources";
+  return "/usr/bin";
 }
 
 function loadRecent() {
@@ -91,6 +100,7 @@ function applyRecent(entry: RecentConnection) {
   mode.value = entry.mode;
   if (entry.mode === CONNECTION_MODE.LOCAL) {
     dataDir.value = entry.dataDir ?? defaultDataDir();
+    clientDir.value = entry.clientDir ?? defaultClientDir();
   } else {
     host.value = entry.host ?? "localhost";
     port.value = entry.port ?? 31416;
@@ -127,7 +137,7 @@ async function handleConnect() {
     if (connection.state !== CONNECTION_STATE.CONNECTED && connection.state !== CONNECTION_STATE.AUTH_ERROR) {
       statusMessage.value = "Starting BOINC client...";
       try {
-        await startBoincClient(dataDir.value);
+        await startBoincClient(dataDir.value, clientDir.value);
         statusMessage.value = "BOINC client started, connecting...";
         await connection.connectToLocal(dataDir.value);
       } catch (e) {
@@ -150,6 +160,7 @@ async function handleConnect() {
     };
     if (mode.value === CONNECTION_MODE.LOCAL) {
       entry.dataDir = dataDir.value;
+      entry.clientDir = clientDir.value;
     } else {
       entry.host = host.value;
       entry.port = port.value;
@@ -196,16 +207,28 @@ function formatTimestamp(ts: number): string {
 
       <div class="form">
         <!-- Local mode -->
-        <label v-if="mode === CONNECTION_MODE.LOCAL" class="field">
-          <span class="field-label">BOINC data directory</span>
-          <input
-            v-model="dataDir"
-            type="text"
-            class="field-input"
-            :disabled="connecting"
-            placeholder="Path to BOINC data directory"
-          />
-        </label>
+        <template v-if="mode === CONNECTION_MODE.LOCAL">
+          <label class="field">
+            <span class="field-label">Data directory</span>
+            <input
+              v-model="dataDir"
+              type="text"
+              class="field-input"
+              :disabled="connecting"
+              placeholder="Path to BOINC data directory"
+            />
+          </label>
+          <label class="field">
+            <span class="field-label">Client directory</span>
+            <input
+              v-model="clientDir"
+              type="text"
+              class="field-input"
+              :disabled="connecting"
+              placeholder="Path to BOINC client executable"
+            />
+          </label>
+        </template>
 
         <!-- Remote mode -->
         <template v-if="mode === CONNECTION_MODE.REMOTE">
