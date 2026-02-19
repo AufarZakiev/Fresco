@@ -35,6 +35,31 @@ Fresco will automatically find and start the BOINC client if it is installed in 
 
 Download the latest release from the [Releases](https://github.com/AufarZakiev/Fresco/releases) page. Fresco is a single portable binary — no installer required.
 
+## Building from source
+
+### Prerequisites
+
+- [Rust](https://rustup.rs/) (stable)
+- [Node.js](https://nodejs.org/) (v18+)
+- [pnpm](https://pnpm.io/)
+- Platform-specific dependencies for [Tauri v2](https://v2.tauri.app/start/prerequisites/)
+
+### Build
+
+```bash
+pnpm install
+pnpm tauri build
+```
+
+The compiled binary will be in `src-tauri/target/release/`.
+
+### Development
+
+```bash
+pnpm install
+pnpm tauri dev
+```
+
 ## License
 
 MIT
