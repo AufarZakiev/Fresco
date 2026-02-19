@@ -179,9 +179,13 @@ async function doExit(doShutdownClient: boolean) {
   }
   if (updateOnExit.value && downloaded.value && !downloading.value) {
     try {
-      await invoke("install_update");
-      const { relaunch } = await import("@tauri-apps/plugin-process");
-      await relaunch();
+      const shouldRelaunch: boolean = await invoke("install_update");
+      const process = await import("@tauri-apps/plugin-process");
+      if (shouldRelaunch) {
+        await process.relaunch();
+      } else {
+        await process.exit(0);
+      }
       return;
     } catch {
       // Install failed — exit normally

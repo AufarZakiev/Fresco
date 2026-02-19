@@ -32,9 +32,13 @@ async function updateNow() {
     if (!downloaded.value) {
       await invoke("download_update", { assetUrl: assetUrl.value });
     }
-    await invoke("install_update");
-    const { relaunch } = await import("@tauri-apps/plugin-process");
-    await relaunch();
+    const shouldRelaunch: boolean = await invoke("install_update");
+    const process = await import("@tauri-apps/plugin-process");
+    if (shouldRelaunch) {
+      await process.relaunch();
+    } else {
+      await process.exit(0);
+    }
   } catch (e) {
     updateError.value = e instanceof Error ? e.message : String(e);
     updating.value = false;
