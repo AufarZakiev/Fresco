@@ -22,9 +22,11 @@ import ItemPropertiesDialog from "../components/ItemPropertiesDialog.vue";
 import { useKeyboard } from "../composables/useKeyboard";
 import { useColumnState } from "../composables/useColumnState";
 import { launchGraphics, launchRemoteDesktop } from "../composables/useRpc";
+import { useProjectsStore } from "../stores/projects";
 import { useToastStore } from "../stores/toast";
 
 const store = useTasksStore();
+const projectsStore = useProjectsStore();
 const toast = useToastStore();
 const actionBusy = ref(false);
 
@@ -47,13 +49,25 @@ const ctxOpen = ref(false);
 const ctxX = ref(0);
 const ctxY = ref(0);
 
+const projectNameByUrl = computed(() => {
+  const map = new Map<string, string>();
+  for (const p of projectsStore.projects) {
+    map.set(p.master_url, p.project_name);
+  }
+  return map;
+});
+
+function projectName(url: string): string {
+  return projectNameByUrl.value.get(url) || url;
+}
+
 const allColumns: DataTableColumn[] = [
-  { key: "task", label: "Task", sortable: true },
   { key: "project", label: "Project", sortable: true },
   { key: "progress", label: "Progress", sortable: true },
   { key: "elapsed", label: "Elapsed", sortable: true, align: "right" },
   { key: "remaining", label: "Remaining", sortable: true, align: "right" },
   { key: "status", label: "Status", sortable: true },
+  { key: "task", label: "Task", sortable: true },
 ];
 
 const columns = computed(() =>
@@ -122,7 +136,7 @@ function statusVariant(status: string): "default" | "success" | "warning" | "dan
 function getSortValue(task: TaskResult, key: string): number | string {
   switch (key) {
     case "task": return task.wu_name;
-    case "project": return task.project_url;
+    case "project": return projectName(task.project_url);
     case "progress": return task.fraction_done;
     case "elapsed": return task.elapsed_time;
     case "remaining": return task.estimated_cpu_time_remaining;
@@ -433,8 +447,7 @@ function isColVisible(key: string): boolean {
             @change="handleRowClick(task, index, { ctrlKey: true } as MouseEvent)"
           />
         </td>
-        <td v-if="isColVisible('task')" class="col-name" :title="task.name">{{ task.wu_name }}</td>
-        <td v-if="isColVisible('project')" class="col-project">{{ task.project_url }}</td>
+        <td v-if="isColVisible('project')" class="col-project" :title="task.project_url">{{ projectName(task.project_url) }}</td>
         <td v-if="isColVisible('progress')" class="col-progress">
           <div class="progress-bar">
             <div
@@ -455,6 +468,7 @@ function isColVisible(key: string): boolean {
             {{ taskStatus(task) }}
           </StatusBadge>
         </td>
+        <td v-if="isColVisible('task')" class="col-name" :title="task.name">{{ task.wu_name }}</td>
       </tr>
     </DataTable>
 
