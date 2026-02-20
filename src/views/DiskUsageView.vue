@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from "vue";
 import { useDiskUsageStore } from "../stores/diskUsage";
+import { useProjectsStore } from "../stores/projects";
 import PageHeader from "../components/PageHeader.vue";
 import EmptyState from "../components/EmptyState.vue";
 
 const store = useDiskUsageStore();
+const projectsStore = useProjectsStore();
 
 const projectColors = [
   "#3b82f6",
@@ -19,9 +21,11 @@ const projectColors = [
   "#6366f1",
 ];
 
-function formatGB(bytes: number): string {
-  if (bytes <= 0) return "0.0 GB";
-  return `${(bytes / 1e9).toFixed(1)} GB`;
+function formatBytes(bytes: number): string {
+  if (bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 }
 
 function formatPercent(fraction: number): string {
@@ -32,48 +36,17 @@ function getColor(index: number): string {
   return projectColors[index % projectColors.length];
 }
 
-/** Extract a short project name from the master_url */
+const projectNameByUrl = computed(() => {
+  const map = new Map<string, string>();
+  for (const p of projectsStore.projects) {
+    map.set(p.master_url, p.project_name);
+  }
+  return map;
+});
+
 function projectName(url: string): string {
-  try {
-    const hostname = new URL(url).hostname;
-    // Remove common prefixes
-    return hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
+  return projectNameByUrl.value.get(url) || url;
 }
-
-const totalProjectUsage = computed(() => {
-  return store.usage.projects.reduce((sum, p) => sum + p.disk_usage, 0);
-});
-
-const freeSpace = computed(() => store.usage.d_free);
-
-const pieSegments = computed(() => {
-  const total = totalProjectUsage.value + freeSpace.value;
-  if (total <= 0) return [];
-
-  const segments: { label: string; value: number; fraction: number; color: string }[] = [];
-
-  for (let i = 0; i < store.usage.projects.length; i++) {
-    const p = store.usage.projects[i];
-    segments.push({
-      label: projectName(p.master_url),
-      value: p.disk_usage,
-      fraction: p.disk_usage / total,
-      color: getColor(i),
-    });
-  }
-
-  segments.push({
-    label: "Free Space",
-    value: freeSpace.value,
-    fraction: freeSpace.value / total,
-    color: "#e5e7eb",
-  });
-
-  return segments;
-});
 
 /**
  * Generate SVG arc path for a doughnut segment.
@@ -109,40 +82,43 @@ function doughnutPath(
   ].join(" ");
 }
 
-const doughnutPaths = computed(() => {
+const totalProjectUsage = computed(() => {
+  return store.usage.projects.reduce((sum, p) => sum + p.disk_usage, 0);
+});
+
+const boincPieSegments = computed(() => {
+  const total = totalProjectUsage.value;
+  if (total <= 0) return [];
+
+  return store.usage.projects.map((p, i) => ({
+    label: projectName(p.master_url),
+    value: p.disk_usage,
+    fraction: p.disk_usage / total,
+    color: getColor(i),
+  }));
+});
+
+const boincDoughnutPaths = computed(() => {
   const cx = 120;
   const cy = 120;
   const outerR = 110;
   const innerR = 70;
   const paths: { d: string; color: string; label: string }[] = [];
 
-  let currentAngle = -Math.PI / 2; // Start from top
+  let currentAngle = -Math.PI / 2;
 
-  for (const seg of pieSegments.value) {
+  for (const seg of boincPieSegments.value) {
     if (seg.fraction <= 0) continue;
     const sweepAngle = seg.fraction * Math.PI * 2;
     paths.push({
       d: doughnutPath(cx, cy, outerR, innerR, currentAngle, currentAngle + sweepAngle),
       color: seg.color,
-      label: `${seg.label}: ${formatGB(seg.value)}`,
+      label: `${seg.label}: ${formatBytes(seg.value)}`,
     });
     currentAngle += sweepAngle;
   }
 
   return paths;
-});
-
-const projectBars = computed(() => {
-  const dTotal = store.usage.d_total;
-  if (dTotal <= 0) return [];
-
-  return store.usage.projects.map((p, i) => ({
-    url: p.master_url,
-    name: projectName(p.master_url),
-    usage: p.disk_usage,
-    fraction: p.disk_usage / dTotal,
-    color: getColor(i),
-  }));
 });
 
 onMounted(() => {
@@ -171,13 +147,35 @@ onUnmounted(() => {
     />
 
     <template v-else>
-      <!-- Chart + Summary Row -->
+      <!-- Summary Cards -->
       <div class="top-section">
-        <!-- Doughnut Chart -->
-        <div class="chart-card">
+        <div class="summary-cards">
+          <div class="summary-card">
+            <span class="summary-label">Total Disk</span>
+            <span class="summary-value">{{ formatBytes(store.usage.d_total) }}</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">BOINC Usage</span>
+            <span class="summary-value">{{ formatBytes(store.usage.d_boinc) }}</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">Free Space</span>
+            <span class="summary-value">{{ formatBytes(store.usage.d_free) }}</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">Allowed</span>
+            <span class="summary-value">{{ formatBytes(store.usage.d_allowed) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOINC Usage by Project -->
+      <div class="breakdown-section">
+        <h3 class="section-title">BOINC Usage by Project</h3>
+        <div class="boinc-chart-card">
           <svg width="240" height="240" viewBox="0 0 240 240" class="doughnut-svg">
             <path
-              v-for="(seg, i) in doughnutPaths"
+              v-for="(seg, i) in boincDoughnutPaths"
               :key="i"
               :d="seg.d"
               :fill="seg.color"
@@ -186,72 +184,24 @@ onUnmounted(() => {
             >
               <title>{{ seg.label }}</title>
             </path>
-            <!-- Center text -->
-            <text x="120" y="114" class="center-label" text-anchor="middle">BOINC</text>
+            <text x="120" y="114" class="center-label" text-anchor="middle">Total</text>
             <text x="120" y="134" class="center-value" text-anchor="middle">
-              {{ formatGB(store.usage.d_boinc) }}
+              {{ formatBytes(store.usage.d_boinc) }}
             </text>
           </svg>
 
-          <!-- Legend -->
           <div class="legend">
             <div
-              v-for="(seg, i) in pieSegments"
+              v-for="(seg, i) in boincPieSegments"
               :key="i"
               class="legend-item"
             >
               <span class="legend-swatch" :style="{ background: seg.color }"></span>
               <span class="legend-label">{{ seg.label }}</span>
-              <span class="legend-value">{{ formatGB(seg.value) }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Summary Cards -->
-        <div class="summary-cards">
-          <div class="summary-card">
-            <span class="summary-label">Total Disk</span>
-            <span class="summary-value">{{ formatGB(store.usage.d_total) }}</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">BOINC Usage</span>
-            <span class="summary-value">{{ formatGB(store.usage.d_boinc) }}</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">Free Space</span>
-            <span class="summary-value">{{ formatGB(store.usage.d_free) }}</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">Allowed</span>
-            <span class="summary-value">{{ formatGB(store.usage.d_allowed) }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Per-project breakdown -->
-      <div class="breakdown-section">
-        <h3 class="section-title">Project Breakdown</h3>
-        <div class="breakdown-list">
-          <div
-            v-for="proj in projectBars"
-            :key="proj.url"
-            class="breakdown-item"
-          >
-            <div class="breakdown-header">
-              <span class="breakdown-name">{{ proj.name }}</span>
-              <span class="breakdown-size">
-                {{ formatGB(proj.usage) }}
-                <span class="breakdown-pct">({{ formatPercent(proj.fraction) }})</span>
+              <span class="legend-value">
+                {{ formatBytes(seg.value) }}
+                <span class="legend-pct">({{ formatPercent(seg.fraction) }})</span>
               </span>
-            </div>
-            <div class="breakdown-bar-track">
-              <div
-                class="breakdown-bar-fill"
-                :style="{
-                  width: formatPercent(proj.fraction),
-                  background: proj.color,
-                }"
-              ></div>
             </div>
           </div>
         </div>
@@ -281,18 +231,6 @@ onUnmounted(() => {
   display: flex;
   gap: var(--space-xl);
   margin-bottom: var(--space-xl);
-  flex-wrap: wrap;
-}
-
-.chart-card {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-lg);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  box-shadow: var(--shadow-sm);
   flex-wrap: wrap;
 }
 
@@ -396,54 +334,16 @@ onUnmounted(() => {
   color: var(--color-text-primary);
 }
 
-.breakdown-list {
+.boinc-chart-card {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
+  align-items: flex-start;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
 }
 
-.breakdown-item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.breakdown-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.breakdown-name {
-  font-size: var(--font-size-md);
-  font-weight: 500;
-  color: var(--color-text-primary);
-}
-
-.breakdown-size {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-.breakdown-pct {
+.legend-pct {
   color: var(--color-text-tertiary);
   font-weight: 400;
-}
-
-.breakdown-bar-track {
-  width: 100%;
-  height: 8px;
-  background: var(--color-bg-tertiary);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.breakdown-bar-fill {
-  height: 100%;
-  border-radius: var(--radius-full);
-  transition: width var(--transition-normal);
-  min-width: 2px;
 }
 
 @media (max-width: 767px) {
