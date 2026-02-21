@@ -57,6 +57,7 @@ pub struct Project {
     pub host_expavg_credit: f64,
     pub suspended_via_gui: bool,
     pub dont_request_more_work: bool,
+    pub attached_via_acct_mgr: bool,
     // Extended fields (Phase 2)
     pub resource_share: f64,
     pub hostid: i32,

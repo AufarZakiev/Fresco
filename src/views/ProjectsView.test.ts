@@ -21,6 +21,7 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     host_expavg_credit: 50,
     suspended_via_gui: false,
     dont_request_more_work: false,
+    attached_via_acct_mgr: false,
     resource_share: 100,
     hostid: 0,
     disk_usage: 0,
@@ -124,5 +125,50 @@ describe("ProjectsView", () => {
     const body = document.body.textContent ?? "";
     expect(body).toContain("Detach Project");
     expect(body).toContain("stop contributing");
+  });
+
+  it("renders source column with 'User' for manually added projects", () => {
+    const store = useProjectsStore();
+    store.projects = [makeProject({ attached_via_acct_mgr: false })];
+
+    const wrapper = mount(ProjectsView);
+    const row = wrapper.find("tbody tr");
+    expect(row.text()).toContain("User");
+  });
+
+  it("renders source column with 'Manager' for acct-mgr-attached projects", () => {
+    const store = useProjectsStore();
+    store.projects = [makeProject({ attached_via_acct_mgr: true })];
+
+    const wrapper = mount(ProjectsView);
+    const row = wrapper.find("tbody tr");
+    expect(row.text()).toContain("Manager");
+  });
+
+  it("renders source badge with correct CSS class", () => {
+    const store = useProjectsStore();
+    store.projects = [
+      makeProject({ attached_via_acct_mgr: true }),
+      makeProject({
+        master_url: "https://example2.com/",
+        attached_via_acct_mgr: false,
+      }),
+    ];
+
+    const wrapper = mount(ProjectsView);
+    const badges = wrapper.findAll(".source-badge");
+    expect(badges.length).toBe(2);
+    // Sorted alphabetically, both have same project_name so order by master_url
+    const classLists = badges.map((b) => b.classes());
+    expect(classLists.some((c) => c.includes("source-manager"))).toBe(true);
+    expect(classLists.some((c) => c.includes("source-user"))).toBe(true);
+  });
+
+  it("shows Add Project and Account Manager buttons in header", () => {
+    const wrapper = mount(ProjectsView);
+    const buttons = wrapper.findAll("button");
+    const labels = buttons.map((b) => b.text());
+    expect(labels).toContain("Add Project");
+    expect(labels).toContain("Account Manager");
   });
 });

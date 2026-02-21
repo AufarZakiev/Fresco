@@ -51,6 +51,7 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     host_expavg_credit: 50,
     suspended_via_gui: false,
     dont_request_more_work: false,
+    attached_via_acct_mgr: false,
     resource_share: 100,
     hostid: 1,
     disk_usage: 1073741824,
@@ -126,5 +127,24 @@ describe("ItemPropertiesDialog", () => {
     const buttons = document.body.querySelectorAll("button");
     const copyBtn = Array.from(buttons).find(b => b.textContent?.includes("Copy"));
     expect(copyBtn).not.toBeUndefined();
+  });
+
+  it("shows 'Attached via account manager: No' for user-added projects", () => {
+    const project = makeProject({ attached_via_acct_mgr: false });
+    mount(ItemPropertiesDialog, {
+      props: { open: true, type: "project", project },
+    });
+    const text = document.body.textContent ?? "";
+    expect(text).toContain("Attached via account manager");
+    expect(text).toMatch(/Attached via account manager\s*No/);
+  });
+
+  it("shows 'Attached via account manager: Yes' for managed projects", () => {
+    const project = makeProject({ attached_via_acct_mgr: true });
+    mount(ItemPropertiesDialog, {
+      props: { open: true, type: "project", project },
+    });
+    const text = document.body.textContent ?? "";
+    expect(text).toMatch(/Attached via account manager\s*Yes/);
   });
 });

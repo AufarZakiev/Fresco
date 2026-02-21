@@ -23,6 +23,7 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     host_expavg_credit: 50,
     suspended_via_gui: false,
     dont_request_more_work: false,
+    attached_via_acct_mgr: false,
     resource_share: 100,
     hostid: 0,
     disk_usage: 0,

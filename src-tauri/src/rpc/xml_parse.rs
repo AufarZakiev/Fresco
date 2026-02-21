@@ -317,6 +317,9 @@ pub fn parse_projects(xml: &str) -> Vec<Project> {
                     "dont_request_more_work" => {
                         current.dont_request_more_work = true;
                     }
+                    "attached_via_acct_mgr" => {
+                        current.attached_via_acct_mgr = true;
+                    }
                     _ => {}
                 }
             }
@@ -2316,6 +2319,7 @@ mod tests {
     <njobs_error>3</njobs_error>
     <venue>home</venue>
     <suspended_via_gui/>
+    <attached_via_acct_mgr/>
     <gui_urls>
         <gui_url>
             <name>Home Page</name>
@@ -2341,6 +2345,7 @@ mod tests {
         assert!((p.user_total_credit - 12345.67).abs() < 0.01);
         assert!(p.suspended_via_gui);
         assert!(!p.dont_request_more_work);
+        assert!(p.attached_via_acct_mgr);
         assert!((p.resource_share - 100.0).abs() < 0.01);
         assert_eq!(p.njobs_success, 42);
         assert_eq!(p.njobs_error, 3);
@@ -2348,6 +2353,33 @@ mod tests {
         assert_eq!(p.gui_urls.len(), 2);
         assert_eq!(p.gui_urls[0].name, "Home Page");
         assert_eq!(p.gui_urls[1].url, "https://example.com/account");
+    }
+
+    #[test]
+    fn test_parse_project_attached_via_acct_mgr_absent() {
+        let xml = r#"
+<boinc_gui_rpc_reply>
+<projects>
+<project>
+    <master_url>https://example.com/manual/</master_url>
+    <project_name>Manual Project</project_name>
+    <user_name>user1</user_name>
+    <team_name></team_name>
+    <user_total_credit>0.000000</user_total_credit>
+    <user_expavg_credit>0.000000</user_expavg_credit>
+    <host_total_credit>0.000000</host_total_credit>
+    <host_expavg_credit>0.000000</host_expavg_credit>
+</project>
+</projects>
+</boinc_gui_rpc_reply>"#;
+
+        let projects = parse_projects(xml);
+        assert_eq!(projects.len(), 1);
+        let p = &projects[0];
+        assert_eq!(p.project_name, "Manual Project");
+        assert!(!p.attached_via_acct_mgr);
+        assert!(!p.suspended_via_gui);
+        assert!(!p.dont_request_more_work);
     }
 
     #[test]
@@ -2902,6 +2934,7 @@ Computation started
             max_file_xfers: 6,
             max_ncpus: 0,
             report_results_immediately: false,
+            ..Default::default()
         };
         let xml = serialize_cc_config(&config);
         assert!(xml.contains("<exclusive_app>app1.exe</exclusive_app>"));

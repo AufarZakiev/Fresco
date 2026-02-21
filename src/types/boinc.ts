@@ -52,6 +52,7 @@ export interface Project {
   host_expavg_credit: number;
   suspended_via_gui: boolean;
   dont_request_more_work: boolean;
+  attached_via_acct_mgr: boolean;
   // Extended fields (Phase 2)
   resource_share: number;
   hostid: number;

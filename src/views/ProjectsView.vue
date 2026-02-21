@@ -14,6 +14,7 @@ import ContextMenu from "../components/ContextMenu.vue";
 import type { ContextMenuItem } from "../components/ContextMenu.vue";
 import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import ItemPropertiesDialog from "../components/ItemPropertiesDialog.vue";
+import AccountManagerWizard from "../components/AccountManagerWizard.vue";
 import { useKeyboard } from "../composables/useKeyboard";
 import { useColumnState } from "../composables/useColumnState";
 import { useToastStore } from "../stores/toast";
@@ -27,12 +28,13 @@ const lastClickedIndex = ref<number | null>(null);
 const showAttachWizard = ref(false);
 const { sortKey, sortDir, visibleKeys } = useColumnState(
   "projects",
-  ["project", "account", "team", "totalCredit", "avgCredit", "status"],
+  ["project", "account", "team", "totalCredit", "avgCredit", "source", "status"],
   "project",
   SORT_DIR.ASC,
 );
 const showColumns = ref(false);
 const showProperties = ref(false);
+const showAcctMgr = ref(false);
 const propertiesProject = ref<Project | null>(null);
 const confirmAction = ref<{
   title: string;
@@ -52,6 +54,7 @@ const allColumns: DataTableColumn[] = [
   { key: "totalCredit", label: "Total Credit", sortable: true, align: "right" },
   { key: "avgCredit", label: "Avg Credit", sortable: true, align: "right" },
   { key: "status", label: "Status", sortable: true },
+  { key: "source", label: "Source", sortable: true },
 ];
 
 const columns = computed(() =>
@@ -88,6 +91,7 @@ function getSortValue(project: Project, key: string): number | string {
     case "team": return project.team_name;
     case "totalCredit": return project.user_total_credit;
     case "avgCredit": return project.user_expavg_credit;
+    case "source": return project.attached_via_acct_mgr ? "Manager" : "User";
     case "status": return projectStatus(project);
     default: return 0;
   }
@@ -373,6 +377,7 @@ function isColVisible(key: string): boolean {
   <div class="projects-view">
     <PageHeader title="Projects">
       <button class="btn btn-primary" @click="showAttachWizard = true">Add Project</button>
+      <button class="btn" @click="showAcctMgr = true">Account Manager</button>
       <template v-if="hasSelection">
         <button class="btn" :disabled="actionBusy" @click="handleUpdate">Update</button>
         <button class="btn" :disabled="actionBusy" @click="handleSuspendResume">
@@ -451,6 +456,15 @@ function isColVisible(key: string): boolean {
             {{ projectStatus(project) }}
           </StatusBadge>
         </td>
+        <td v-if="isColVisible('source')" class="col-source">
+          <span
+            class="source-badge"
+            :class="project.attached_via_acct_mgr ? 'source-manager' : 'source-user'"
+            :title="project.attached_via_acct_mgr ? 'Manager' : 'User'"
+          >
+            <span class="source-label">{{ project.attached_via_acct_mgr ? "Manager" : "User" }}</span>
+          </span>
+        </td>
       </tr>
     </DataTable>
 
@@ -474,6 +488,11 @@ function isColVisible(key: string): boolean {
     <ProjectAttachWizard
       :open="showAttachWizard"
       @close="showAttachWizard = false"
+    />
+
+    <AccountManagerWizard
+      :open="showAcctMgr"
+      @close="showAcctMgr = false"
     />
 
     <ColumnCustomizationDialog
@@ -516,6 +535,62 @@ function isColVisible(key: string): boolean {
 
 .col-name {
   font-weight: 500;
+}
+
+.col-source {
+  white-space: nowrap;
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  line-height: 1.5;
+  min-width: 10px;
+  min-height: 10px;
+  cursor: default;
+}
+
+.source-manager {
+  background: var(--color-accent-light);
+  color: #1d4ed8;
+}
+
+.source-user {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+/* Collapse to dot when column is narrow */
+@container (max-width: 0px) {
+  .source-label { display: none; }
+}
+
+/* Use a resize-aware approach: hide label when table is tight */
+.data-table-wrapper:has(.col-source) .source-label {
+  /* label always visible by default */
+}
+
+@media (max-width: 900px) {
+  .source-label {
+    display: none;
+  }
+
+  .source-badge {
+    width: 10px;
+    height: 10px;
+    padding: 0;
+    border-radius: 50%;
+  }
+}
+
+:root[data-theme="dark"] .source-manager,
+[data-theme="dark"] .source-manager {
+  color: #93c5fd;
 }
 
 .col-number {

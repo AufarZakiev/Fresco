@@ -197,6 +197,7 @@ const projectSections = computed<Section[]>(() => {
       rows: [
         { label: "Suspended", value: p.suspended_via_gui ? "Yes" : "No" },
         { label: "No new tasks", value: p.dont_request_more_work ? "Yes" : "No" },
+        { label: "Attached via account manager", value: p.attached_via_acct_mgr ? "Yes" : "No" },
         { label: "Jobs succeeded", value: String(p.njobs_success) },
         { label: "Jobs failed", value: String(p.njobs_error) },
         { label: "Disk usage", value: formatMB(p.disk_usage) },
