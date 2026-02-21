@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import Tooltip from "./Tooltip.vue";
 import { useUpdateCheck, startBackgroundDownload } from "../composables/useUpdateCheck";
 
 const { releaseDate, assetUrl, updateOnExit, downloaded, dismissUpdate } = useUpdateCheck();
@@ -57,7 +58,9 @@ function setUpdateOnExit() {
     <div class="update-notification">
       <div class="update-header">
         <span class="update-title">Update available</span>
-        <button class="close-btn" title="Dismiss" @click="dismissUpdate">&times;</button>
+        <Tooltip text="Dismiss">
+          <button class="close-btn" @click="dismissUpdate">&times;</button>
+        </Tooltip>
       </div>
       <p class="update-text">
         A newer version of Fresco was released on {{ formatDate(releaseDate) }}

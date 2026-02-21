@@ -15,6 +15,7 @@ import type { ContextMenuItem } from "../components/ContextMenu.vue";
 import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import ItemPropertiesDialog from "../components/ItemPropertiesDialog.vue";
 import AccountManagerWizard from "../components/AccountManagerWizard.vue";
+import Tooltip from "../components/Tooltip.vue";
 import { useKeyboard } from "../composables/useKeyboard";
 import { useColumnState } from "../composables/useColumnState";
 import { useToastStore } from "../stores/toast";
@@ -369,11 +370,13 @@ function isColVisible(key: string): boolean {
     <PageHeader title="Projects">
       <button class="btn btn-primary" @click="showAttachWizard = true">Add Project</button>
       <button class="btn" @click="showAcctMgr = true">Account Manager</button>
-      <button class="btn btn-icon" title="Columns" @click="showColumns = true">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-          <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
-        </svg>
-      </button>
+      <Tooltip text="Columns">
+        <button class="btn btn-icon" @click="showColumns = true">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </Tooltip>
     </PageHeader>
 
     <div class="content-row">
@@ -447,21 +450,31 @@ function isColVisible(key: string): boolean {
           </div>
 
           <div class="drawer-section">
-            <button class="btn has-tooltip" :disabled="actionBusy" data-tooltip="Fetch latest project status from server" @click="handleUpdate">Update</button>
-            <button class="btn has-tooltip" :disabled="actionBusy" :data-tooltip="singleSelected?.suspended_via_gui ? 'Resume work for this project' : 'Temporarily stop all work for this project'" @click="handleSuspendResume">
-              {{ singleSelected?.suspended_via_gui ? "Resume" : "Suspend" }}
-            </button>
-            <button class="btn has-tooltip" :disabled="actionBusy" :data-tooltip="singleSelected?.dont_request_more_work ? 'Start requesting new tasks again' : 'Finish current tasks but request no more'" @click="handleNoNewAllowTasks">
-              {{ singleSelected?.dont_request_more_work ? "Allow new tasks" : "No new tasks" }}
-            </button>
-            <button v-if="selectedUrls.size === 1" class="btn has-tooltip" data-tooltip="View detailed project information" @click="openProperties">
-              Properties
-            </button>
+            <Tooltip text="Fetch latest project status from server">
+              <button class="btn" :disabled="actionBusy" @click="handleUpdate">Update</button>
+            </Tooltip>
+            <Tooltip :text="singleSelected?.suspended_via_gui ? 'Resume work for this project' : 'Temporarily stop all work for this project'">
+              <button class="btn" :disabled="actionBusy" @click="handleSuspendResume">
+                {{ singleSelected?.suspended_via_gui ? "Resume" : "Suspend" }}
+              </button>
+            </Tooltip>
+            <Tooltip :text="singleSelected?.dont_request_more_work ? 'Start requesting new tasks again' : 'Finish current tasks but request no more'">
+              <button class="btn" :disabled="actionBusy" @click="handleNoNewAllowTasks">
+                {{ singleSelected?.dont_request_more_work ? "Allow new tasks" : "No new tasks" }}
+              </button>
+            </Tooltip>
+            <Tooltip v-if="selectedUrls.size === 1" text="View detailed project information">
+              <button class="btn" @click="openProperties">Properties</button>
+            </Tooltip>
           </div>
 
           <div class="drawer-section drawer-danger">
-            <button class="btn btn-danger has-tooltip" data-tooltip="Delete all tasks and download them again" @click="handleReset">Reset</button>
-            <button class="btn btn-danger has-tooltip" data-tooltip="Remove this project completely" @click="handleDetach">Detach</button>
+            <Tooltip text="Delete all tasks and download them again">
+              <button class="btn btn-danger" @click="handleReset">Reset</button>
+            </Tooltip>
+            <Tooltip text="Remove this project completely">
+              <button class="btn btn-danger" @click="handleDetach">Detach</button>
+            </Tooltip>
           </div>
 
           <div v-if="singleSelected?.gui_urls?.length" class="drawer-section drawer-links">
@@ -702,39 +715,6 @@ function isColVisible(key: string): boolean {
 .web-link:hover {
   color: var(--color-accent-hover);
   text-decoration: underline;
-}
-
-/* Tooltips */
-.has-tooltip {
-  position: relative;
-}
-
-.has-tooltip::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  background: var(--color-bg-tertiary);
-  color: var(--color-text);
-  font-size: var(--font-size-xs);
-  font-weight: 400;
-  line-height: 1.4;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  z-index: 10;
-}
-
-.has-tooltip:hover::after {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-  transition-delay: 0.4s;
 }
 
 /* Drawer transition */
