@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tauri::{
     menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem},
     tray::TrayIconBuilder,
@@ -11,25 +13,29 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
     let open = MenuItemBuilder::with_id("tray_open", "Open Manager").build(app)?;
     let sep1 = PredefinedMenuItem::separator(app)?;
-    let snooze_cpu = MenuItemBuilder::with_id("tray_snooze_cpu", "Snooze CPU (1 hr)").build(app)?;
-    let snooze_gpu = MenuItemBuilder::with_id("tray_snooze_gpu", "Snooze GPU (1 hr)").build(app)?;
-    let resume = MenuItemBuilder::with_id("tray_resume", "Resume").build(app)?;
+    let cpu_item =
+        MenuItemBuilder::with_id("tray_cpu", "Snooze CPU (1 hr)").build(app)?;
+    let gpu_item =
+        MenuItemBuilder::with_id("tray_gpu", "Snooze GPU (1 hr)").build(app)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
-    let about = MenuItemBuilder::with_id("tray_about", "About BOINC").build(app)?;
-    let sep3 = PredefinedMenuItem::separator(app)?;
     let exit = MenuItemBuilder::with_id("tray_exit", "Exit").build(app)?;
 
     let menu = MenuBuilder::new(app)
         .item(&open)
         .item(&sep1)
-        .item(&snooze_cpu)
-        .item(&snooze_gpu)
-        .item(&resume)
+        .item(&cpu_item)
+        .item(&gpu_item)
         .item(&sep2)
-        .item(&about)
-        .item(&sep3)
         .item(&exit)
         .build()?;
+
+    let cpu_snoozed = Arc::new(AtomicBool::new(false));
+    let gpu_snoozed = Arc::new(AtomicBool::new(false));
+
+    let cpu_item_ref = cpu_item.clone();
+    let gpu_item_ref = gpu_item.clone();
+    let cpu_snoozed_ref = cpu_snoozed.clone();
+    let gpu_snoozed_ref = gpu_snoozed.clone();
 
     TrayIconBuilder::new()
         .icon(icon)
@@ -45,17 +51,27 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                         let _ = window.set_focus();
                     }
                 }
-                "tray_snooze_cpu" => {
-                    let _ = app.emit("tray-action", "snooze_cpu");
+                "tray_cpu" => {
+                    if cpu_snoozed_ref.load(Ordering::Relaxed) {
+                        cpu_snoozed_ref.store(false, Ordering::Relaxed);
+                        let _ = cpu_item_ref.set_text("Snooze CPU (1 hr)");
+                        let _ = app.emit("tray-action", "resume_cpu");
+                    } else {
+                        cpu_snoozed_ref.store(true, Ordering::Relaxed);
+                        let _ = cpu_item_ref.set_text("Resume CPU");
+                        let _ = app.emit("tray-action", "snooze_cpu");
+                    }
                 }
-                "tray_snooze_gpu" => {
-                    let _ = app.emit("tray-action", "snooze_gpu");
-                }
-                "tray_resume" => {
-                    let _ = app.emit("tray-action", "resume");
-                }
-                "tray_about" => {
-                    let _ = app.emit("tray-action", "about");
+                "tray_gpu" => {
+                    if gpu_snoozed_ref.load(Ordering::Relaxed) {
+                        gpu_snoozed_ref.store(false, Ordering::Relaxed);
+                        let _ = gpu_item_ref.set_text("Snooze GPU (1 hr)");
+                        let _ = app.emit("tray-action", "resume_gpu");
+                    } else {
+                        gpu_snoozed_ref.store(true, Ordering::Relaxed);
+                        let _ = gpu_item_ref.set_text("Resume GPU");
+                        let _ = app.emit("tray-action", "snooze_gpu");
+                    }
                 }
                 "tray_exit" => {
                     let handle = app.clone();
