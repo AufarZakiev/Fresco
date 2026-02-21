@@ -16,3 +16,21 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "All lints passed."
+
+echo "Running builds..."
+
+# Vue build (type-check + vite)
+npx vue-tsc --noEmit && npx vite build
+if [ $? -ne 0 ]; then
+  echo "Vue build failed. Fix the issues above before committing."
+  exit 1
+fi
+
+# Rust build
+cargo build --manifest-path src-tauri/Cargo.toml 2>&1
+if [ $? -ne 0 ]; then
+  echo "Rust build failed. Fix the issues above before committing."
+  exit 1
+fi
+
+echo "All builds passed."
