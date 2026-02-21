@@ -198,9 +198,9 @@ describe("App", () => {
     const wrapper = await mountApp(router);
 
     const footer = wrapper.find(".sidebar-footer");
-    const buttons = footer.findAll("button");
-    const titles = buttons.map((b) => b.attributes("title") ?? "");
-    expect(titles).toContain("Select Computer");
-    expect(titles).toContain("Preferences");
+    const tooltips = footer.findAllComponents({ name: "Tooltip" });
+    const texts = tooltips.map((t: { props: (key: string) => string }) => t.props("text"));
+    expect(texts).toContain("Select Computer");
+    expect(texts).toContain("Preferences");
   });
 });

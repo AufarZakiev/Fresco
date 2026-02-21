@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import Tooltip from "./Tooltip.vue";
 import { usePreferencesStore } from "../stores/preferences";
 import type { GlobalPreferences } from "../types/boinc";
 import { decimalHoursToTimeString } from "../utils/timeConversion";
@@ -115,9 +116,11 @@ onUnmounted(() => {
         <span class="source-dot override" />
         <span class="source-label">Your override</span>
         <span class="source-value">{{ formatValue(overrideValue) }}</span>
-        <button class="source-action clear" title="Clear override" @click="emit('clear-override')">
-          &times;
-        </button>
+        <Tooltip text="Clear override">
+          <button class="source-action clear" @click="emit('clear-override')">
+            &times;
+          </button>
+        </Tooltip>
       </div>
 
       <!-- Project default -->
@@ -125,13 +128,14 @@ onUnmounted(() => {
         <span class="source-dot file" />
         <span class="source-label">Account manager</span>
         <span class="source-value">{{ formatValue(fileValue!) }}</span>
-        <button
-          class="source-action adopt"
-          title="Use this value"
-          @click="emit('adopt-value', fileValue!)"
-        >
-          &rarr;
-        </button>
+        <Tooltip text="Use this value">
+          <button
+            class="source-action adopt"
+            @click="emit('adopt-value', fileValue!)"
+          >
+            &rarr;
+          </button>
+        </Tooltip>
       </div>
 
       <!-- Initial (hardcoded BOINC default) -->

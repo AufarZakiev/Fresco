@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import Tooltip from "../components/Tooltip.vue";
 import { useConnectionStore } from "../stores/connection";
 import { useTasksStore } from "../stores/tasks";
 import { useProjectsStore } from "../stores/projects";
@@ -289,13 +290,14 @@ function formatTimestamp(ts: number): string {
               <span class="recent-label">{{ entry.label }}</span>
               <span class="recent-time">{{ formatTimestamp(entry.timestamp) }}</span>
             </button>
-            <button
-              class="recent-remove"
-              title="Remove"
-              @click.stop="removeRecent(index)"
-            >
-              &times;
-            </button>
+            <Tooltip text="Remove">
+              <button
+                class="recent-remove"
+                @click.stop="removeRecent(index)"
+              >
+                &times;
+              </button>
+            </Tooltip>
           </li>
         </ul>
       </div>
