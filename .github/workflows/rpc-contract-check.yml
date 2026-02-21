@@ -92,6 +92,7 @@ jobs:
           gh issue create \
             --title "BOINC RPC contract changed: ${TRACKED} → ${LATEST}" \
             --label "rpc-contract" \
+            --assignee "${{ github.repository_owner }}" \
             --body "$(cat <<EOF
           ## New BOINC client release detected
 
