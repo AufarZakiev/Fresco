@@ -55,6 +55,19 @@ const showExitConfirm = ref(false);
 const initializing = ref(true);
 const loadingStatus = ref("Connecting to a local BOINC...");
 const sidebarOpen = ref(false);
+const collapsedGroups = ref<string[]>(["Advanced"]);
+
+function isCollapsed(label: string): boolean {
+  return collapsedGroups.value.includes(label);
+}
+
+function toggleCollapsed(label: string) {
+  if (isCollapsed(label)) {
+    collapsedGroups.value = collapsedGroups.value.filter((l) => l !== label);
+  } else {
+    collapsedGroups.value = [...collapsedGroups.value, label];
+  }
+}
 const hasSidebar = computed(
   () => connection.state === CONNECTION_STATE.CONNECTED || connection.state === CONNECTION_STATE.RECONNECTING,
 );
@@ -202,15 +215,8 @@ const navGroups = [
     items: [
       { path: "/tasks", label: "Tasks", icon: "cpu" },
       { path: "/projects", label: "Projects", icon: "folder" },
-      { path: "/statistics", label: "Statistics", icon: "chart" },
-    ],
-  },
-  {
-    label: "Network",
-    items: [
-      { path: "/transfers", label: "Transfers", icon: "transfer" },
-      { path: "/event-log", label: "Event Log", icon: "message" },
       { path: "/notices", label: "Notices", icon: "bell" },
+      { path: "/statistics", label: "Statistics", icon: "chart" },
     ],
   },
   {
@@ -220,11 +226,31 @@ const navGroups = [
       { path: "/host", label: "Host Info", icon: "monitor" },
     ],
   },
+  {
+    label: "Advanced",
+    collapsible: true,
+    items: [
+      { path: "/transfers", label: "Transfers", icon: "transfer" },
+      { path: "/event-log", label: "Event Log", icon: "message" },
+    ],
+  },
 ];
 
 function isActive(path: string): boolean {
   return route.path === path;
 }
+
+// Auto-expand collapsed group when its route is active
+watch(
+  () => route.path,
+  (path) => {
+    for (const group of navGroups) {
+      if (group.collapsible && group.items.some((i) => i.path === path)) {
+        collapsedGroups.value = collapsedGroups.value.filter((l) => l !== group.label);
+      }
+    }
+  },
+);
 
 let wasConnected = false;
 watch(
@@ -282,9 +308,17 @@ watch(
     <aside v-if="hasSidebar" class="sidebar" :class="{ open: sidebarOpen }">
       <nav class="sidebar-nav">
         <div v-for="group in navGroups" :key="group.label" class="nav-group">
-          <span class="nav-group-label">{{ group.label }}</span>
+          <span
+            class="nav-group-label"
+            :class="{ clickable: group.collapsible }"
+            @click="group.collapsible && toggleCollapsed(group.label)"
+          >
+            <span v-if="group.collapsible" class="nav-group-chevron" :class="{ collapsed: isCollapsed(group.label) }">&#9662;</span>
+            {{ group.label }}
+          </span>
           <router-link
             v-for="item in group.items"
+            v-show="!group.collapsible || !isCollapsed(group.label)"
             :key="item.path"
             :to="item.path"
             class="nav-item"
@@ -483,7 +517,9 @@ input, textarea, select {
 }
 
 .nav-group-label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   padding: 4px 10px;
   font-size: var(--font-size-xs);
   font-weight: 600;
@@ -491,6 +527,28 @@ input, textarea, select {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 2px;
+}
+
+.nav-group-label.clickable {
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--radius-sm);
+  position: relative;
+}
+
+.nav-group-label.clickable:hover {
+  color: var(--color-text-secondary);
+}
+
+.nav-group-chevron {
+  position: absolute;
+  left: -2px;
+  font-size: 10px;
+  transition: transform 0.15s ease;
+}
+
+.nav-group-chevron.collapsed {
+  transform: rotate(-90deg);
 }
 
 .nav-item {
