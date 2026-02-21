@@ -16,7 +16,7 @@ jobs:
 
       - name: Read tracked version
         id: tracked
-        run: echo "branch=$(cat .boinc-release)" >> "$GITHUB_OUTPUT"
+        run: echo "branch=$(tr -d '\r\n' < .boinc-release)" >> "$GITHUB_OUTPUT"
 
       - name: Find latest BOINC client release branch
         id: latest
