@@ -165,12 +165,8 @@ function handleSort(key: string, dir: SortDir) {
   sortDir.value = dir;
 }
 
-function handleRowContext(event: MouseEvent, project: Project, index: number) {
+function handleRowContext(event: MouseEvent, _project: Project, _index: number) {
   event.preventDefault();
-  if (!selectedUrls.value.has(project.master_url)) {
-    selectedUrls.value = new Set([project.master_url]);
-    lastClickedIndex.value = index;
-  }
   ctxX.value = event.clientX;
   ctxY.value = event.clientY;
   ctxOpen.value = true;
@@ -219,11 +215,6 @@ function openProperties() {
     propertiesProject.value = selectedProjects.value[0];
     showProperties.value = true;
   }
-}
-
-function handleRowDblClick(project: Project) {
-  propertiesProject.value = project;
-  showProperties.value = true;
 }
 
 async function openWebPage(index: number) {
@@ -378,27 +369,6 @@ function isColVisible(key: string): boolean {
     <PageHeader title="Projects">
       <button class="btn btn-primary" @click="showAttachWizard = true">Add Project</button>
       <button class="btn" @click="showAcctMgr = true">Account Manager</button>
-      <template v-if="hasSelection">
-        <button class="btn" :disabled="actionBusy" @click="handleUpdate">Update</button>
-        <button class="btn" :disabled="actionBusy" @click="handleSuspendResume">
-          {{ singleSelected?.suspended_via_gui ? "Resume" : "Suspend" }}
-        </button>
-        <button class="btn" :disabled="actionBusy" @click="handleNoNewAllowTasks">
-          {{ singleSelected?.dont_request_more_work ? "Allow new tasks" : "No new tasks" }}
-        </button>
-        <button
-          v-if="singleSelected?.gui_urls?.length"
-          class="btn"
-          @click="openWebPage(0)"
-        >
-          Web Page
-        </button>
-        <button class="btn btn-danger" @click="handleReset">Reset</button>
-        <button class="btn btn-danger" @click="handleDetach">Detach</button>
-        <button v-if="selectedUrls.size === 1" class="btn" @click="openProperties">
-          Properties
-        </button>
-      </template>
       <button class="btn btn-icon" title="Columns" @click="showColumns = true">
         <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
           <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
@@ -406,67 +376,109 @@ function isColVisible(key: string): boolean {
       </button>
     </PageHeader>
 
-    <p v-if="store.error" class="error">{{ store.error }}</p>
+    <div class="content-row">
+      <div class="content-main">
+        <p v-if="store.error" class="error">{{ store.error }}</p>
 
-    <EmptyState
-      v-else-if="store.loading && store.projects.length === 0"
-      icon="&#8987;"
-      message="Loading projects..."
-    />
+        <EmptyState
+          v-else-if="store.loading && store.projects.length === 0"
+          icon="&#8987;"
+          message="Loading projects..."
+        />
 
-    <EmptyState
-      v-else-if="store.projects.length === 0"
-      icon="&#128194;"
-      message="No projects attached."
-    />
+        <EmptyState
+          v-else-if="store.projects.length === 0"
+          icon="&#128194;"
+          message="No projects attached."
+        />
 
-    <DataTable
-      v-if="store.projects.length > 0"
-      :columns="columns"
-      :sort-key="sortKey"
-      :sort-dir="sortDir"
-      selectable
-      :all-selected="allSelected"
-      @sort="handleSort"
-      @select-all="handleSelectAll"
-    >
-      <tr
-        v-for="(project, index) in sortedProjects"
-        :key="project.master_url"
-        :class="{ 'row-selected': isSelected(project) }"
-        @click="handleRowClick(project, index, $event)"
-        @dblclick="handleRowDblClick(project)"
-        @contextmenu="handleRowContext($event, project, index)"
-      >
-        <td class="col-checkbox">
-          <input
-            type="checkbox"
-            :checked="isSelected(project)"
-            @click.stop
-            @change="handleRowClick(project, index, { ctrlKey: true } as MouseEvent)"
-          />
-        </td>
-        <td v-if="isColVisible('project')" class="col-name">{{ project.project_name }}</td>
-        <td v-if="isColVisible('account')">{{ project.user_name }}</td>
-        <td v-if="isColVisible('team')">{{ project.team_name || "---" }}</td>
-        <td v-if="isColVisible('totalCredit')" class="col-number">{{ formatCredit(project.user_total_credit) }}</td>
-        <td v-if="isColVisible('avgCredit')" class="col-number">{{ formatCredit(project.user_expavg_credit) }}</td>
-        <td v-if="isColVisible('status')">
-          <StatusBadge :variant="statusVariant(projectStatus(project))">
-            {{ projectStatus(project) }}
-          </StatusBadge>
-        </td>
-        <td v-if="isColVisible('source')" class="col-source">
-          <span
-            class="source-badge"
-            :class="project.attached_via_acct_mgr ? 'source-manager' : 'source-user'"
-            :title="project.attached_via_acct_mgr ? 'Manager' : 'User'"
+        <DataTable
+          v-if="store.projects.length > 0"
+          :columns="columns"
+          :sort-key="sortKey"
+          :sort-dir="sortDir"
+          selectable
+          :all-selected="allSelected"
+          @sort="handleSort"
+          @select-all="handleSelectAll"
+        >
+          <tr
+            v-for="(project, index) in sortedProjects"
+            :key="project.master_url"
+            :class="{ 'row-selected': isSelected(project) }"
+            @click="handleRowClick(project, index, $event)"
+                @contextmenu="handleRowContext($event, project, index)"
           >
-            <span class="source-label">{{ project.attached_via_acct_mgr ? "Manager" : "User" }}</span>
-          </span>
-        </td>
-      </tr>
-    </DataTable>
+            <td class="col-checkbox">
+              <input
+                type="checkbox"
+                :checked="isSelected(project)"
+                @click.stop
+                @change="handleRowClick(project, index, { ctrlKey: true } as MouseEvent)"
+              />
+            </td>
+            <td v-if="isColVisible('project')" class="col-name">{{ project.project_name }}</td>
+            <td v-if="isColVisible('account')">{{ project.user_name }}</td>
+            <td v-if="isColVisible('team')">{{ project.team_name || "---" }}</td>
+            <td v-if="isColVisible('totalCredit')" class="col-number">{{ formatCredit(project.user_total_credit) }}</td>
+            <td v-if="isColVisible('avgCredit')" class="col-number">{{ formatCredit(project.user_expavg_credit) }}</td>
+            <td v-if="isColVisible('status')">
+              <StatusBadge :variant="statusVariant(projectStatus(project))">
+                {{ projectStatus(project) }}
+              </StatusBadge>
+            </td>
+            <td v-if="isColVisible('source')" class="col-source">
+              <span
+                class="source-badge"
+                :class="project.attached_via_acct_mgr ? 'source-manager' : 'source-user'"
+                :title="project.attached_via_acct_mgr ? 'Manager' : 'User'"
+              >
+                <span class="source-label">{{ project.attached_via_acct_mgr ? "Manager" : "User" }}</span>
+              </span>
+            </td>
+          </tr>
+        </DataTable>
+      </div>
+
+      <Transition name="drawer">
+        <div v-if="hasSelection" class="drawer-panel">
+          <div class="drawer-header">
+            <h3>{{ singleSelected?.project_name ?? `${selectedUrls.size} projects` }}</h3>
+          </div>
+
+          <div class="drawer-section">
+            <button class="btn has-tooltip" :disabled="actionBusy" data-tooltip="Fetch latest project status from server" @click="handleUpdate">Update</button>
+            <button class="btn has-tooltip" :disabled="actionBusy" :data-tooltip="singleSelected?.suspended_via_gui ? 'Resume work for this project' : 'Temporarily stop all work for this project'" @click="handleSuspendResume">
+              {{ singleSelected?.suspended_via_gui ? "Resume" : "Suspend" }}
+            </button>
+            <button class="btn has-tooltip" :disabled="actionBusy" :data-tooltip="singleSelected?.dont_request_more_work ? 'Start requesting new tasks again' : 'Finish current tasks but request no more'" @click="handleNoNewAllowTasks">
+              {{ singleSelected?.dont_request_more_work ? "Allow new tasks" : "No new tasks" }}
+            </button>
+            <button v-if="selectedUrls.size === 1" class="btn has-tooltip" data-tooltip="View detailed project information" @click="openProperties">
+              Properties
+            </button>
+          </div>
+
+          <div class="drawer-section drawer-danger">
+            <button class="btn btn-danger has-tooltip" data-tooltip="Delete all tasks and download them again" @click="handleReset">Reset</button>
+            <button class="btn btn-danger has-tooltip" data-tooltip="Remove this project completely" @click="handleDetach">Detach</button>
+          </div>
+
+          <div v-if="singleSelected?.gui_urls?.length" class="drawer-section drawer-links">
+            <div class="drawer-section-label">Web Links</div>
+            <a
+              v-for="(gu, i) in singleSelected.gui_urls"
+              :key="gu.url"
+              class="web-link"
+              href="#"
+              @click.prevent="openWebPage(i)"
+            >
+              {{ gu.name || 'Web Page' }}
+            </a>
+          </div>
+        </div>
+      </Transition>
+    </div>
 
     <ContextMenu
       :open="ctxOpen"
@@ -515,6 +527,10 @@ function isColVisible(key: string): boolean {
 <style scoped>
 .projects-view {
   padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
 }
 
 .error {
@@ -604,5 +620,135 @@ function isColVisible(key: string): boolean {
   justify-content: center;
   padding: 6px;
   min-width: 32px;
+}
+
+/* Content layout */
+.content-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+}
+
+.content-main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  margin-right: var(--space-md);
+}
+
+/* Side drawer */
+.drawer-panel {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--color-bg);
+  border-left: 1px solid var(--color-border);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  overflow-y: auto;
+  overflow-x: visible;
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawer-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.drawer-section .btn {
+  width: 100%;
+  text-align: left;
+}
+
+.drawer-danger {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--space-md);
+}
+
+.drawer-links {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--space-md);
+}
+
+.drawer-section-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-xs);
+}
+
+.web-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  padding: 2px 0;
+}
+
+.web-link:hover {
+  color: var(--color-accent-hover);
+  text-decoration: underline;
+}
+
+/* Tooltips */
+.has-tooltip {
+  position: relative;
+}
+
+.has-tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  line-height: 1.4;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+}
+
+.has-tooltip:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  transition-delay: 0.4s;
+}
+
+/* Drawer transition */
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: width 0.2s ease, opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.drawer-enter-from,
+.drawer-leave-to {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
 }
 </style>

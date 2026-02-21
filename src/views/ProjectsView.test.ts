@@ -171,4 +171,252 @@ describe("ProjectsView", () => {
     expect(labels).toContain("Add Project");
     expect(labels).toContain("Account Manager");
   });
+
+  it("hides drawer when no project is selected", () => {
+    const store = useProjectsStore();
+    store.projects = [makeProject()];
+
+    const wrapper = mount(ProjectsView);
+    expect(wrapper.find(".drawer-panel").exists()).toBe(false);
+  });
+
+  it("shows drawer when a project is selected", async () => {
+    const store = useProjectsStore();
+    store.projects = [makeProject()];
+
+    const wrapper = mount(ProjectsView);
+    await wrapper.find("tbody tr").trigger("click");
+
+    expect(wrapper.find(".drawer-panel").exists()).toBe(true);
+  });
+
+  it("groups danger buttons in drawer-danger section", async () => {
+    const store = useProjectsStore();
+    store.projects = [makeProject()];
+
+    const wrapper = mount(ProjectsView);
+    await wrapper.find("tbody tr").trigger("click");
+
+    const dangerSection = wrapper.find(".drawer-danger");
+    expect(dangerSection.exists()).toBe(true);
+    const dangerButtons = dangerSection.findAll(".btn-danger");
+    expect(dangerButtons).toHaveLength(2);
+    expect(dangerButtons[0].text()).toBe("Reset");
+    expect(dangerButtons[1].text()).toBe("Detach");
+  });
+
+  it("shows Allow new tasks when dont_request_more_work is true", async () => {
+    const store = useProjectsStore();
+    store.projects = [makeProject({ dont_request_more_work: true })];
+
+    const wrapper = mount(ProjectsView);
+    await wrapper.find("tbody tr").trigger("click");
+
+    const drawer = wrapper.find(".drawer-panel");
+    expect(drawer.text()).toContain("Allow new tasks");
+  });
+
+  it("shows Properties button only for single selection", async () => {
+    const store = useProjectsStore();
+    store.projects = [
+      makeProject(),
+      makeProject({ master_url: "https://example2.com/", project_name: "Project 2" }),
+    ];
+
+    const wrapper = mount(ProjectsView);
+    const rows = wrapper.findAll("tbody tr");
+
+    // Single select → Properties visible
+    await rows[0].trigger("click");
+    let drawer = wrapper.find(".drawer-panel");
+    expect(drawer.text()).toContain("Properties");
+
+    // Multi-select → Properties hidden
+    await rows[1].trigger("click", { ctrlKey: true });
+    drawer = wrapper.find(".drawer-panel");
+    expect(drawer.text()).not.toContain("Properties");
+  });
+
+  it("calls store.updateProject when Update is clicked", async () => {
+    const store = useProjectsStore();
+    store.projects = [makeProject()];
+    store.updateProject = vi.fn().mockResolvedValue(undefined);
+
+    const wrapper = mount(ProjectsView);
+    await wrapper.find("tbody tr").trigger("click");
+
+    const updateBtn = wrapper.findAll(".drawer-section .btn").find((b) => b.text() === "Update")!;
+    await updateBtn.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    expect(store.updateProject).toHaveBeenCalledWith("https://example.com/project/");
+  });
+
+  it("calls store.suspendProject when Suspend is clicked", async () => {
+    const store = useProjectsStore();
+    store.projects = [makeProject({ suspended_via_gui: false })];
+    store.suspendProject = vi.fn().mockResolvedValue(undefined);
+
+    const wrapper = mount(ProjectsView);
+    await wrapper.find("tbody tr").trigger("click");
+
+    const suspendBtn = wrapper.findAll(".drawer-section .btn").find((b) => b.text() === "Suspend")!;
+    await suspendBtn.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    expect(store.suspendProject).toHaveBeenCalledWith("https://example.com/project/");
+  });
+
+  it("calls store.resumeProject when Resume is clicked", async () => {
+    const store = useProjectsStore();
+    store.projects = [makeProject({ suspended_via_gui: true })];
+    store.resumeProject = vi.fn().mockResolvedValue(undefined);
+
+    const wrapper = mount(ProjectsView);
+    await wrapper.find("tbody tr").trigger("click");
+
+    const resumeBtn = wrapper.findAll(".drawer-section .btn").find((b) => b.text() === "Resume")!;
+    await resumeBtn.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    expect(store.resumeProject).toHaveBeenCalledWith("https://example.com/project/");
+  });
+
+  it("calls store.noNewTasks when No new tasks is clicked", async () => {
+    const store = useProjectsStore();
+    store.projects = [makeProject({ dont_request_more_work: false })];
+    store.noNewTasks = vi.fn().mockResolvedValue(undefined);
+
+    const wrapper = mount(ProjectsView);
+    await wrapper.find("tbody tr").trigger("click");
+
+    const btn = wrapper.findAll(".drawer-section .btn").find((b) => b.text() === "No new tasks")!;
+    await btn.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    expect(store.noNewTasks).toHaveBeenCalledWith("https://example.com/project/");
+  });
+
+  it("calls store.allowNewTasks when Allow new tasks is clicked", async () => {
+    const store = useProjectsStore();
+    store.projects = [makeProject({ dont_request_more_work: true })];
+    store.allowNewTasks = vi.fn().mockResolvedValue(undefined);
+
+    const wrapper = mount(ProjectsView);
+    await wrapper.find("tbody tr").trigger("click");
+
+    const btn = wrapper.findAll(".drawer-section .btn").find((b) => b.text() === "Allow new tasks")!;
+    await btn.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    expect(store.allowNewTasks).toHaveBeenCalledWith("https://example.com/project/");
+  });
+
+  it("does not show a Web Page button in the drawer actions", async () => {
+    const store = useProjectsStore();
+    store.projects = [
+      makeProject({
+        gui_urls: [
+          { name: "Home page", description: "", url: "https://example.com/" },
+        ],
+      }),
+    ];
+
+    const wrapper = mount(ProjectsView);
+    await wrapper.find("tbody tr").trigger("click");
+
+    const sections = wrapper.findAll(".drawer-section:not(.drawer-links):not(.drawer-danger)");
+    const buttons = sections.flatMap((s) => s.findAll("button"));
+    const labels = buttons.map((b) => b.text());
+    expect(labels).not.toContain("Web Page");
+  });
+
+  it("keeps header buttons visible regardless of selection", async () => {
+    const store = useProjectsStore();
+    store.projects = [makeProject()];
+
+    const wrapper = mount(ProjectsView);
+
+    // Before selection
+    let headerButtons = wrapper.find(".page-header").findAll("button");
+    let headerLabels = headerButtons.map((b) => b.text());
+    expect(headerLabels).toContain("Add Project");
+    expect(headerLabels).toContain("Account Manager");
+
+    // After selection
+    await wrapper.find("tbody tr").trigger("click");
+    headerButtons = wrapper.find(".page-header").findAll("button");
+    headerLabels = headerButtons.map((b) => b.text());
+    expect(headerLabels).toContain("Add Project");
+    expect(headerLabels).toContain("Account Manager");
+    // Selection-dependent buttons should NOT be in the header
+    expect(headerLabels).not.toContain("Update");
+    expect(headerLabels).not.toContain("Suspend");
+    expect(headerLabels).not.toContain("Reset");
+  });
+
+  it("shows web links in drawer when project with gui_urls is selected", async () => {
+    const store = useProjectsStore();
+    store.projects = [
+      makeProject({
+        gui_urls: [
+          { name: "Home page", description: "", url: "https://example.com/" },
+          { name: "Your account", description: "", url: "https://example.com/account" },
+          { name: "Message boards", description: "", url: "https://example.com/forum" },
+        ],
+      }),
+    ];
+
+    const wrapper = mount(ProjectsView);
+    expect(wrapper.find(".drawer-links").exists()).toBe(false);
+
+    await wrapper.find("tbody tr").trigger("click");
+
+    expect(wrapper.find(".drawer-links").exists()).toBe(true);
+    const links = wrapper.findAll(".web-link");
+    expect(links).toHaveLength(3);
+    expect(links[0].text()).toBe("Home page");
+    expect(links[1].text()).toBe("Your account");
+    expect(links[2].text()).toBe("Message boards");
+  });
+
+  it("hides web links when no project selected", () => {
+    const store = useProjectsStore();
+    store.projects = [
+      makeProject({
+        gui_urls: [
+          { name: "Home page", description: "", url: "https://example.com/" },
+        ],
+      }),
+    ];
+
+    const wrapper = mount(ProjectsView);
+    expect(wrapper.find(".drawer-links").exists()).toBe(false);
+  });
+
+  it("hides web links when multiple projects selected", async () => {
+    const store = useProjectsStore();
+    store.projects = [
+      makeProject({
+        gui_urls: [
+          { name: "Home page", description: "", url: "https://example.com/" },
+        ],
+      }),
+      makeProject({
+        master_url: "https://example2.com/",
+        project_name: "Project 2",
+        gui_urls: [
+          { name: "Home page", description: "", url: "https://example2.com/" },
+        ],
+      }),
+    ];
+
+    const wrapper = mount(ProjectsView);
+    const rows = wrapper.findAll("tbody tr");
+    await rows[0].trigger("click");
+    await rows[1].trigger("click", { ctrlKey: true });
+
+    // Multiple selected → singleSelected is null → web links hidden
+    expect(wrapper.find(".drawer-links").exists()).toBe(false);
+  });
 });

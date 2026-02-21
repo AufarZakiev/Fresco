@@ -450,6 +450,9 @@ input, textarea, select {
 .main-content {
   flex: 1;
   padding-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* ── Sidebar ──────────────────────────────────────────────────── */
