@@ -1,0 +1,117 @@
+name: RPC Contract Check
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read tracked version
+        id: tracked
+        run: echo "branch=$(cat .boinc-release)" >> "$GITHUB_OUTPUT"
+
+      - name: Find latest BOINC client release branch
+        id: latest
+        run: |
+          # List all client_release branches, sort semantically, pick latest
+          LATEST=$(git ls-remote --heads https://github.com/BOINC/boinc.git 'refs/heads/client_release/*' \
+            | awk '{print $2}' \
+            | sed 's|refs/heads/||' \
+            | sort -t/ -k2,2n -k3,3n \
+            | tail -1)
+          echo "branch=$LATEST" >> "$GITHUB_OUTPUT"
+          echo "Latest BOINC release branch: $LATEST"
+
+      - name: Compare versions
+        id: compare
+        run: |
+          if [ "${{ steps.tracked.outputs.branch }}" = "${{ steps.latest.outputs.branch }}" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No new release"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "New release: ${{ steps.latest.outputs.branch }}"
+          fi
+
+      - name: Diff RPC contract files
+        if: steps.compare.outputs.changed == 'true'
+        id: diff
+        run: |
+          TRACKED="${{ steps.tracked.outputs.branch }}"
+          LATEST="${{ steps.latest.outputs.branch }}"
+
+          # Fetch only RPC-relevant files from both branches
+          RPC_FILES=(
+            client/gui_rpc_server_ops.cpp
+            client/cs_statefile.cpp
+            lib/hostinfo.cpp
+            client/project.cpp
+            client/result.cpp
+            client/client_types.cpp
+            client/net_stats.cpp
+            client/time_stats.cpp
+            lib/prefs.cpp
+            version.h
+          )
+
+          mkdir -p old new
+          for f in "${RPC_FILES[@]}"; do
+            curl -sf "https://raw.githubusercontent.com/BOINC/boinc/${TRACKED}/${f}" -o "old/$(basename $f)" 2>/dev/null || true
+            curl -sf "https://raw.githubusercontent.com/BOINC/boinc/${LATEST}/${f}" -o "new/$(basename $f)" 2>/dev/null || true
+          done
+
+          # Generate diff
+          DIFF_OUTPUT=$(diff -ru old/ new/ || true)
+
+          if [ -z "$DIFF_OUTPUT" ]; then
+            echo "rpc_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No RPC contract changes"
+          else
+            echo "rpc_changed=true" >> "$GITHUB_OUTPUT"
+            echo "$DIFF_OUTPUT" > /tmp/rpc-diff.txt
+            echo "RPC contract files changed"
+          fi
+
+      - name: Open GitHub issue
+        if: steps.compare.outputs.changed == 'true' && steps.diff.outputs.rpc_changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TRACKED="${{ steps.tracked.outputs.branch }}"
+          LATEST="${{ steps.latest.outputs.branch }}"
+          DIFF=$(head -500 /tmp/rpc-diff.txt)
+
+          gh issue create \
+            --title "BOINC RPC contract changed: ${TRACKED} → ${LATEST}" \
+            --label "rpc-contract" \
+            --body "$(cat <<EOF
+          ## New BOINC client release detected
+
+          **Previous:** \`${TRACKED}\`
+          **Latest:** \`${LATEST}\`
+
+          The following RPC contract files have changed. Review the diffs below and update Fresco's RPC parsing if needed.
+
+          <details>
+          <summary>Diff (first 500 lines)</summary>
+
+          \`\`\`diff
+          ${DIFF}
+          \`\`\`
+
+          </details>
+
+          ### Action items
+          - [ ] Review XML format changes in the diff
+          - [ ] Update Fresco RPC parsing code if needed
+          - [ ] Update \`.boinc-release\` to \`${LATEST}\`
+          EOF
+          )"
