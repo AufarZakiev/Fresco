@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { useManagerSettingsStore } from "../stores/managerSettings";
 
 const props = defineProps<{ open: boolean }>();
@@ -7,18 +8,25 @@ const emit = defineEmits<{ close: [] }>();
 
 const store = useManagerSettingsStore();
 const form = ref({ ...store.settings });
+const launchAtLogin = ref(false);
 
 watch(
   () => props.open,
-  (isOpen) => {
+  async (isOpen) => {
     if (isOpen) {
       form.value = { ...store.settings };
+      launchAtLogin.value = await isEnabled();
     }
   },
 );
 
-function save() {
+async function save() {
   Object.assign(store.settings, form.value);
+  if (launchAtLogin.value) {
+    await enable();
+  } else {
+    await disable();
+  }
   emit("close");
 }
 </script>
@@ -94,6 +102,13 @@ function save() {
             <label class="option-toggle">
               <input type="checkbox" v-model="form.startMinimizedToTray" />
               <span>Start minimized to system tray</span>
+            </label>
+          </div>
+
+          <div class="option-group">
+            <label class="option-toggle">
+              <input type="checkbox" v-model="launchAtLogin" />
+              <span>Launch at login</span>
             </label>
           </div>
         </div>
