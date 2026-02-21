@@ -63,7 +63,7 @@ function createTestRouter() {
       { path: "/projects", component: { template: "<div>Projects</div>" } },
       { path: "/statistics", component: { template: "<div>Statistics</div>" } },
       { path: "/transfers", component: { template: "<div>Transfers</div>" } },
-      { path: "/messages", component: { template: "<div>Messages</div>" } },
+      { path: "/event-log", component: { template: "<div>Event Log</div>" } },
       { path: "/notices", component: { template: "<div>Notices</div>" } },
       { path: "/disk", component: { template: "<div>Disk</div>" } },
       { path: "/host", component: { template: "<div>Host</div>" } },

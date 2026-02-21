@@ -61,10 +61,10 @@ describe("StatusBar", () => {
     expect(wrapper.text()).not.toContain("suspended");
   });
 
-  it("shows build time label", () => {
+  it("shows about button", () => {
     const conn = useConnectionStore();
     conn.state = CONNECTION_STATE.CONNECTED;
     const wrapper = mount(StatusBar);
-    expect(wrapper.text()).toContain("dev");
+    expect(wrapper.find(".about-btn").exists()).toBe(true);
   });
 });

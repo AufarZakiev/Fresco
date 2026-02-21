@@ -49,6 +49,9 @@ jobs:
       - name: Oxlint (Vue/TS)
         run: pnpm lint
 
+      - name: Test (Vitest)
+        run: pnpm test
+
       - name: Clippy (Rust)
         run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 

@@ -17,7 +17,7 @@ const router = createRouter({
     { path: "/projects", component: ProjectsView },
     { path: "/transfers", component: TransfersView },
     { path: "/statistics", component: StatisticsView },
-    { path: "/messages", component: MessagesView },
+    { path: "/event-log", component: MessagesView },
     { path: "/notices", component: NoticesView },
     { path: "/disk", component: DiskUsageView },
     { path: "/host", component: HostInfoView },

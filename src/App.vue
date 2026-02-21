@@ -209,7 +209,7 @@ const navGroups = [
     label: "Network",
     items: [
       { path: "/transfers", label: "Transfers", icon: "transfer" },
-      { path: "/messages", label: "Messages", icon: "message" },
+      { path: "/event-log", label: "Event Log", icon: "message" },
       { path: "/notices", label: "Notices", icon: "bell" },
     ],
   },
