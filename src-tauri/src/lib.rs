@@ -381,9 +381,12 @@ async fn get_host_info(state: State<'_, AppState>) -> Result<HostInfo, String> {
         // Get OS version from the system
         #[cfg(target_os = "windows")]
         {
+            use std::os::windows::process::CommandExt;
             use std::process::Command;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
             if let Ok(output) = Command::new("cmd")
                 .args(["/C", "ver"])
+                .creation_flags(CREATE_NO_WINDOW)
                 .output()
             {
                 let ver = String::from_utf8_lossy(&output.stdout);
@@ -752,8 +755,11 @@ async fn get_daily_xfer_history(
 fn is_boinc_running() -> bool {
     #[cfg(target_os = "windows")]
     {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
         let output = std::process::Command::new("tasklist")
             .args(["/FI", "IMAGENAME eq boinc.exe", "/NH", "/FO", "CSV"])
+            .creation_flags(CREATE_NO_WINDOW)
             .output();
         match output {
             Ok(o) => String::from_utf8_lossy(&o.stdout).contains("boinc.exe"),
