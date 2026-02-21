@@ -79,9 +79,7 @@ async function mountApp(router: ReturnType<typeof createTestRouter>) {
         ActivityControls: stubComponent,
         PreferencesDialog: stubComponent,
         AboutDialog: stubComponent,
-        AccountManagerWizard: stubComponent,
         SelectComputerDialog: stubComponent,
-        ProjectAttachWizard: stubComponent,
         ManagerOptionsDialog: stubComponent,
         ExitConfirmDialog: stubComponent,
         StatusBar: stubComponent,
@@ -169,5 +167,40 @@ describe("App", () => {
     expect(labels).toContain("Tasks");
     expect(labels).toContain("Projects");
     expect(labels).toContain("Transfers");
+  });
+
+  it("sidebar footer does not contain Add Project or Account Manager buttons", async () => {
+    const router = createTestRouter();
+    await router.push("/tasks");
+    await router.isReady();
+
+    const conn = useConnectionStore();
+    conn.state = CONNECTION_STATE.CONNECTED;
+
+    const wrapper = await mountApp(router);
+
+    const footer = wrapper.find(".sidebar-footer");
+    expect(footer.exists()).toBe(true);
+    const buttons = footer.findAll("button");
+    const titles = buttons.map((b) => b.attributes("title") ?? "");
+    expect(titles).not.toContain("Add Project");
+    expect(titles).not.toContain("Account Manager");
+  });
+
+  it("sidebar footer contains Select Computer and Preferences buttons", async () => {
+    const router = createTestRouter();
+    await router.push("/tasks");
+    await router.isReady();
+
+    const conn = useConnectionStore();
+    conn.state = CONNECTION_STATE.CONNECTED;
+
+    const wrapper = await mountApp(router);
+
+    const footer = wrapper.find(".sidebar-footer");
+    const buttons = footer.findAll("button");
+    const titles = buttons.map((b) => b.attributes("title") ?? "");
+    expect(titles).toContain("Select Computer");
+    expect(titles).toContain("Preferences");
   });
 });

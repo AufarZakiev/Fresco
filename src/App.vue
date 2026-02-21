@@ -8,9 +8,7 @@ import ActivityControls from "./components/ActivityControls.vue";
 import PreferencesDialog from "./components/PreferencesDialog.vue";
 import AboutDialog from "./components/AboutDialog.vue";
 import StatusBar from "./components/StatusBar.vue";
-import AccountManagerWizard from "./components/AccountManagerWizard.vue";
 import SelectComputerDialog from "./components/SelectComputerDialog.vue";
-import ProjectAttachWizard from "./components/ProjectAttachWizard.vue";
 import ExitConfirmDialog from "./components/ExitConfirmDialog.vue";
 import ToastContainer from "./components/ToastContainer.vue";
 import UpdateBanner from "./components/UpdateBanner.vue";
@@ -51,9 +49,7 @@ const preferencesStore = usePreferencesStore();
 useManagerSettingsStore(); // Initialize early to apply theme before ConnectView renders
 const showPreferences = ref(false);
 const showAbout = ref(false);
-const showAcctMgr = ref(false);
 const showSelectComputer = ref(false);
-const showAddProject = ref(false);
 const prefsInitialTab = ref<"computing" | "manager">("computing");
 const showExitConfirm = ref(false);
 const initializing = ref(true);
@@ -146,12 +142,11 @@ onMounted(async () => {
           case "snooze_gpu":
             setGpuMode(3, 3600).catch(() => {});
             break;
-          case "resume":
-            setRunMode(0, 0).catch(() => {});
-            setGpuMode(0, 0).catch(() => {});
+          case "resume_cpu":
+            setRunMode(4, 0).catch(() => {});
             break;
-          case "about":
-            showAbout.value = true;
+          case "resume_gpu":
+            setGpuMode(4, 0).catch(() => {});
             break;
         }
       }),
@@ -332,19 +327,9 @@ watch(
       <div class="sidebar-footer">
         <ActivityControls />
         <div class="sidebar-actions">
-          <button class="sidebar-action-btn" title="Add Project" @click="showAddProject = true">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-            </svg>
-          </button>
           <button class="sidebar-action-btn" title="Select Computer" @click="showSelectComputer = true">
             <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
               <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm11 1H6v3h8V6zM6 15a1 1 0 100 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-            </svg>
-          </button>
-          <button class="sidebar-action-btn" title="Account Manager" @click="showAcctMgr = true">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-              <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
             </svg>
           </button>
           <button class="sidebar-action-btn" title="Preferences" @click="prefsInitialTab = 'computing'; showPreferences = true">
@@ -368,17 +353,9 @@ watch(
       @close="showPreferences = false"
     />
     <AboutDialog :open="showAbout" @close="showAbout = false" />
-    <AccountManagerWizard
-      :open="showAcctMgr"
-      @close="showAcctMgr = false"
-    />
     <SelectComputerDialog
       :open="showSelectComputer"
       @close="showSelectComputer = false"
-    />
-    <ProjectAttachWizard
-      :open="showAddProject"
-      @close="showAddProject = false"
     />
     <ExitConfirmDialog
       :open="showExitConfirm"
