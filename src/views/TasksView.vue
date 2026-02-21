@@ -400,13 +400,15 @@ function isColVisible(key: string): boolean {
     />
 
     <EmptyState
-      v-else-if="store.tasks.length === 0"
+      v-else-if="filteredTasks.length === 0"
       icon="&#128203;"
-      message="No tasks. Attach a project to start computing."
+      :message="activeTasksOnly
+        ? 'No active tasks right now.'
+        : 'No tasks. Attach a project to start computing.'"
     />
 
     <DataTable
-      v-if="filteredTasks.length > 0"
+      v-else
       :columns="columns"
       :sort-key="sortKey"
       :sort-dir="sortDir"
