@@ -238,7 +238,7 @@ onUnmounted(() => {
     </div>
 
     <EmptyState
-      v-if="!store.loading && sortedMessages.length === 0"
+      v-if="sortedMessages.length === 0"
       icon="&#x1f4ac;"
       message="No messages to display."
     />
