@@ -147,8 +147,46 @@ onUnmounted(() => {
     />
 
     <template v-else>
-      <!-- Summary Cards -->
-      <div class="top-section">
+      <div class="content-layout">
+        <!-- BOINC Usage by Project (left on wide screens) -->
+        <div class="breakdown-section">
+          <h3 class="section-title">BOINC Usage by Project</h3>
+          <div class="boinc-chart-card">
+            <svg width="240" height="240" viewBox="0 0 240 240" class="doughnut-svg">
+              <path
+                v-for="(seg, i) in boincDoughnutPaths"
+                :key="i"
+                :d="seg.d"
+                :fill="seg.color"
+                stroke="var(--color-bg)"
+                stroke-width="2"
+              >
+                <title>{{ seg.label }}</title>
+              </path>
+              <text x="120" y="114" class="center-label" text-anchor="middle">Total</text>
+              <text x="120" y="134" class="center-value" text-anchor="middle">
+                {{ formatBytes(store.usage.d_boinc) }}
+              </text>
+            </svg>
+
+            <div class="legend">
+              <div
+                v-for="(seg, i) in boincPieSegments"
+                :key="i"
+                class="legend-item"
+              >
+                <span class="legend-swatch" :style="{ background: seg.color }"></span>
+                <span class="legend-label">{{ seg.label }}</span>
+                <span class="legend-value">
+                  {{ formatBytes(seg.value) }}
+                  <span class="legend-pct">({{ formatPercent(seg.fraction) }})</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Cards (right on wide screens) -->
         <div class="summary-cards">
           <div class="summary-card">
             <span class="summary-label">Total Disk</span>
@@ -165,44 +203,6 @@ onUnmounted(() => {
           <div class="summary-card">
             <span class="summary-label">Allowed</span>
             <span class="summary-value">{{ formatBytes(store.usage.d_allowed) }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- BOINC Usage by Project -->
-      <div class="breakdown-section">
-        <h3 class="section-title">BOINC Usage by Project</h3>
-        <div class="boinc-chart-card">
-          <svg width="240" height="240" viewBox="0 0 240 240" class="doughnut-svg">
-            <path
-              v-for="(seg, i) in boincDoughnutPaths"
-              :key="i"
-              :d="seg.d"
-              :fill="seg.color"
-              stroke="var(--color-bg)"
-              stroke-width="2"
-            >
-              <title>{{ seg.label }}</title>
-            </path>
-            <text x="120" y="114" class="center-label" text-anchor="middle">Total</text>
-            <text x="120" y="134" class="center-value" text-anchor="middle">
-              {{ formatBytes(store.usage.d_boinc) }}
-            </text>
-          </svg>
-
-          <div class="legend">
-            <div
-              v-for="(seg, i) in boincPieSegments"
-              :key="i"
-              class="legend-item"
-            >
-              <span class="legend-swatch" :style="{ background: seg.color }"></span>
-              <span class="legend-label">{{ seg.label }}</span>
-              <span class="legend-value">
-                {{ formatBytes(seg.value) }}
-                <span class="legend-pct">({{ formatPercent(seg.fraction) }})</span>
-              </span>
-            </div>
           </div>
         </div>
       </div>
@@ -227,11 +227,25 @@ onUnmounted(() => {
   padding: var(--space-xl) 0;
 }
 
-.top-section {
+.content-layout {
   display: flex;
+  flex-direction: column;
   gap: var(--space-xl);
-  margin-bottom: var(--space-xl);
-  flex-wrap: wrap;
+}
+
+@media (min-width: 900px) {
+  .content-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .breakdown-section {
+    flex-shrink: 0;
+  }
+
+  .summary-cards {
+    flex: 1;
+  }
 }
 
 .doughnut-svg {
@@ -290,7 +304,6 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-md);
-  flex: 1;
   min-width: 240px;
 }
 
