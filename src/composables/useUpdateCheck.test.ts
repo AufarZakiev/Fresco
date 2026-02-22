@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Mock @tauri-apps/api/core
+// Mock @tauri-apps/api/core — default return must be a Promise so the
+// eager `invoke("get_build_time")` call at module-load doesn't blow up.
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+  invoke: vi.fn().mockResolvedValue(""),
 }));
 
 // Mock pinia store — provide a minimal mock for useManagerSettingsStore
@@ -34,10 +35,10 @@ function makeRelease(
 }
 
 const windowsAssets = [
-  { name: "Fresco-x86_64-pc-windows-msvc.exe", browser_download_url: "https://example.com/win64.exe" },
-  { name: "Fresco-aarch64-pc-windows-msvc.exe", browser_download_url: "https://example.com/winarm.exe" },
-  { name: "Fresco-aarch64-apple-darwin.app.zip", browser_download_url: "https://example.com/macarm.zip" },
-  { name: "Fresco-x86_64-unknown-linux-gnu.AppImage", browser_download_url: "https://example.com/linux.appimage" },
+  { name: "Fresco_Windows_x86_64.exe", browser_download_url: "https://example.com/win64.exe" },
+  { name: "Fresco_Windows_ARM64.exe", browser_download_url: "https://example.com/winarm.exe" },
+  { name: "Fresco_macOS_ARM64.app.zip", browser_download_url: "https://example.com/macarm.zip" },
+  { name: "Fresco_Linux_x86_64.AppImage", browser_download_url: "https://example.com/linux.appimage" },
 ];
 
 describe("useUpdateCheck", () => {
@@ -121,18 +122,7 @@ describe("useUpdateCheck", () => {
     expect(updateAvailable.value).toBe(false);
   });
 
-  it("respects 24h throttle", async () => {
-    localStorage.setItem("fresco-last-update-check", String(Date.now()));
-
-    mockInvoke.mockResolvedValue(appBuildTime);
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
-
-    await checkForUpdates(false);
-
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it("ignores throttle when forced", async () => {
+  it("checks even when last check was recent (no throttle)", async () => {
     localStorage.setItem("fresco-last-update-check", String(Date.now()));
 
     mockInvoke.mockResolvedValue(appBuildTime);
@@ -143,7 +133,7 @@ describe("useUpdateCheck", () => {
       }),
     );
 
-    await checkForUpdates(true);
+    await checkForUpdates(false);
 
     const { updateAvailable } = useUpdateCheck();
     expect(updateAvailable.value).toBe(true);
