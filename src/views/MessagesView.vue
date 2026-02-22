@@ -333,6 +333,7 @@ onUnmounted(() => {
   background: var(--color-accent-light);
   color: var(--color-accent);
   border-color: var(--color-accent);
+  border-right-width: 1px;
   z-index: 1;
   position: relative;
 }
