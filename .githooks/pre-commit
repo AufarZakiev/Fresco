@@ -17,20 +17,31 @@ fi
 
 echo "All lints passed."
 
-echo "Running builds..."
+echo "Running type checks..."
 
-# Vue build (type-check + vite)
-npx vue-tsc --noEmit && npx vite build
+# Vue type-check (catches errors vitest won't — it strips types via esbuild)
+npx vue-tsc --noEmit
 if [ $? -ne 0 ]; then
-  echo "Vue build failed. Fix the issues above before committing."
+  echo "Vue type check failed. Fix the issues above before committing."
   exit 1
 fi
 
-# Rust build
-cargo build --manifest-path src-tauri/Cargo.toml 2>&1
+echo "Type checks passed."
+
+echo "Running tests..."
+
+# Frontend tests (vitest)
+npx vitest run
 if [ $? -ne 0 ]; then
-  echo "Rust build failed. Fix the issues above before committing."
+  echo "Frontend tests failed. Fix the issues above before committing."
   exit 1
 fi
 
-echo "All builds passed."
+# Rust tests (also compiles the code, so separate cargo build is unnecessary)
+cargo test --manifest-path src-tauri/Cargo.toml 2>&1
+if [ $? -ne 0 ]; then
+  echo "Rust tests failed. Fix the issues above before committing."
+  exit 1
+fi
+
+echo "All checks passed."
