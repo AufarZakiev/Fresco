@@ -40,21 +40,21 @@ function getPlatformAssetPattern(): string {
 
   if (platform.includes("win")) {
     if (ua.includes("arm") || ua.includes("aarch64")) {
-      return "aarch64-pc-windows-msvc.exe";
+      return "Windows_ARM64";
     }
-    return "x86_64-pc-windows-msvc.exe";
+    return "Windows_x86_64";
   }
   if (platform.includes("mac")) {
     if (ua.includes("arm") || platform.includes("arm")) {
-      return "aarch64-apple-darwin.app.zip";
+      return "macOS_ARM64";
     }
-    return "x86_64-apple-darwin.app.zip";
+    return "macOS_x86_64";
   }
   // Linux
   if (ua.includes("aarch64") || ua.includes("arm64")) {
-    return "aarch64-unknown-linux-gnu";
+    return "Linux_ARM64";
   }
-  return "x86_64-unknown-linux-gnu";
+  return "Linux_x86_64";
 }
 
 function matchAsset(assets: GitHubAsset[]): string {

@@ -1047,6 +1047,7 @@ pub fn run() {
             get_daily_xfer_history,
             get_build_time,
             updater::download_update,
+            updater::update_now,
             updater::install_update,
             updater::cleanup_old_binary,
         ])

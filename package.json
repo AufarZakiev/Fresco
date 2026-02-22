@@ -14,7 +14,8 @@
     "lint": "oxlint src/",
     "lint:rust": "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings",
     "lint:all": "pnpm lint && pnpm lint:rust",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "build:dev": "bash scripts/build-dev.sh"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

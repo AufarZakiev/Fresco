@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import Tooltip from "./Tooltip.vue";
 import { useUpdateCheck, startBackgroundDownload } from "../composables/useUpdateCheck";
 
-const { releaseDate, assetUrl, updateOnExit, downloaded, dismissUpdate } = useUpdateCheck();
+const { releaseDate, assetUrl, updateOnExit, dismissUpdate } = useUpdateCheck();
 const updating = ref(false);
 const updateError = ref("");
 
@@ -30,15 +30,15 @@ async function updateNow() {
   updating.value = true;
   updateError.value = "";
   try {
-    if (!downloaded.value) {
-      await invoke("download_update", { assetUrl: assetUrl.value });
-    }
-    const shouldRelaunch: boolean = await invoke("install_update");
-    const process = await import("@tauri-apps/plugin-process");
+    // Single command: download + swap + relaunch, all in Rust.
+    // On Windows Rust calls process::exit so this never resolves.
+    // On other platforms it returns true (caller should relaunch).
+    const shouldRelaunch: boolean = await invoke("update_now", {
+      assetUrl: assetUrl.value,
+    });
     if (shouldRelaunch) {
+      const process = await import("@tauri-apps/plugin-process");
       await process.relaunch();
-    } else {
-      await process.exit(0);
     }
   } catch (e) {
     updateError.value = e instanceof Error ? e.message : String(e);
