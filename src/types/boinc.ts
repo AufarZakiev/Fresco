@@ -208,6 +208,7 @@ export interface DailyStats {
 /** Statistics for a single project. */
 export interface ProjectStatistics {
   master_url: string;
+  project_name: string;
   daily_statistics: DailyStats[];
 }
 
