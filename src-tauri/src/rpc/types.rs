@@ -142,7 +142,6 @@ pub struct DailyStats {
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct ProjectStatistics {
     pub master_url: String,
-    pub project_name: String,
     pub daily_statistics: Vec<DailyStats>,
 }
 

@@ -638,10 +638,8 @@ pub fn parse_statistics(xml: &str) -> Vec<ProjectStatistics> {
                     }
                     _ if in_project_statistics => {
                         let text = read_text(&mut reader);
-                        match tag.as_str() {
-                            "master_url" => current_project.master_url = text,
-                            "project_name" => current_project.project_name = text,
-                            _ => {}
+                        if tag == "master_url" {
+                            current_project.master_url = text;
                         }
                     }
                     _ => {}
@@ -2549,7 +2547,6 @@ mod tests {
         let stats = parse_statistics(xml);
         assert_eq!(stats.len(), 1);
         assert_eq!(stats[0].master_url, "https://example.com/");
-        assert_eq!(stats[0].project_name, "Example Project");
         assert_eq!(stats[0].daily_statistics.len(), 1);
     }
 

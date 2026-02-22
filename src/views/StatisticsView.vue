@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useStatisticsStore } from "../stores/statistics";
+import { useProjectsStore } from "../stores/projects";
 import type { DailyStats } from "../types/boinc";
 import PageHeader from "../components/PageHeader.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatisticsChart from "../components/StatisticsChart.vue";
 
 const store = useStatisticsStore();
+const projectsStore = useProjectsStore();
 
 type ViewMode = "single" | "all" | "separate" | "total";
 
@@ -33,10 +35,13 @@ function toggleSeries(key: string) {
 }
 
 const projectOptions = computed(() =>
-  store.projectStats.map((p) => ({
-    url: p.master_url,
-    label: p.project_name || p.master_url,
-  })),
+  store.projectStats.map((p) => {
+    const project = projectsStore.projects.find((proj) => proj.master_url === p.master_url);
+    return {
+      url: p.master_url,
+      label: project?.project_name || p.master_url,
+    };
+  }),
 );
 
 const activeProject = computed(() => {
