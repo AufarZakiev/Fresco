@@ -6,7 +6,6 @@ const GITHUB_API_URL =
   "https://api.github.com/repos/AufarZakiev/Fresco/releases/latest";
 const THROTTLE_KEY = "fresco-last-update-check";
 const DISMISSED_KEY = "fresco-update-dismissed";
-const THROTTLE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface GitHubAsset {
   name: string;
@@ -33,6 +32,11 @@ const updateOnExit = ref(false);
 const downloading = ref(false);
 const downloaded = ref(false);
 const downloadError = ref("");
+
+// Fetch build time eagerly so About dialog shows it immediately
+invoke<string>("get_build_time").then((bt) => {
+  buildTime.value = bt;
+});
 
 function getPlatformAssetPattern(): string {
   const platform = navigator.platform.toLowerCase();
@@ -76,16 +80,6 @@ function isDismissed(date: string): boolean {
   }
 }
 
-function isThrottled(): boolean {
-  try {
-    const last = localStorage.getItem(THROTTLE_KEY);
-    if (!last) return false;
-    return Date.now() - Number(last) < THROTTLE_MS;
-  } catch {
-    return false;
-  }
-}
-
 function markChecked() {
   try {
     localStorage.setItem(THROTTLE_KEY, String(Date.now()));
@@ -100,7 +94,6 @@ export async function checkForUpdates(force = false) {
   if (!force) {
     const store = useManagerSettingsStore();
     if (!store.settings.checkForUpdates) return;
-    if (isThrottled()) return;
   }
 
   checking.value = true;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import { useUpdateCheck } from "../composables/useUpdateCheck";
+import { useUpdateCheck, startBackgroundDownload } from "../composables/useUpdateCheck";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
@@ -68,9 +68,16 @@ async function updateNow() {
   updating.value = true;
   updateError.value = "";
   try {
-    await invoke("download_update", { assetUrl: assetUrl.value });
-    const { relaunch } = await import("@tauri-apps/plugin-process");
-    await relaunch();
+    // Single command: download + swap + relaunch, all in Rust.
+    // On Windows Rust calls process::exit so this never resolves.
+    // On other platforms it returns true (caller should relaunch).
+    const shouldRelaunch: boolean = await invoke("update_now", {
+      assetUrl: assetUrl.value,
+    });
+    if (shouldRelaunch) {
+      const process = await import("@tauri-apps/plugin-process");
+      await process.relaunch();
+    }
   } catch (e) {
     updateError.value = e instanceof Error ? e.message : String(e);
     updating.value = false;
@@ -79,6 +86,7 @@ async function updateNow() {
 
 function setUpdateOnExit() {
   updateOnExit.value = true;
+  startBackgroundDownload();
   dismissUpdate();
 }
 
