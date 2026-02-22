@@ -68,6 +68,7 @@ const allColumns: DataTableColumn[] = [
   { key: "elapsed", label: "Elapsed", sortable: true, align: "right" },
   { key: "remaining", label: "Remaining", sortable: true, align: "right" },
   { key: "status", label: "Status", sortable: true },
+  { key: "resources", label: "Resources", sortable: true },
   { key: "task", label: "Task", sortable: true },
 ];
 
@@ -142,6 +143,7 @@ function getSortValue(task: TaskResult, key: string): number | string {
     case "elapsed": return task.elapsed_time;
     case "remaining": return task.estimated_cpu_time_remaining;
     case "status": return taskStatus(task);
+    case "resources": return task.resources;
     default: return 0;
   }
 }
@@ -473,6 +475,7 @@ function isColVisible(key: string): boolean {
             {{ taskStatus(task) }}
           </StatusBadge>
         </td>
+        <td v-if="isColVisible('resources')">{{ task.resources || "1 CPU" }}</td>
         <td v-if="isColVisible('task')" class="col-name" :title="task.name">{{ task.wu_name }}</td>
       </tr>
     </DataTable>
