@@ -8,9 +8,11 @@ import DataTable from "../components/DataTable.vue";
 import type { DataTableColumn } from "../components/DataTable.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
+import LogFlagsDialog from "../components/LogFlagsDialog.vue";
 import { useColumnState } from "../composables/useColumnState";
 
 const store = useMessagesStore();
+const showLogFlags = ref(false);
 const selectedSeqnos = ref<Set<number>>(new Set());
 const tableWrapper = ref<HTMLElement | null>(null);
 const isAtBottom = ref(true);
@@ -196,6 +198,7 @@ onUnmounted(() => {
 <template>
   <div class="messages-view">
     <PageHeader title="Event Log">
+      <button class="btn" @click="showLogFlags = true">Log Flags...</button>
       <button class="btn" @click="selectAll">Select All</button>
       <button class="btn" @click="copySelectedToClipboard">
         {{ selectedSeqnos.size > 0 ? `Copy Selected (${selectedSeqnos.size})` : "Copy All" }}
@@ -266,6 +269,8 @@ onUnmounted(() => {
         <td class="col-message">{{ msg.body }}</td>
       </tr>
     </DataTable>
+
+    <LogFlagsDialog :open="showLogFlags" @close="showLogFlags = false" />
   </div>
 </template>
 

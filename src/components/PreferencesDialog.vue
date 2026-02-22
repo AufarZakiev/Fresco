@@ -7,11 +7,10 @@ import PrefNumericInput from "./PrefNumericInput.vue";
 import PrefTimeInput from "./PrefTimeInput.vue";
 import ProxySettingsDialog from "./ProxySettingsDialog.vue";
 import ExclusiveAppsDialog from "./ExclusiveAppsDialog.vue";
-import LogFlagsDialog from "./LogFlagsDialog.vue";
 import TimeRangeSlider from "./TimeRangeSlider.vue";
 import { decimalHoursToTimeString } from "../utils/timeConversion";
 
-type TabName = "computing" | "network" | "storage" | "schedule" | "advanced" | "manager";
+type TabName = "computing" | "network" | "storage" | "schedule" | "manager";
 
 const props = withDefaults(defineProps<{ open: boolean; initialTab?: TabName }>(), {
   initialTab: "computing",
@@ -25,7 +24,6 @@ const managerForm = ref({ ...managerStore.settings });
 const form = ref<GlobalPreferences | null>(null);
 const showProxy = ref(false);
 const showExclusiveApps = ref(false);
-const showLogFlags = ref(false);
 const dayEnabled = ref<boolean[]>([false, false, false, false, false, false, false]);
 const originalSnapshot = ref("");
 
@@ -162,7 +160,6 @@ async function save() {
               Storage
             </button>
             <button class="tab" :class="{ active: activeTab === 'schedule' }" @click="activeTab = 'schedule'">Schedule</button>
-            <button class="tab" :class="{ active: activeTab === 'advanced' }" @click="activeTab = 'advanced'">Advanced</button>
             <button class="tab" :class="{ active: activeTab === 'manager' }" @click="activeTab = 'manager'">Manager</button>
           </div>
 
@@ -272,6 +269,8 @@ async function save() {
                 :min="0"
                 :step="1"
               />
+              <div class="section-divider" />
+              <button class="btn" @click="showExclusiveApps = true">Exclusive Applications...</button>
             </div>
 
             <!-- Network tab -->
@@ -312,6 +311,8 @@ async function save() {
                 field="net_end_hour"
                 zero-label="All day"
               />
+              <div class="section-divider" />
+              <button class="btn" @click="showProxy = true">Proxy Settings...</button>
             </div>
 
             <!-- Storage tab -->
@@ -382,15 +383,6 @@ async function save() {
                     />
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <!-- Advanced tab -->
-            <div v-if="activeTab === 'advanced'" class="prefs-section">
-              <div class="advanced-group">
-                <button class="btn" @click="showProxy = true">Proxy Settings...</button>
-                <button class="btn" @click="showExclusiveApps = true">Exclusive Applications...</button>
-                <button class="btn" @click="showLogFlags = true">Log Flags &amp; Config...</button>
               </div>
             </div>
 
@@ -475,7 +467,6 @@ async function save() {
     </div>
     <ProxySettingsDialog :open="showProxy" @close="showProxy = false" />
     <ExclusiveAppsDialog :open="showExclusiveApps" @close="showExclusiveApps = false" />
-    <LogFlagsDialog :open="showLogFlags" @close="showLogFlags = false" />
   </Teleport>
 </template>
 
@@ -702,14 +693,10 @@ async function save() {
   padding-left: 24px;
 }
 
-.advanced-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.advanced-group .btn {
-  text-align: left;
+.section-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-md) 0;
 }
 
 /* ── Manager tab ─────────────────────────────────────────────────── */
