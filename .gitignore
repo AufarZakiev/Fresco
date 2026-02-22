@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code local files
+.claude/commands/
+CLAUDE.md
+zvasiltodo.md
