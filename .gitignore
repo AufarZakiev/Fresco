@@ -24,6 +24,52 @@ dist-ssr
 *.sw?
 
 # Claude Code local files
+.claude/settings.local.json
 .claude/commands/
 CLAUDE.md
 zvasiltodo.md
+
+# OS files
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Thumbs.db:encryptable
+desktop.ini
+$RECYCLE.BIN/
+.fuse_hidden*
+.directory
+.Trash-*
+
+# IDE extras
+*.iws
+*.iml
+*.ipr
+*.code-workspace
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env/
+.pytest_cache/
+.mypy_cache/
+.tox/
+.coverage
+htmlcov/
+
+# Build extras
+build/
+coverage/
+.eslintcache
+.npm/
