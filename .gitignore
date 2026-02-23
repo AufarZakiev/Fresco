@@ -26,3 +26,4 @@ dist-ssr
 # Claude Code local files
 .claude/commands/
 CLAUDE.md
+zvasiltodo.md
