@@ -15,15 +15,7 @@ type ViewMode = "single" | "all" | "separate" | "total";
 const viewMode = ref<ViewMode>("single");
 const selectedProjectUrl = ref("");
 
-const totalSeriesConfig = [
-  { key: "user_total_credit" as const, label: "User", color: "#3b82f6" },
-  { key: "host_total_credit" as const, label: "Host", color: "#10b981" },
-];
-
-const avgSeriesConfig = [
-  { key: "user_expavg_credit" as const, label: "User", color: "#8b5cf6" },
-  { key: "host_expavg_credit" as const, label: "Host", color: "#f59e0b" },
-];
+const actorColors = { user: "#3b82f6", host: "#10b981" };
 
 const enabledActors = ref<Set<string>>(new Set(["user", "host"]));
 
@@ -184,7 +176,7 @@ onUnmounted(() => {
             :checked="enabledActors.has('user')"
             @change="toggleActor('user')"
           />
-          <span class="series-swatch" :style="{ background: '#3b82f6' }"></span>
+          <span class="series-swatch" :style="{ background: actorColors.user }"></span>
           <span class="series-label">User</span>
         </label>
         <label class="series-toggle">
@@ -193,7 +185,7 @@ onUnmounted(() => {
             :checked="enabledActors.has('host')"
             @change="toggleActor('host')"
           />
-          <span class="series-swatch" :style="{ background: '#10b981' }"></span>
+          <span class="series-swatch" :style="{ background: actorColors.host }"></span>
           <span class="series-label">Host</span>
         </label>
       </div>
