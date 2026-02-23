@@ -10,7 +10,7 @@ import StatisticsChart from "../components/StatisticsChart.vue";
 const store = useStatisticsStore();
 const projectsStore = useProjectsStore();
 
-type ViewMode = "single" | "all" | "separate" | "total";
+type ViewMode = "single" | "all" | "separate";
 
 const viewMode = ref<ViewMode>("single");
 const selectedProjectUrl = ref("");
@@ -89,7 +89,7 @@ const chartData = computed(() => {
     if (!activeProject.value) return null;
     const stats = activeProject.value.daily_statistics;
     return stats.length === 0 ? null : stats;
-  } else if (viewMode.value === "all" || viewMode.value === "total") {
+  } else if (viewMode.value === "all") {
     const stats = mergeAllProjects();
     return stats.length === 0 ? null : stats;
   }
@@ -153,12 +153,6 @@ onUnmounted(() => {
           @click="viewMode = 'separate'"
         >
           All Separate
-        </button>
-        <button
-          :class="['segment', { active: viewMode === 'total' }]"
-          @click="viewMode = 'total'"
-        >
-          Total
         </button>
       </div>
 
