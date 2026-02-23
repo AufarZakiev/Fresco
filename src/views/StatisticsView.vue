@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useStatisticsStore } from "../stores/statistics";
+import { useProjectsStore } from "../stores/projects";
 import type { DailyStats } from "../types/boinc";
 import PageHeader from "../components/PageHeader.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatisticsChart from "../components/StatisticsChart.vue";
 
 const store = useStatisticsStore();
+const projectsStore = useProjectsStore();
 
 type ViewMode = "single" | "all" | "separate" | "total";
 
@@ -32,7 +34,15 @@ function toggleSeries(key: string) {
   enabledSeries.value = next;
 }
 
-const projectUrls = computed(() => store.projectStats.map((p) => p.master_url));
+const projectOptions = computed(() =>
+  store.projectStats.map((p) => {
+    const project = projectsStore.projects.find((proj) => proj.master_url === p.master_url);
+    return {
+      url: p.master_url,
+      label: project?.project_name || p.master_url,
+    };
+  }),
+);
 
 const activeProject = computed(() => {
   if (!selectedProjectUrl.value && store.projectStats.length > 0) {
@@ -143,8 +153,8 @@ onUnmounted(() => {
       <div v-if="viewMode === 'single'" class="project-picker">
         <label class="picker-label">Project</label>
         <select v-model="selectedProjectUrl" class="picker-select">
-          <option v-for="url in projectUrls" :key="url" :value="url">
-            {{ url }}
+          <option v-for="opt in projectOptions" :key="opt.url" :value="opt.url">
+            {{ opt.label }}
           </option>
         </select>
       </div>

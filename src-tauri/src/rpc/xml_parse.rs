@@ -2532,6 +2532,7 @@ mod tests {
 <statistics>
 <project_statistics>
     <master_url>https://example.com/</master_url>
+    <project_name>Example Project</project_name>
     <daily_statistics>
         <day>1710720000.000000</day>
         <user_total_credit>1000.000000</user_total_credit>
@@ -2545,6 +2546,7 @@ mod tests {
 
         let stats = parse_statistics(xml);
         assert_eq!(stats.len(), 1);
+        assert_eq!(stats[0].master_url, "https://example.com/");
         assert_eq!(stats[0].daily_statistics.len(), 1);
     }
 
