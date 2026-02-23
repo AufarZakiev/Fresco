@@ -228,24 +228,10 @@ onUnmounted(() => {
 }
 
 .content-layout {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(350px, 100%), 1fr));
   gap: var(--space-xl);
-}
-
-@media (min-width: 900px) {
-  .content-layout {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-
-  .breakdown-section {
-    flex-shrink: 0;
-  }
-
-  .summary-cards {
-    flex: 1;
-  }
+  align-items: start;
 }
 
 .doughnut-svg {
@@ -302,9 +288,8 @@ onUnmounted(() => {
 
 .summary-cards {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: var(--space-md);
-  min-width: 240px;
 }
 
 .summary-card {
@@ -359,9 +344,4 @@ onUnmounted(() => {
   font-weight: 400;
 }
 
-@media (max-width: 767px) {
-  .summary-cards {
-    grid-template-columns: 1fr;
-  }
-}
 </style>
