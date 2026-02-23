@@ -1,0 +1,55 @@
+import type { Notice } from "../../types/boinc";
+import { NOW, DAY } from "./_shared";
+
+export const mockNotices: Notice[] = [
+  {
+    seqno: 1,
+    title: "Welcome to Rosetta@home",
+    description: "Thank you for joining Rosetta@home! Your computer will help design proteins that could lead to new medicines.",
+    create_time: NOW - 10 * DAY,
+    category: "server",
+    project_name: "Rosetta@home",
+    link: "https://boinc.bakerlab.org/rosetta/forum_thread.php?id=1",
+    is_private: false,
+  },
+  {
+    seqno: 2,
+    title: "New application version available",
+    description: "Rosetta 4.25 is now available with improved protein folding algorithms and better GPU utilization.",
+    create_time: NOW - 5 * DAY,
+    category: "server",
+    project_name: "Rosetta@home",
+    link: "https://boinc.bakerlab.org/rosetta/forum_thread.php?id=14231",
+    is_private: false,
+  },
+  {
+    seqno: 3,
+    title: "Einstein@Home newsletter",
+    description: "This month's highlights: New search for continuous gravitational waves from unknown neutron stars in binary systems.",
+    create_time: NOW - 3 * DAY,
+    category: "server",
+    project_name: "Einstein@Home",
+    link: "https://einstein.phys.uwm.edu/forum_thread.php?id=999",
+    is_private: false,
+  },
+  {
+    seqno: 4,
+    title: "Computation error",
+    description: "Task climate_hadcm3_run42_0 failed with exit code -1073741819. Please report if this happens repeatedly.",
+    create_time: NOW - 5 * DAY,
+    category: "client",
+    project_name: "Climateprediction.net",
+    link: "",
+    is_private: true,
+  },
+  {
+    seqno: 5,
+    title: "BOINC update available",
+    description: "A new version of BOINC (8.2.0) is available. Visit the BOINC website to download the latest version.",
+    create_time: NOW - DAY,
+    category: "client",
+    project_name: "",
+    link: "https://boinc.berkeley.edu/download.php",
+    is_private: false,
+  },
+];
