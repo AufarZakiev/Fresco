@@ -35,7 +35,8 @@ function toggleSeries(key: string) {
 }
 
 function hasRecentActivity(stats: DailyStats[]): boolean {
-  if (stats.length < 2) return false;
+  if (stats.length === 0) return false;
+  if (stats.length === 1) return true;
   const first = stats[0];
   const last = stats[stats.length - 1];
   return (
