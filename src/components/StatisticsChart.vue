@@ -11,10 +11,10 @@ const props = defineProps<{
 }>();
 
 const seriesConfig = [
-  { key: "user_total_credit" as const, label: "User Total", color: "#3b82f6" },
-  { key: "user_expavg_credit" as const, label: "User Avg", color: "#8b5cf6" },
-  { key: "host_total_credit" as const, label: "Host Total", color: "#10b981" },
-  { key: "host_expavg_credit" as const, label: "Host Avg", color: "#f59e0b" },
+  { key: "user_total_credit" as const, label: "User", color: "#3b82f6" },
+  { key: "user_expavg_credit" as const, label: "User", color: "#3b82f6" },
+  { key: "host_total_credit" as const, label: "Host", color: "#10b981" },
+  { key: "host_expavg_credit" as const, label: "Host", color: "#10b981" },
 ];
 
 const hoveredPoint = ref<{

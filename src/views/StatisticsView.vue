@@ -15,24 +15,33 @@ type ViewMode = "single" | "all" | "separate";
 const viewMode = ref<ViewMode>("single");
 const selectedProjectUrl = ref("");
 
-const seriesConfig = [
-  { key: "user_total_credit" as const, label: "User Total", color: "#3b82f6" },
-  { key: "user_expavg_credit" as const, label: "User Avg", color: "#8b5cf6" },
-  { key: "host_total_credit" as const, label: "Host Total", color: "#10b981" },
-  { key: "host_expavg_credit" as const, label: "Host Avg", color: "#f59e0b" },
-];
+const actorColors = { user: "#3b82f6", host: "#10b981" };
 
-const enabledSeries = ref<Set<string>>(new Set(seriesConfig.map((s) => s.key)));
+const enabledActors = ref<Set<string>>(new Set(["user", "host"]));
 
-function toggleSeries(key: string) {
-  const next = new Set(enabledSeries.value);
-  if (next.has(key)) {
-    if (next.size > 1) next.delete(key);
+function toggleActor(actor: string) {
+  const next = new Set(enabledActors.value);
+  if (next.has(actor)) {
+    if (next.size > 1) next.delete(actor);
   } else {
-    next.add(key);
+    next.add(actor);
   }
-  enabledSeries.value = next;
+  enabledActors.value = next;
 }
+
+const enabledTotalSeries = computed(() => {
+  const set = new Set<string>();
+  if (enabledActors.value.has("user")) set.add("user_total_credit");
+  if (enabledActors.value.has("host")) set.add("host_total_credit");
+  return set;
+});
+
+const enabledAvgSeries = computed(() => {
+  const set = new Set<string>();
+  if (enabledActors.value.has("user")) set.add("user_expavg_credit");
+  if (enabledActors.value.has("host")) set.add("host_expavg_credit");
+  return set;
+});
 
 const projectOptions = computed(() =>
   store.projectStats.map((p) => {
@@ -153,39 +162,56 @@ onUnmounted(() => {
         </select>
       </div>
 
-      <!-- Series toggles -->
+      <!-- Actor toggles -->
       <div class="series-toggles">
-        <label
-          v-for="s in seriesConfig"
-          :key="s.key"
-          class="series-toggle"
-        >
+        <label class="series-toggle">
           <input
             type="checkbox"
-            :checked="enabledSeries.has(s.key)"
-            @change="toggleSeries(s.key)"
+            :checked="enabledActors.has('user')"
+            @change="toggleActor('user')"
           />
-          <span class="series-swatch" :style="{ background: s.color }"></span>
-          <span class="series-label">{{ s.label }}</span>
+          <span class="series-swatch" :style="{ background: actorColors.user }"></span>
+          <span class="series-label">User</span>
+        </label>
+        <label class="series-toggle">
+          <input
+            type="checkbox"
+            :checked="enabledActors.has('host')"
+            @change="toggleActor('host')"
+          />
+          <span class="series-swatch" :style="{ background: actorColors.host }"></span>
+          <span class="series-label">Host</span>
         </label>
       </div>
 
-      <!-- Single chart for single/all/total modes -->
-      <StatisticsChart
-        v-if="chartData && viewMode !== 'separate'"
-        :data="chartData"
-        :enabled-series="enabledSeries"
-      />
+      <!-- Charts for single/all/total modes -->
+      <template v-if="chartData && viewMode !== 'separate'">
+        <StatisticsChart
+          :data="chartData"
+          title="Total Credit"
+          :enabled-series="enabledTotalSeries"
+        />
+        <StatisticsChart
+          :data="chartData"
+          title="Average Credit"
+          :enabled-series="enabledAvgSeries"
+        />
+      </template>
 
       <!-- Separate charts: one per project -->
       <div v-if="viewMode === 'separate'" class="separate-charts">
-        <StatisticsChart
-          v-for="chart in separateCharts"
-          :key="chart.url"
-          :data="chart.data"
-          :title="chart.url"
-          :enabled-series="enabledSeries"
-        />
+        <template v-for="chart in separateCharts" :key="chart.url">
+          <StatisticsChart
+            :data="chart.data"
+            :title="chart.url + ' — Total Credit'"
+            :enabled-series="enabledTotalSeries"
+          />
+          <StatisticsChart
+            :data="chart.data"
+            :title="chart.url + ' — Average Credit'"
+            :enabled-series="enabledAvgSeries"
+          />
+        </template>
         <EmptyState
           v-if="separateCharts.length === 0"
           icon="&#x1f4ca;"
