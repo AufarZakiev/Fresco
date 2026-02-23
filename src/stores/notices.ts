@@ -4,6 +4,8 @@ import { getNotices } from "../composables/useRpc";
 import { notifyNewNotices } from "../composables/useNotifications";
 import type { Notice } from "../types/boinc";
 
+const POLL_INTERVAL_MS = 30000;
+
 export const useNoticesStore = defineStore("notices", () => {
   const notices = ref<Notice[]>([]);
   const loading = ref(false);
@@ -28,7 +30,7 @@ export const useNoticesStore = defineStore("notices", () => {
     }
   }
 
-  function startPolling(intervalMs = 30000) {
+  function startPolling(intervalMs = POLL_INTERVAL_MS) {
     stopPolling();
     fetchNotices();
     pollTimer = setInterval(fetchNotices, intervalMs);

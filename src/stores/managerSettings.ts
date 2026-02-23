@@ -25,12 +25,12 @@ const defaults: ManagerSettings = {
   checkForUpdates: true,
 };
 
-function load(): ManagerSettings {
+function loadSettings(): ManagerSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return { ...defaults, ...JSON.parse(raw) };
   } catch {
-    // ignore
+    // Ignore corrupt localStorage
   }
   return { ...defaults };
 }
@@ -55,7 +55,7 @@ async function applyTheme(theme: ManagerSettings["theme"]) {
 }
 
 export const useManagerSettingsStore = defineStore("managerSettings", () => {
-  const settings = ref<ManagerSettings>(load());
+  const settings = ref<ManagerSettings>(loadSettings());
 
   applyTheme(settings.value.theme);
 
@@ -67,9 +67,9 @@ export const useManagerSettingsStore = defineStore("managerSettings", () => {
     applyTheme(theme);
   });
 
-  function reset() {
+  function resetSettings() {
     settings.value = { ...defaults };
   }
 
-  return { settings, reset };
+  return { settings, resetSettings };
 });

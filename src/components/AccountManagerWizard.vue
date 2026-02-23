@@ -2,6 +2,11 @@
 import { ref, watch } from "vue";
 import { acctMgrInfo, acctMgrRpc, acctMgrRpcPoll } from "../composables/useRpc";
 import type { AcctMgrInfo } from "../types/boinc";
+import {
+  BOINC_ERROR_IN_PROGRESS,
+  MAX_ATTACH_POLL_ATTEMPTS,
+  ATTACH_POLL_DELAY_MS,
+} from "../constants/boinc";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
@@ -55,10 +60,10 @@ async function doAttach() {
     // Poll for result
     let attempts = 0;
     let reply;
-    while (attempts < 30) {
-      await new Promise((r) => setTimeout(r, 1000));
+    while (attempts < MAX_ATTACH_POLL_ATTEMPTS) {
+      await new Promise((r) => setTimeout(r, ATTACH_POLL_DELAY_MS));
       reply = await acctMgrRpcPoll();
-      if (reply.error_num !== -204) break; // -204 = in progress
+      if (reply.error_num !== BOINC_ERROR_IN_PROGRESS) break;
       attempts++;
     }
 
@@ -86,10 +91,10 @@ async function doDetach() {
     // Poll for result
     let attempts = 0;
     let reply;
-    while (attempts < 30) {
-      await new Promise((r) => setTimeout(r, 1000));
+    while (attempts < MAX_ATTACH_POLL_ATTEMPTS) {
+      await new Promise((r) => setTimeout(r, ATTACH_POLL_DELAY_MS));
       reply = await acctMgrRpcPoll();
-      if (reply.error_num !== -204) break;
+      if (reply.error_num !== BOINC_ERROR_IN_PROGRESS) break;
       attempts++;
     }
 
@@ -223,7 +228,7 @@ function close() {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
   backdrop-filter: blur(2px);
 }
 

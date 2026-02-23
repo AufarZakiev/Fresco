@@ -3,6 +3,8 @@ import { ref } from "vue";
 import { getStatistics } from "../composables/useRpc";
 import type { ProjectStatistics } from "../types/boinc";
 
+const POLL_INTERVAL_MS = 60000;
+
 export const useStatisticsStore = defineStore("statistics", () => {
   const projectStats = ref<ProjectStatistics[]>([]);
   const loading = ref(false);
@@ -21,7 +23,7 @@ export const useStatisticsStore = defineStore("statistics", () => {
     }
   }
 
-  function startPolling(intervalMs = 60000) {
+  function startPolling(intervalMs = POLL_INTERVAL_MS) {
     stopPolling();
     fetchStatistics();
     pollTimer = setInterval(fetchStatistics, intervalMs);

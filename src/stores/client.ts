@@ -33,6 +33,8 @@ const defaultStatus: CcStatus = {
   max_event_log_lines: 0,
 };
 
+const POLL_INTERVAL_MS = 5000;
+
 export const useClientStore = defineStore("client", () => {
   const status = ref<CcStatus>({ ...defaultStatus });
   const loading = ref(false);
@@ -54,7 +56,7 @@ export const useClientStore = defineStore("client", () => {
     }
   }
 
-  function startPolling(intervalMs = 5000) {
+  function startPolling(intervalMs = POLL_INTERVAL_MS) {
     stopPolling();
     fetchStatus();
     pollTimer = setInterval(fetchStatus, intervalMs);

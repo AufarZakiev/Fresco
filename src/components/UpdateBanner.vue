@@ -96,7 +96,7 @@ function setUpdateOnExit() {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: var(--space-lg);
-  z-index: 900;
+  z-index: var(--z-update-banner);
 }
 
 .update-header {

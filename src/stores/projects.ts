@@ -13,6 +13,8 @@ import {
 } from "../composables/useRpc";
 import { useConnectionStore } from "./connection";
 
+const POLL_INTERVAL_MS = 5000;
+
 export const useProjectsStore = defineStore("projects", () => {
   const projects = ref<Project[]>([]);
   const loading = ref(false);
@@ -34,7 +36,7 @@ export const useProjectsStore = defineStore("projects", () => {
     }
   }
 
-  function startPolling(intervalMs = 5000) {
+  function startPolling(intervalMs = POLL_INTERVAL_MS) {
     stopPolling();
     fetchProjects();
     pollTimer = setInterval(fetchProjects, intervalMs);

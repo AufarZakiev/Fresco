@@ -33,9 +33,9 @@ watch(
   () => props.modelValue,
   (v) => {
     if (v) {
-      const [h, m] = v.split(":").map(Number);
-      selectedHour.value = h;
-      selectedMinute.value = m;
+      const [hour, minute] = v.split(":").map(Number);
+      selectedHour.value = hour;
+      selectedMinute.value = minute;
     }
   },
   { immediate: true },
@@ -55,7 +55,7 @@ const outerHours = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 const innerHours = [0, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
 const minuteNums = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
-function numberPos(index: number, radius: number): Record<string, string> {
+function getNumberPosition(index: number, radius: number): Record<string, string> {
   const angle = (index * 30 - 90) * (Math.PI / 180);
   return {
     left: `${CENTER + radius * Math.cos(angle)}px`,
@@ -125,19 +125,19 @@ function updateSelection(px: number, py: number, cx: number, cy: number) {
 function open() {
   if (!triggerRef.value) return;
   if (props.modelValue) {
-    const [h, m] = props.modelValue.split(":").map(Number);
-    selectedHour.value = h;
-    selectedMinute.value = m;
+    const [hour, minute] = props.modelValue.split(":").map(Number);
+    selectedHour.value = hour;
+    selectedMinute.value = minute;
   } else {
     selectedHour.value = 0;
     selectedMinute.value = 0;
   }
   phase.value = "hours";
   isOpen.value = true;
-  nextTick(positionMenu);
+  nextTick(updateMenuPosition);
 }
 
-function positionMenu() {
+function updateMenuPosition() {
   if (!triggerRef.value) return;
   const rect = triggerRef.value.getBoundingClientRect();
   const menuHeight = 350;
@@ -153,9 +153,9 @@ function close() {
 }
 
 function confirmAndClose() {
-  const h = String(selectedHour.value).padStart(2, "0");
-  const m = String(selectedMinute.value).padStart(2, "0");
-  emit("update:modelValue", `${h}:${m}`);
+  const hourStr = String(selectedHour.value).padStart(2, "0");
+  const minuteStr = String(selectedMinute.value).padStart(2, "0");
+  emit("update:modelValue", `${hourStr}:${minuteStr}`);
   close();
 }
 
@@ -231,14 +231,14 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
                 :key="'oh' + h"
                 class="clock-num"
                 :class="{ selected: selectedHour === h }"
-                :style="numberPos(i, OUTER_R)"
+                :style="getNumberPosition(i, OUTER_R)"
               >{{ h }}</span>
               <span
                 v-for="(h, i) in innerHours"
                 :key="'ih' + h"
                 class="clock-num inner"
                 :class="{ selected: selectedHour === h }"
-                :style="numberPos(i, INNER_R)"
+                :style="getNumberPosition(i, INNER_R)"
               >{{ h }}</span>
             </template>
 
@@ -249,7 +249,7 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
                 :key="'m' + m"
                 class="clock-num"
                 :class="{ selected: selectedMinute === m }"
-                :style="numberPos(i, OUTER_R)"
+                :style="getNumberPosition(i, OUTER_R)"
               >{{ String(m).padStart(2, '0') }}</span>
             </template>
           </div>
@@ -307,7 +307,7 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
 .clock-overlay {
   position: fixed;
   inset: 0;
-  z-index: 2000;
+  z-index: var(--z-context-menu);
 }
 
 /* ── popup menu ── */
@@ -318,7 +318,7 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
-  z-index: 2001;
+  z-index: calc(var(--z-context-menu) + 1);
   width: 270px;
 }
 

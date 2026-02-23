@@ -8,6 +8,8 @@ import {
 } from "../composables/useRpc";
 import { useConnectionStore } from "./connection";
 
+const POLL_INTERVAL_MS = 2000;
+
 export const useTransfersStore = defineStore("transfers", () => {
   const transfers = ref<FileTransfer[]>([]);
   const loading = ref(false);
@@ -29,7 +31,7 @@ export const useTransfersStore = defineStore("transfers", () => {
     }
   }
 
-  function startPolling(intervalMs = 2000) {
+  function startPolling(intervalMs = POLL_INTERVAL_MS) {
     stopPolling();
     fetchTransfers();
     pollTimer = setInterval(fetchTransfers, intervalMs);

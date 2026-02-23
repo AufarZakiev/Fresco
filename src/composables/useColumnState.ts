@@ -24,7 +24,7 @@ export function useColumnState(
 ) {
   const storageKey = `boinc-columns-${viewId}`;
 
-  function load(): ColumnState {
+  function loadState(): ColumnState {
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
@@ -36,7 +36,7 @@ export function useColumnState(
         };
       }
     } catch {
-      // ignore
+      // Ignore corrupt localStorage
     }
     return {
       visibleKeys: [...defaultVisibleKeys],
@@ -45,7 +45,7 @@ export function useColumnState(
     };
   }
 
-  const initial = load();
+  const initial = loadState();
   const visibleKeys = ref<string[]>(initial.visibleKeys);
   const sortKey = ref(initial.sortKey);
   const sortDir = ref<SortDir>(initial.sortDir);

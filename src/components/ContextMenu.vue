@@ -96,7 +96,7 @@ onUnmounted(() => {
 <style scoped>
 .context-menu {
   position: fixed;
-  z-index: 2000;
+  z-index: var(--z-context-menu);
   min-width: 160px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);

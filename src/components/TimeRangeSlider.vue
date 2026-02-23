@@ -22,36 +22,36 @@ const STEP = 0.5;
 const MAX = 24;
 const TICKS = [0, 6, 12, 18, 24];
 
-function snap(v: number): number {
-  return Math.round(v / STEP) * STEP;
+function snapToStep(value: number): number {
+  return Math.round(value / STEP) * STEP;
 }
 
-function clamp(v: number, min: number, max: number): number {
-  return Math.min(Math.max(v, min), max);
+function clampValue(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }
 
-function pct(h: number): number {
-  return (h / MAX) * 100;
+function toPercent(hour: number): number {
+  return (hour / MAX) * 100;
 }
 
 function hourFromX(e: MouseEvent): number {
   if (!trackRef.value) return 0;
   const rect = trackRef.value.getBoundingClientRect();
-  return snap(clamp(((e.clientX - rect.left) / rect.width) * MAX, 0, MAX));
+  return snapToStep(clampValue(((e.clientX - rect.left) / rect.width) * MAX, 0, MAX));
 }
 
-function fmt(h: number): string {
-  const hrs = Math.floor(h);
-  const min = Math.round((h - hrs) * 60);
+function formatTime(hour: number): string {
+  const hrs = Math.floor(hour);
+  const min = Math.round((hour - hrs) * 60);
   return `${String(hrs).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }
 
 const isAllDay = computed(() => props.startHour === 0 && props.endHour === 0);
-const startPct = computed(() => isAllDay.value ? 0 : pct(props.startHour));
-const endPct = computed(() => isAllDay.value ? 100 : pct(props.endHour));
+const startPct = computed(() => isAllDay.value ? 0 : toPercent(props.startHour));
+const endPct = computed(() => isAllDay.value ? 100 : toPercent(props.endHour));
 const rangeLabel = computed(() => {
   if (props.startHour === 0 && props.endHour === 0) return "All day";
-  return `${fmt(props.startHour)} – ${fmt(props.endHour)}`;
+  return `${formatTime(props.startHour)} – ${formatTime(props.endHour)}`;
 });
 
 function onHandleDown(which: "start" | "end", e: MouseEvent) {
@@ -64,15 +64,15 @@ function onHandleDown(which: "start" | "end", e: MouseEvent) {
 
 function onMouseMove(e: MouseEvent) {
   if (!dragging.value) return;
-  const h = hourFromX(e);
+  const hour = hourFromX(e);
   // Use effective values (all-day displays as 0–24)
   const effEnd = isAllDay.value ? MAX : props.endHour;
   if (dragging.value === "start") {
-    emit("update:startHour", clamp(h, 0, effEnd));
+    emit("update:startHour", clampValue(hour, 0, effEnd));
     // Break out of all-day: pin end at 24
     if (isAllDay.value) emit("update:endHour", MAX);
   } else {
-    emit("update:endHour", clamp(h, props.startHour, MAX));
+    emit("update:endHour", clampValue(hour, props.startHour, MAX));
   }
 }
 
@@ -89,15 +89,15 @@ onBeforeUnmount(() => {
 
 function onTrackClick(e: MouseEvent) {
   if (dragging.value) return;
-  const h = hourFromX(e);
+  const hour = hourFromX(e);
   const effEnd = isAllDay.value ? MAX : props.endHour;
-  const ds = Math.abs(h - props.startHour);
-  const de = Math.abs(h - effEnd);
-  if (ds < de) {
-    emit("update:startHour", clamp(h, 0, effEnd));
+  const distToStart = Math.abs(hour - props.startHour);
+  const distToEnd = Math.abs(hour - effEnd);
+  if (distToStart < distToEnd) {
+    emit("update:startHour", clampValue(hour, 0, effEnd));
     if (isAllDay.value) emit("update:endHour", MAX);
   } else {
-    emit("update:endHour", clamp(h, props.startHour, MAX));
+    emit("update:endHour", clampValue(hour, props.startHour, MAX));
   }
 }
 </script>
@@ -134,7 +134,7 @@ function onTrackClick(e: MouseEvent) {
         v-for="t in TICKS"
         :key="t"
         class="range-tick"
-        :style="{ left: pct(t) + '%' }"
+        :style="{ left: toPercent(t) + '%' }"
       >{{ t }}</span>
     </div>
   </div>

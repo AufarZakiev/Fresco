@@ -7,17 +7,17 @@ interface WindowState {
   lastRoute: string;
 }
 
-function load(): WindowState {
+function loadState(): WindowState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {
-    // ignore
+    // Ignore corrupt localStorage
   }
   return { lastRoute: "/tasks" };
 }
 
-function save(state: WindowState) {
+function saveState(state: WindowState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
@@ -29,7 +29,7 @@ export function useWindowState() {
   const router = useRouter();
 
   onMounted(() => {
-    const state = load();
+    const state = loadState();
     if (state.lastRoute && state.lastRoute !== "/") {
       router.replace(state.lastRoute).catch(() => {});
     }
@@ -37,7 +37,7 @@ export function useWindowState() {
 
   router.afterEach((to) => {
     if (to.path !== "/") {
-      save({ lastRoute: to.path });
+      saveState({ lastRoute: to.path });
     }
   });
 }

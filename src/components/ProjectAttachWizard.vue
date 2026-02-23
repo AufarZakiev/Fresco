@@ -14,6 +14,11 @@ import {
 } from "../composables/useRpc";
 import type { ProjectListEntry, ProjectConfig } from "../types/boinc";
 import { useProjectsStore } from "../stores/projects";
+import {
+  BOINC_ERROR_IN_PROGRESS,
+  MAX_ATTACH_POLL_ATTEMPTS,
+  ATTACH_POLL_DELAY_MS,
+} from "../constants/boinc";
 
 defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
@@ -45,12 +50,12 @@ const authMode = ref<"login" | "create">("login");
 
 const filteredProjects = computed(() => {
   if (!search.value) return projectList.value;
-  const q = search.value.toLowerCase();
+  const query = search.value.toLowerCase();
   return projectList.value.filter(
     (p) =>
-      p.name.toLowerCase().includes(q) ||
-      p.description.toLowerCase().includes(q) ||
-      p.general_area.toLowerCase().includes(q),
+      p.name.toLowerCase().includes(query) ||
+      p.description.toLowerCase().includes(query) ||
+      p.general_area.toLowerCase().includes(query),
   );
 });
 
@@ -98,10 +103,10 @@ async function fetchConfig() {
 
     let attempts = 0;
     let config;
-    while (attempts < 30) {
-      await new Promise((r) => setTimeout(r, 1000));
+    while (attempts < MAX_ATTACH_POLL_ATTEMPTS) {
+      await new Promise((r) => setTimeout(r, ATTACH_POLL_DELAY_MS));
       config = await getProjectConfigPoll();
-      if (config.error_num !== -204) break;
+      if (config.error_num !== BOINC_ERROR_IN_PROGRESS) break;
       attempts++;
     }
 
@@ -146,10 +151,10 @@ async function doAttach() {
 
       let attempts = 0;
       let accountResult;
-      while (attempts < 30) {
-        await new Promise((r) => setTimeout(r, 1000));
+      while (attempts < MAX_ATTACH_POLL_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, ATTACH_POLL_DELAY_MS));
         accountResult = await createAccountPoll();
-        if (accountResult.error_num !== -204) break;
+        if (accountResult.error_num !== BOINC_ERROR_IN_PROGRESS) break;
         attempts++;
       }
 
@@ -168,10 +173,10 @@ async function doAttach() {
 
       let attempts = 0;
       let accountResult;
-      while (attempts < 30) {
-        await new Promise((r) => setTimeout(r, 1000));
+      while (attempts < MAX_ATTACH_POLL_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, ATTACH_POLL_DELAY_MS));
         accountResult = await lookupAccountPoll();
-        if (accountResult.error_num !== -204) break;
+        if (accountResult.error_num !== BOINC_ERROR_IN_PROGRESS) break;
         attempts++;
       }
 
@@ -189,10 +194,10 @@ async function doAttach() {
     // Poll for attach result
     let attempts = 0;
     let attachResult;
-    while (attempts < 30) {
-      await new Promise((r) => setTimeout(r, 1000));
+    while (attempts < MAX_ATTACH_POLL_ATTEMPTS) {
+      await new Promise((r) => setTimeout(r, ATTACH_POLL_DELAY_MS));
       attachResult = await projectAttachPoll();
-      if (attachResult.error_num !== -204) break;
+      if (attachResult.error_num !== BOINC_ERROR_IN_PROGRESS) break;
       attempts++;
     }
 
@@ -379,7 +384,7 @@ function close() {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
   backdrop-filter: blur(2px);
 }
 

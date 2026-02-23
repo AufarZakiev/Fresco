@@ -57,6 +57,15 @@
      Mobile:  < 768px  — sidebar collapses to hamburger overlay
      Desktop: >= 768px — standard sidebar layout */
 
+  /* Z-index layers */
+  --z-content: 9;
+  --z-sidebar-overlay: 10;
+  --z-nav-header: 21;
+  --z-modal: 1000;
+  --z-context-menu: 2000;
+  --z-toast: 9999;
+  --z-update-banner: 900;
+
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 200ms ease;

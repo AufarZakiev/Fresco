@@ -20,23 +20,23 @@ const gpuSuspendText = computed(() =>
 );
 
 const statusDotClass = computed(() => {
-  const s = connection.state;
-  if (s === CONNECTION_STATE.CONNECTED) return "status-dot-connected";
-  if (s === CONNECTION_STATE.RECONNECTING) return "status-dot-reconnecting";
-  if (s === CONNECTION_STATE.AUTH_ERROR || (typeof s === "object" && "Error" in s))
+  const state = connection.state;
+  if (state === CONNECTION_STATE.CONNECTED) return "status-dot-connected";
+  if (state === CONNECTION_STATE.RECONNECTING) return "status-dot-reconnecting";
+  if (state === CONNECTION_STATE.AUTH_ERROR || (typeof state === "object" && "Error" in state))
     return "status-dot-error";
   return "status-dot-disconnected";
 });
 
 const statusText = computed(() => {
-  const s = connection.state;
-  if (s === CONNECTION_STATE.CONNECTED) return "Connected";
-  if (s === CONNECTION_STATE.RECONNECTING)
+  const state = connection.state;
+  if (state === CONNECTION_STATE.CONNECTED) return "Connected";
+  if (state === CONNECTION_STATE.RECONNECTING)
     return `Reconnecting (${connection.reconnectAttempt}/${connection.maxReconnectAttempts})...`;
-  if (s === CONNECTION_STATE.CONNECTING) return "Connecting...";
-  if (s === CONNECTION_STATE.AUTH_ERROR) return "Auth Error";
-  if (s === CONNECTION_STATE.DISCONNECTED) return "Disconnected";
-  if (typeof s === "object" && "Error" in s) return "Error";
+  if (state === CONNECTION_STATE.CONNECTING) return "Connecting...";
+  if (state === CONNECTION_STATE.AUTH_ERROR) return "Auth Error";
+  if (state === CONNECTION_STATE.DISCONNECTED) return "Disconnected";
+  if (typeof state === "object" && "Error" in state) return "Error";
   return "Disconnected";
 });
 </script>

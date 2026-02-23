@@ -21,18 +21,18 @@ function formatDate(epoch: number): string {
 
 function formatDuration(seconds: number): string {
   if (seconds == null || seconds < 0) return "---";
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
-function formatPct(frac: number): string {
+function formatPercent(frac: number): string {
   if (frac == null) return "0%";
   return `${(frac * 100).toFixed(3)}%`;
 }
 
-function formatMB(bytes: number): string {
+function formatMegabytes(bytes: number): string {
   if (!bytes) return "0.00 MB";
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
@@ -90,117 +90,117 @@ interface Section {
 }
 
 const taskSections = computed<Section[]>(() => {
-  const t = props.task;
-  if (!t) return [];
+  const task = props.task;
+  if (!task) return [];
   return [
     {
       title: "General",
       rows: [
-        { label: "Name", value: t.name },
-        { label: "Work unit", value: t.wu_name },
-        { label: "Project URL", value: t.project_url },
-        { label: "Plan class", value: t.plan_class || "(none)" },
-        { label: "Resources", value: t.resources || "(standard)" },
-        { label: "State", value: resultStateName(t.state) },
-        { label: "Scheduler state", value: schedulerStateName(t.scheduler_state) },
-        { label: "Active task state", value: activeTaskStateName(t.active_task_state) },
+        { label: "Name", value: task.name },
+        { label: "Work unit", value: task.wu_name },
+        { label: "Project URL", value: task.project_url },
+        { label: "Plan class", value: task.plan_class || "(none)" },
+        { label: "Resources", value: task.resources || "(standard)" },
+        { label: "State", value: resultStateName(task.state) },
+        { label: "Scheduler state", value: schedulerStateName(task.scheduler_state) },
+        { label: "Active task state", value: activeTaskStateName(task.active_task_state) },
       ],
     },
     {
       title: "Timing",
       rows: [
-        { label: "Received", value: formatDate(t.received_time) },
-        { label: "Report deadline", value: formatDate(t.report_deadline) },
-        { label: "Elapsed time", value: formatDuration(t.elapsed_time) },
-        { label: "Remaining (est.)", value: formatDuration(t.estimated_cpu_time_remaining) },
-        { label: "Current CPU time", value: formatDuration(t.current_cpu_time) },
-        { label: "Checkpoint CPU time", value: formatDuration(t.checkpoint_cpu_time) },
+        { label: "Received", value: formatDate(task.received_time) },
+        { label: "Report deadline", value: formatDate(task.report_deadline) },
+        { label: "Elapsed time", value: formatDuration(task.elapsed_time) },
+        { label: "Remaining (est.)", value: formatDuration(task.estimated_cpu_time_remaining) },
+        { label: "Current CPU time", value: formatDuration(task.current_cpu_time) },
+        { label: "Checkpoint CPU time", value: formatDuration(task.checkpoint_cpu_time) },
       ],
     },
     {
       title: "Progress",
       rows: [
-        { label: "Done", value: formatPct(t.fraction_done) },
-        { label: "Progress rate", value: String(t.progress_rate) },
+        { label: "Done", value: formatPercent(task.fraction_done) },
+        { label: "Progress rate", value: String(task.progress_rate) },
       ],
     },
     {
       title: "Resources",
       rows: [
-        { label: "Working set", value: formatMB(t.working_set_size_smoothed) },
-        { label: "Swap size", value: formatMB(t.swap_size) },
-        { label: "Slot", value: String(t.slot ?? "---") },
-        { label: "PID", value: String(t.pid ?? "---") },
-        { label: "Slot path", value: t.slot_path || "---" },
+        { label: "Working set", value: formatMegabytes(task.working_set_size_smoothed) },
+        { label: "Swap size", value: formatMegabytes(task.swap_size) },
+        { label: "Slot", value: String(task.slot ?? "---") },
+        { label: "PID", value: String(task.pid ?? "---") },
+        { label: "Slot path", value: task.slot_path || "---" },
       ],
     },
     {
       title: "Graphics",
       rows: [
-        ...(t.graphics_exec_path
-          ? [{ label: "Graphics app", value: t.graphics_exec_path }]
+        ...(task.graphics_exec_path
+          ? [{ label: "Graphics app", value: task.graphics_exec_path }]
           : []),
-        ...(t.web_graphics_url
-          ? [{ label: "Web graphics", value: t.web_graphics_url }]
+        ...(task.web_graphics_url
+          ? [{ label: "Web graphics", value: task.web_graphics_url }]
           : []),
-        ...(t.remote_desktop_addr
-          ? [{ label: "Remote desktop", value: t.remote_desktop_addr }]
+        ...(task.remote_desktop_addr
+          ? [{ label: "Remote desktop", value: task.remote_desktop_addr }]
           : []),
       ],
     },
-  ].filter((s) => s.rows.length > 0);
+  ].filter((section) => section.rows.length > 0);
 });
 
 const projectSections = computed<Section[]>(() => {
-  const p = props.project;
-  if (!p) return [];
+  const project = props.project;
+  if (!project) return [];
   return [
     {
       title: "General",
       rows: [
-        { label: "Project", value: p.project_name },
-        { label: "Master URL", value: p.master_url },
-        { label: "User", value: p.user_name || "---" },
-        { label: "Team", value: p.team_name || "---" },
-        { label: "Venue", value: p.venue || "(default)" },
+        { label: "Project", value: project.project_name },
+        { label: "Master URL", value: project.master_url },
+        { label: "User", value: project.user_name || "---" },
+        { label: "Team", value: project.team_name || "---" },
+        { label: "Venue", value: project.venue || "(default)" },
       ],
     },
     {
       title: "Credits",
       rows: [
-        { label: "User total credit", value: formatCredit(p.user_total_credit) },
-        { label: "User avg credit", value: formatCredit(p.user_expavg_credit) },
-        { label: "Host total credit", value: formatCredit(p.host_total_credit) },
-        { label: "Host avg credit", value: formatCredit(p.host_expavg_credit) },
+        { label: "User total credit", value: formatCredit(project.user_total_credit) },
+        { label: "User avg credit", value: formatCredit(project.user_expavg_credit) },
+        { label: "Host total credit", value: formatCredit(project.host_total_credit) },
+        { label: "Host avg credit", value: formatCredit(project.host_expavg_credit) },
       ],
     },
     {
       title: "Scheduling",
       rows: [
-        { label: "Resource share", value: String(p.resource_share) },
-        { label: "Priority", value: String(p.sched_priority) },
-        { label: "Duration correction", value: String(p.duration_correction_factor) },
+        { label: "Resource share", value: String(project.resource_share) },
+        { label: "Priority", value: String(project.sched_priority) },
+        { label: "Duration correction", value: String(project.duration_correction_factor) },
       ],
     },
     {
       title: "Network",
       rows: [
-        { label: "RPC failures", value: String(p.nrpc_failures) },
-        { label: "Min RPC time", value: formatDate(p.min_rpc_time) },
-        { label: "Last RPC time", value: formatDate(p.last_rpc_time) },
-        { label: "Download backoff", value: `${p.download_backoff}s` },
-        { label: "Upload backoff", value: `${p.upload_backoff}s` },
+        { label: "RPC failures", value: String(project.nrpc_failures) },
+        { label: "Min RPC time", value: formatDate(project.min_rpc_time) },
+        { label: "Last RPC time", value: formatDate(project.last_rpc_time) },
+        { label: "Download backoff", value: `${project.download_backoff}s` },
+        { label: "Upload backoff", value: `${project.upload_backoff}s` },
       ],
     },
     {
       title: "Status",
       rows: [
-        { label: "Suspended", value: p.suspended_via_gui ? "Yes" : "No" },
-        { label: "No new tasks", value: p.dont_request_more_work ? "Yes" : "No" },
-        { label: "Attached via account manager", value: p.attached_via_acct_mgr ? "Yes" : "No" },
-        { label: "Jobs succeeded", value: String(p.njobs_success) },
-        { label: "Jobs failed", value: String(p.njobs_error) },
-        { label: "Disk usage", value: formatMB(p.disk_usage) },
+        { label: "Suspended", value: project.suspended_via_gui ? "Yes" : "No" },
+        { label: "No new tasks", value: project.dont_request_more_work ? "Yes" : "No" },
+        { label: "Attached via account manager", value: project.attached_via_acct_mgr ? "Yes" : "No" },
+        { label: "Jobs succeeded", value: String(project.njobs_success) },
+        { label: "Jobs failed", value: String(project.njobs_error) },
+        { label: "Disk usage", value: formatMegabytes(project.disk_usage) },
       ],
     },
   ];
@@ -297,7 +297,7 @@ function copyAll() {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
   backdrop-filter: blur(2px);
 }
 

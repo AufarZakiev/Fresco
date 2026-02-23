@@ -28,7 +28,7 @@ function markNotified() {
   localStorage.setItem(LAST_REMINDER_KEY, String(Date.now()));
 }
 
-async function send(title: string, body: string) {
+async function sendNotification(title: string, body: string) {
   try {
     const {
       isPermissionGranted,
@@ -52,7 +52,7 @@ async function send(title: string, body: string) {
 export async function notifyNewNotices(count: number) {
   if (count <= 0 || !shouldNotify()) return;
   markNotified();
-  await send(
+  await sendNotification(
     "BOINC Notices",
     count === 1
       ? "There is 1 new notice — click to view"
@@ -61,5 +61,5 @@ export async function notifyNewNotices(count: number) {
 }
 
 export async function notifyConnectionLost() {
-  await send("BOINC Manager", "Lost connection to BOINC client");
+  await sendNotification("BOINC Manager", "Lost connection to BOINC client");
 }

@@ -31,7 +31,7 @@ const toast = useToastStore();
   position: fixed;
   bottom: 40px;
   right: 16px;
-  z-index: 9999;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column-reverse;
   gap: 8px;

@@ -39,7 +39,7 @@ export const usePreferencesStore = defineStore("preferences", () => {
   }
 
   /** Fire-and-forget prefetch that doesn't show a loading spinner. */
-  async function prefetch() {
+  async function prefetchPreferences() {
     if (prefetched.value) return;
     error.value = null;
     try {
@@ -100,7 +100,7 @@ export const usePreferencesStore = defineStore("preferences", () => {
     prefetched,
     activePopoverField,
     fetchPreferences,
-    prefetch,
+    prefetchPreferences,
     getEffectiveValue,
     getFileValue,
     savePreferences,

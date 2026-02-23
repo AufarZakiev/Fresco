@@ -9,6 +9,8 @@ import {
 } from "../composables/useRpc";
 import { useConnectionStore } from "./connection";
 
+const POLL_INTERVAL_MS = 2000;
+
 export const useTasksStore = defineStore("tasks", () => {
   const tasks = ref<TaskResult[]>([]);
   const loading = ref(false);
@@ -30,7 +32,7 @@ export const useTasksStore = defineStore("tasks", () => {
     }
   }
 
-  function startPolling(intervalMs = 2000) {
+  function startPolling(intervalMs = POLL_INTERVAL_MS) {
     stopPolling();
     fetchTasks();
     pollTimer = setInterval(fetchTasks, intervalMs);

@@ -8,6 +8,9 @@ import {
   disconnect as rpcDisconnect,
 } from "../composables/useRpc";
 
+const RECONNECT_BASE_DELAY_MS = 1000;
+const RECONNECT_MAX_DELAY_MS = 30000;
+
 interface ConnectionParams {
   mode: ConnectionMode;
   dataDir?: string;
@@ -103,7 +106,7 @@ export const useConnectionStore = defineStore("connection", () => {
     }
 
     // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s, 30s...
-    const delay = Math.min(1000 * Math.pow(2, reconnectAttempt.value - 1), 30000);
+    const delay = Math.min(RECONNECT_BASE_DELAY_MS * Math.pow(2, reconnectAttempt.value - 1), RECONNECT_MAX_DELAY_MS);
     reconnectTimer = setTimeout(attemptReconnect, delay);
   }
 

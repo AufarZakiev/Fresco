@@ -103,19 +103,19 @@ impl RpcClient {
         let mut response = Vec::new();
         let mut buf = [0u8; READ_BUF_SIZE];
         loop {
-            let n = tcp
+            let bytes_read = tcp
                 .read(&mut buf)
                 .await
                 .map_err(|e| format!("Receive failed: {}", e))?;
-            if n == 0 {
+            if bytes_read == 0 {
                 return Err("Connection closed by BOINC client".to_string());
             }
             // Check for end marker
-            if let Some(pos) = buf[..n].iter().position(|&b| b == END_MARKER) {
+            if let Some(pos) = buf[..bytes_read].iter().position(|&b| b == END_MARKER) {
                 response.extend_from_slice(&buf[..pos]);
                 break;
             }
-            response.extend_from_slice(&buf[..n]);
+            response.extend_from_slice(&buf[..bytes_read]);
         }
 
         String::from_utf8(response).map_err(|e| format!("Invalid UTF-8 in response: {}", e))

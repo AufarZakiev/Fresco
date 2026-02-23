@@ -14,6 +14,15 @@ use tauri::{Manager, State};
 use tauri_plugin_cli::CliExt;
 use tokio::sync::Mutex;
 
+/// Windows process creation flag: run without a visible console window.
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+const BOINC_TIMEOUT_EXISTING_SECS: u64 = 300;
+const BOINC_TIMEOUT_FRESH_SECS: u64 = 180;
+const BOINC_RPC_ADDR: &str = "127.0.0.1:31416";
+const BOINC_CONNECT_POLL_MS: u64 = 500;
+
 pub(crate) struct AppState {
     client: Arc<Mutex<Option<RpcClient>>>,
 }
@@ -383,7 +392,6 @@ async fn get_host_info(state: State<'_, AppState>) -> Result<HostInfo, String> {
         {
             use std::os::windows::process::CommandExt;
             use std::process::Command;
-            const CREATE_NO_WINDOW: u32 = 0x08000000;
             if let Ok(output) = Command::new("cmd")
                 .args(["/C", "ver"])
                 .creation_flags(CREATE_NO_WINDOW)
@@ -756,7 +764,6 @@ fn is_boinc_running() -> bool {
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
         let output = std::process::Command::new("tasklist")
             .args(["/FI", "IMAGENAME eq boinc.exe", "/NH", "/FO", "CSV"])
             .creation_flags(CREATE_NO_WINDOW)
@@ -815,7 +822,7 @@ async fn start_boinc_client(data_dir: String, client_dir: String) -> Result<(), 
         #[cfg(target_os = "windows")]
         {
             use std::os::windows::process::CommandExt;
-            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            cmd.creation_flags(CREATE_NO_WINDOW);
         }
 
         #[cfg(not(target_os = "windows"))]
@@ -829,10 +836,10 @@ async fn start_boinc_client(data_dir: String, client_dir: String) -> Result<(), 
 
     // BOINC startup is slow: GPU detection ~80s, Docker detection ~40s.
     // Wait longer if already running (may be further from finishing init).
-    let timeout_secs = if already_running { 300 } else { 180 };
+    let timeout_secs = if already_running { BOINC_TIMEOUT_EXISTING_SECS } else { BOINC_TIMEOUT_FRESH_SECS };
     let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(timeout_secs);
     loop {
-        if tokio::net::TcpStream::connect("127.0.0.1:31416")
+        if tokio::net::TcpStream::connect(BOINC_RPC_ADDR)
             .await
             .is_ok()
         {
@@ -840,10 +847,10 @@ async fn start_boinc_client(data_dir: String, client_dir: String) -> Result<(), 
         }
         if tokio::time::Instant::now() >= deadline {
             return Err(format!(
-                "BOINC client not responding on port 31416 after {timeout_secs}s"
+                "BOINC client not responding on {BOINC_RPC_ADDR} after {timeout_secs}s"
             ));
         }
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(BOINC_CONNECT_POLL_MS)).await;
     }
 }
 

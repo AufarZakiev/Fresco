@@ -3,6 +3,8 @@ import { ref } from "vue";
 import { getDiskUsage } from "../composables/useRpc";
 import type { DiskUsage } from "../types/boinc";
 
+const POLL_INTERVAL_MS = 30000;
+
 export const useDiskUsageStore = defineStore("diskUsage", () => {
   const usage = ref<DiskUsage>({
     projects: [],
@@ -27,7 +29,7 @@ export const useDiskUsageStore = defineStore("diskUsage", () => {
     }
   }
 
-  function startPolling(intervalMs = 30000) {
+  function startPolling(intervalMs = POLL_INTERVAL_MS) {
     stopPolling();
     fetchDiskUsage();
     pollTimer = setInterval(fetchDiskUsage, intervalMs);

@@ -95,7 +95,7 @@ function startAllPolling() {
   messagesStore.startPolling();
   noticesStore.startPolling();
   diskUsageStore.startPolling();
-  preferencesStore.prefetch();
+  preferencesStore.prefetchPreferences();
 }
 
 async function autoConnect() {
@@ -506,7 +506,7 @@ input, textarea, select {
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  z-index: 10;
+  z-index: var(--z-sidebar-overlay);
   overflow-y: auto;
 }
 
@@ -677,7 +677,7 @@ input, textarea, select {
   position: fixed;
   top: 8px;
   left: 8px;
-  z-index: 21;
+  z-index: var(--z-nav-header);
   width: 36px;
   height: 36px;
   align-items: center;
@@ -705,7 +705,7 @@ input, textarea, select {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
-    z-index: 9;
+    z-index: var(--z-content);
   }
 
   .sidebar {

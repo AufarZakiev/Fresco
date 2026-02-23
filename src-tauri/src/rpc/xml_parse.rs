@@ -1179,18 +1179,18 @@ pub fn parse_host_info(xml: &str) -> HostInfo {
                             "count" => current_coproc.count = text.parse().unwrap_or(0),
                             // CUDA uses available_ram + totalGlobalMem; OpenCL uses global_mem_size
                             "available_ram" | "totalGlobalMem" | "global_mem_size" => {
-                                let v: f64 = text.parse().unwrap_or(0.0);
-                                if v > current_coproc.available_ram {
-                                    current_coproc.available_ram = v;
+                                let ram_bytes: f64 = text.parse().unwrap_or(0.0);
+                                if ram_bytes > current_coproc.available_ram {
+                                    current_coproc.available_ram = ram_bytes;
                                 }
                             }
                             // CUDA: drvVersion (int); also accept driver_version string
                             "drvVersion" => {
-                                let v: i32 = text.parse().unwrap_or(0);
-                                if v > 0 {
+                                let driver_version: i32 = text.parse().unwrap_or(0);
+                                if driver_version > 0 {
                                     // NVIDIA int format: major*100 + minor, e.g. 56070 → 560.70
-                                    let major = v / 100;
-                                    let minor = v % 100;
+                                    let major = driver_version / 100;
+                                    let minor = driver_version % 100;
                                     current_coproc.driver_version = format!("{major}.{minor:02}");
                                 }
                             }

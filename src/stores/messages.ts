@@ -3,6 +3,8 @@ import { computed, ref } from "vue";
 import { getMessages } from "../composables/useRpc";
 import type { Message } from "../types/boinc";
 
+const POLL_INTERVAL_MS = 5000;
+
 export const useMessagesStore = defineStore("messages", () => {
   const messages = ref<Message[]>([]);
   const loading = ref(false);
@@ -42,7 +44,7 @@ export const useMessagesStore = defineStore("messages", () => {
     }
   }
 
-  function startPolling(intervalMs = 5000) {
+  function startPolling(intervalMs = POLL_INTERVAL_MS) {
     stopPolling();
     fetchMessages();
     pollTimer = setInterval(fetchMessages, intervalMs);

@@ -55,16 +55,16 @@ function dayToDate(day: number): Date {
 }
 
 function formatDateShort(day: number): string {
-  const d = dayToDate(day);
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const date = dayToDate(day);
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 const yMax = computed(() => {
   let max = 0;
-  for (const ds of props.data) {
-    for (const s of seriesConfig) {
-      if (props.enabledSeries.has(s.key)) {
-        max = Math.max(max, ds[s.key]);
+  for (const dataset of props.data) {
+    for (const series of seriesConfig) {
+      if (props.enabledSeries.has(series.key)) {
+        max = Math.max(max, dataset[series.key]);
       }
     }
   }
@@ -79,18 +79,18 @@ const xRange = computed(() => {
   return { min, max: max === min ? min + 1 : max };
 });
 
-function scaleX(day: number): number {
+function calculateX(day: number): number {
   const range = xRange.value;
   return PADDING.left + ((day - range.min) / (range.max - range.min)) * chartW.value;
 }
 
-function scaleY(value: number): number {
+function calculateY(value: number): number {
   return PADDING.top + chartH.value - (value / yMax.value) * chartH.value;
 }
 
-function polylinePoints(key: keyof DailyStats): string {
+function buildPolyline(key: keyof DailyStats): string {
   return props.data
-    .map((ds) => `${scaleX(ds.day)},${scaleY(ds[key] as number)}`)
+    .map((ds) => `${calculateX(ds.day)},${calculateY(ds[key] as number)}`)
     .join(" ");
 }
 
@@ -131,7 +131,7 @@ function handleChartMouseMove(event: MouseEvent) {
   let closest: DailyStats | null = null;
   let closestDist = Infinity;
   for (const ds of props.data) {
-    const sx = scaleX(ds.day);
+    const sx = calculateX(ds.day);
     const dist = Math.abs(sx - mouseX);
     if (dist < closestDist) {
       closestDist = dist;
@@ -142,18 +142,18 @@ function handleChartMouseMove(event: MouseEvent) {
   if (closest && closestDist < 30) {
     let bestKey = "";
     let bestVal = 0;
-    for (const s of seriesConfig) {
-      if (props.enabledSeries.has(s.key)) {
-        const val = closest[s.key];
+    for (const series of seriesConfig) {
+      if (props.enabledSeries.has(series.key)) {
+        const val = closest[series.key];
         if (val > bestVal) {
           bestVal = val;
-          bestKey = s.label;
+          bestKey = series.label;
         }
       }
     }
     hoveredPoint.value = {
-      x: scaleX(closest.day),
-      y: scaleY(bestVal),
+      x: calculateX(closest.day),
+      y: calculateY(bestVal),
       label: `${formatDateShort(closest.day)} - ${bestKey}: ${formatCredit(bestVal)}`,
       value: bestVal,
     };
@@ -187,9 +187,9 @@ const activeSeries = computed(() =>
           v-for="tick in yTicks"
           :key="'yg-' + tick"
           :x1="PADDING.left"
-          :y1="scaleY(tick)"
+          :y1="calculateY(tick)"
           :x2="svgWidth - PADDING.right"
-          :y2="scaleY(tick)"
+          :y2="calculateY(tick)"
           class="grid-line"
         />
 
@@ -198,7 +198,7 @@ const activeSeries = computed(() =>
           v-for="tick in yTicks"
           :key="'yl-' + tick"
           :x="PADDING.left - 8"
-          :y="scaleY(tick) + 4"
+          :y="calculateY(tick) + 4"
           class="axis-label axis-label-y"
         >
           {{ formatCredit(tick) }}
@@ -208,7 +208,7 @@ const activeSeries = computed(() =>
         <text
           v-for="tick in xTicks"
           :key="'xl-' + tick"
-          :x="scaleX(tick)"
+          :x="calculateX(tick)"
           :y="svgHeight - PADDING.bottom + 20"
           class="axis-label axis-label-x"
         >
@@ -234,11 +234,11 @@ const activeSeries = computed(() =>
         <!-- Data series -->
         <template v-if="data.length > 1">
           <polyline
-            v-for="s in activeSeries"
-            :key="s.key"
-            :points="polylinePoints(s.key as keyof DailyStats)"
+            v-for="series in activeSeries"
+            :key="series.key"
+            :points="buildPolyline(series.key as keyof DailyStats)"
             fill="none"
-            :stroke="s.color"
+            :stroke="series.color"
             stroke-width="2"
             stroke-linejoin="round"
             stroke-linecap="round"
@@ -248,12 +248,12 @@ const activeSeries = computed(() =>
         <!-- Single point indicator -->
         <template v-if="data.length === 1">
           <circle
-            v-for="s in activeSeries"
-            :key="'dot-' + s.key"
-            :cx="scaleX(data[0].day)"
-            :cy="scaleY(data[0][s.key as keyof DailyStats] as number)"
+            v-for="series in activeSeries"
+            :key="'dot-' + series.key"
+            :cx="calculateX(data[0].day)"
+            :cy="calculateY(data[0][series.key as keyof DailyStats] as number)"
             r="4"
-            :fill="s.color"
+            :fill="series.color"
           />
         </template>
 
