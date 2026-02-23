@@ -130,32 +130,34 @@ onUnmounted(() => {
     />
 
     <template v-else>
-      <!-- Segmented control -->
-      <div class="segmented-control">
-        <button
-          :class="['segment', { active: viewMode === 'single' }]"
-          @click="viewMode = 'single'"
-        >
-          Single Project
-        </button>
-        <button
-          :class="['segment', { active: viewMode === 'all' }]"
-          @click="viewMode = 'all'"
-        >
-          All Together
-        </button>
-        <button
-          :class="['segment', { active: viewMode === 'separate' }]"
-          @click="viewMode = 'separate'"
-        >
-          All Separate
-        </button>
-      </div>
+      <!-- Controls bar -->
+      <div class="controls-bar">
+        <div class="segmented-control">
+          <button
+            :class="['segment', { active: viewMode === 'single' }]"
+            @click="viewMode = 'single'"
+          >
+            Single Project
+          </button>
+          <button
+            :class="['segment', { active: viewMode === 'all' }]"
+            @click="viewMode = 'all'"
+          >
+            All Together
+          </button>
+          <button
+            :class="['segment', { active: viewMode === 'separate' }]"
+            @click="viewMode = 'separate'"
+          >
+            All Separate
+          </button>
+        </div>
 
-      <!-- Project picker -->
-      <div v-if="viewMode === 'single'" class="project-picker">
-        <label class="picker-label">Project</label>
-        <select v-model="selectedProjectUrl" class="picker-select">
+        <select
+          v-if="viewMode === 'single'"
+          v-model="selectedProjectUrl"
+          class="picker-select"
+        >
           <option v-for="opt in projectOptions" :key="opt.url" :value="opt.url">
             {{ opt.label }}
           </option>
@@ -238,20 +240,27 @@ onUnmounted(() => {
   padding: var(--space-xl) 0;
 }
 
+.controls-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+}
+
 .segmented-control {
   display: inline-flex;
   flex-wrap: wrap;
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-md);
   padding: 2px;
-  margin-bottom: var(--space-lg);
 }
 
 .segment {
-  padding: 6px 16px;
+  padding: 5px 12px;
   border: none;
   background: transparent;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
   border-radius: var(--radius-sm);
@@ -269,27 +278,13 @@ onUnmounted(() => {
   color: var(--color-text-primary);
 }
 
-.project-picker {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
-}
-
-.picker-label {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
 .picker-select {
-  padding: 6px 12px;
+  padding: 5px 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg);
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  min-width: min(280px, 60vw);
   outline: none;
   transition: border-color var(--transition-fast);
 }
