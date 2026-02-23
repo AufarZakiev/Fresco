@@ -15,23 +15,18 @@ type ViewMode = "single" | "all" | "separate";
 const viewMode = ref<ViewMode>("single");
 const selectedProjectUrl = ref("");
 
-const seriesConfig = [
-  { key: "user_total_credit" as const, label: "User Total", color: "#3b82f6" },
-  { key: "user_expavg_credit" as const, label: "User Avg", color: "#8b5cf6" },
-  { key: "host_total_credit" as const, label: "Host Total", color: "#10b981" },
-  { key: "host_expavg_credit" as const, label: "Host Avg", color: "#f59e0b" },
-];
+const actorColors = { user: "#3b82f6", host: "#10b981" };
 
-const enabledSeries = ref<Set<string>>(new Set(seriesConfig.map((s) => s.key)));
+const enabledActors = ref<Set<string>>(new Set(["user", "host"]));
 
-function toggleSeries(key: string) {
-  const next = new Set(enabledSeries.value);
-  if (next.has(key)) {
-    if (next.size > 1) next.delete(key);
+function toggleActor(actor: string) {
+  const next = new Set(enabledActors.value);
+  if (next.has(actor)) {
+    if (next.size > 1) next.delete(actor);
   } else {
-    next.add(key);
+    next.add(actor);
   }
-  enabledSeries.value = next;
+  enabledActors.value = next;
 }
 
 function hasRecentActivity(stats: DailyStats[]): boolean {
@@ -44,6 +39,20 @@ function hasRecentActivity(stats: DailyStats[]): boolean {
     last.host_total_credit > first.host_total_credit
   );
 }
+
+const enabledTotalSeries = computed(() => {
+  const set = new Set<string>();
+  if (enabledActors.value.has("user")) set.add("user_total_credit");
+  if (enabledActors.value.has("host")) set.add("host_total_credit");
+  return set;
+});
+
+const enabledAvgSeries = computed(() => {
+  const set = new Set<string>();
+  if (enabledActors.value.has("user")) set.add("user_expavg_credit");
+  if (enabledActors.value.has("host")) set.add("host_expavg_credit");
+  return set;
+});
 
 const projectOptions = computed(() =>
   store.projectStats
@@ -134,71 +143,90 @@ onUnmounted(() => {
     />
 
     <template v-else>
-      <!-- Segmented control -->
-      <div class="segmented-control">
-        <button
-          :class="['segment', { active: viewMode === 'single' }]"
-          @click="viewMode = 'single'"
-        >
-          Single Project
-        </button>
-        <button
-          :class="['segment', { active: viewMode === 'all' }]"
-          @click="viewMode = 'all'"
-        >
-          All Together
-        </button>
-        <button
-          :class="['segment', { active: viewMode === 'separate' }]"
-          @click="viewMode = 'separate'"
-        >
-          All Separate
-        </button>
-      </div>
+      <!-- Controls bar -->
+      <div class="controls-bar">
+        <div class="segmented-control">
+          <button
+            :class="['segment', { active: viewMode === 'single' }]"
+            @click="viewMode = 'single'"
+          >
+            Single Project
+          </button>
+          <button
+            :class="['segment', { active: viewMode === 'all' }]"
+            @click="viewMode = 'all'"
+          >
+            All Together
+          </button>
+          <button
+            :class="['segment', { active: viewMode === 'separate' }]"
+            @click="viewMode = 'separate'"
+          >
+            All Separate
+          </button>
+        </div>
 
-      <!-- Project picker -->
-      <div v-if="viewMode === 'single'" class="project-picker">
-        <label class="picker-label">Project</label>
-        <select v-model="selectedProjectUrl" class="picker-select">
+        <select
+          v-if="viewMode === 'single'"
+          v-model="selectedProjectUrl"
+          class="picker-select"
+        >
           <option v-for="opt in projectOptions" :key="opt.url" :value="opt.url">
             {{ opt.label }}
           </option>
         </select>
       </div>
 
-      <!-- Series toggles -->
+      <!-- Actor toggles -->
       <div class="series-toggles">
-        <label
-          v-for="s in seriesConfig"
-          :key="s.key"
-          class="series-toggle"
-        >
+        <label class="series-toggle">
           <input
             type="checkbox"
-            :checked="enabledSeries.has(s.key)"
-            @change="toggleSeries(s.key)"
+            :checked="enabledActors.has('user')"
+            @change="toggleActor('user')"
           />
-          <span class="series-swatch" :style="{ background: s.color }"></span>
-          <span class="series-label">{{ s.label }}</span>
+          <span class="series-swatch" :style="{ background: actorColors.user }"></span>
+          <span class="series-label">User</span>
+        </label>
+        <label class="series-toggle">
+          <input
+            type="checkbox"
+            :checked="enabledActors.has('host')"
+            @change="toggleActor('host')"
+          />
+          <span class="series-swatch" :style="{ background: actorColors.host }"></span>
+          <span class="series-label">Host</span>
         </label>
       </div>
 
-      <!-- Single chart for single/all/total modes -->
-      <StatisticsChart
-        v-if="chartData && viewMode !== 'separate'"
-        :data="chartData"
-        :enabled-series="enabledSeries"
-      />
+      <!-- Charts for single/all/total modes -->
+      <template v-if="chartData && viewMode !== 'separate'">
+        <StatisticsChart
+          :data="chartData"
+          title="Total Credit"
+          :enabled-series="enabledTotalSeries"
+        />
+        <StatisticsChart
+          :data="chartData"
+          title="Average Credit"
+          :enabled-series="enabledAvgSeries"
+        />
+      </template>
 
       <!-- Separate charts: one per project -->
       <div v-if="viewMode === 'separate'" class="separate-charts">
-        <StatisticsChart
-          v-for="chart in separateCharts"
-          :key="chart.url"
-          :data="chart.data"
-          :title="chart.url"
-          :enabled-series="enabledSeries"
-        />
+        <template v-for="chart in separateCharts" :key="chart.url">
+          <StatisticsChart
+            :data="chart.data"
+            :title="chart.url + ' — Total Credit'"
+            :enabled-series="enabledTotalSeries"
+          />
+          <StatisticsChart
+            :data="chart.data"
+            :title="chart.url + ' — Average Credit'"
+            :enabled-series="enabledAvgSeries"
+          />
+        </template>
         <EmptyState
           v-if="separateCharts.length === 0"
           icon="&#x1f4ca;"
@@ -225,20 +253,27 @@ onUnmounted(() => {
   padding: var(--space-xl) 0;
 }
 
+.controls-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+}
+
 .segmented-control {
   display: inline-flex;
   flex-wrap: wrap;
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-md);
   padding: 2px;
-  margin-bottom: var(--space-lg);
 }
 
 .segment {
-  padding: 6px 16px;
+  padding: 5px 12px;
   border: none;
   background: transparent;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
   border-radius: var(--radius-sm);
@@ -256,27 +291,13 @@ onUnmounted(() => {
   color: var(--color-text-primary);
 }
 
-.project-picker {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
-}
-
-.picker-label {
-  font-size: var(--font-size-md);
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
 .picker-select {
-  padding: 6px 12px;
+  padding: 5px 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg);
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  min-width: min(280px, 60vw);
   outline: none;
   transition: border-color var(--transition-fast);
 }

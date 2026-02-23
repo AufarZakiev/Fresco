@@ -1,20 +1,39 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import type { DailyStats } from "../types/boinc";
 
 const props = defineProps<{
   data: DailyStats[];
   title?: string;
   enabledSeries: Set<string>;
-  width?: number;
   height?: number;
 }>();
 
+const containerRef = ref<HTMLElement | null>(null);
+const measuredWidth = ref(700);
+let resizeObserver: ResizeObserver | null = null;
+
+onMounted(() => {
+  if (containerRef.value) {
+    measuredWidth.value = containerRef.value.clientWidth;
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        measuredWidth.value = entry.contentRect.width;
+      }
+    });
+    resizeObserver.observe(containerRef.value);
+  }
+});
+
+onUnmounted(() => {
+  resizeObserver?.disconnect();
+});
+
 const seriesConfig = [
-  { key: "user_total_credit" as const, label: "User Total", color: "#3b82f6" },
-  { key: "user_expavg_credit" as const, label: "User Avg", color: "#8b5cf6" },
-  { key: "host_total_credit" as const, label: "Host Total", color: "#10b981" },
-  { key: "host_expavg_credit" as const, label: "Host Avg", color: "#f59e0b" },
+  { key: "user_total_credit" as const, label: "User", color: "#3b82f6" },
+  { key: "user_expavg_credit" as const, label: "User", color: "#3b82f6" },
+  { key: "host_total_credit" as const, label: "Host", color: "#10b981" },
+  { key: "host_expavg_credit" as const, label: "Host", color: "#10b981" },
 ];
 
 const hoveredPoint = ref<{
@@ -24,7 +43,7 @@ const hoveredPoint = ref<{
   value: number;
 } | null>(null);
 
-const svgWidth = computed(() => props.width ?? 700);
+const svgWidth = computed(() => measuredWidth.value);
 const svgHeight = computed(() => props.height ?? 340);
 const PADDING = { top: 20, right: 20, bottom: 50, left: 70 };
 
@@ -155,7 +174,7 @@ const activeSeries = computed(() =>
 <template>
   <div class="chart-wrapper">
     <h3 v-if="title" class="chart-title">{{ title }}</h3>
-    <div class="chart-container">
+    <div ref="containerRef" class="chart-container">
       <svg
         :width="svgWidth"
         :height="svgHeight"
@@ -295,14 +314,10 @@ const activeSeries = computed(() =>
   padding: var(--space-md);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  display: inline-block;
-  max-width: 100%;
 }
 
 .chart-svg {
   display: block;
-  max-width: 100%;
-  height: auto;
 }
 
 .grid-line {
