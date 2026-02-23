@@ -29,6 +29,17 @@ function toggleActor(actor: string) {
   enabledActors.value = next;
 }
 
+function hasRecentActivity(stats: DailyStats[]): boolean {
+  if (stats.length === 0) return false;
+  if (stats.length === 1) return true;
+  const first = stats[0];
+  const last = stats[stats.length - 1];
+  return (
+    last.user_total_credit > first.user_total_credit ||
+    last.host_total_credit > first.host_total_credit
+  );
+}
+
 const enabledTotalSeries = computed(() => {
   const set = new Set<string>();
   if (enabledActors.value.has("user")) set.add("user_total_credit");
@@ -44,18 +55,20 @@ const enabledAvgSeries = computed(() => {
 });
 
 const projectOptions = computed(() =>
-  store.projectStats.map((p) => {
-    const project = projectsStore.projects.find((proj) => proj.master_url === p.master_url);
-    return {
-      url: p.master_url,
-      label: project?.project_name || p.master_url,
-    };
-  }),
+  store.projectStats
+    .filter((p) => hasRecentActivity(p.daily_statistics))
+    .map((p) => {
+      const project = projectsStore.projects.find((proj) => proj.master_url === p.master_url);
+      return {
+        url: p.master_url,
+        label: project?.project_name || p.master_url,
+      };
+    }),
 );
 
 const activeProject = computed(() => {
-  if (!selectedProjectUrl.value && store.projectStats.length > 0) {
-    selectedProjectUrl.value = store.projectStats[0].master_url;
+  if (!selectedProjectUrl.value && projectOptions.value.length > 0) {
+    selectedProjectUrl.value = projectOptions.value[0].url;
   }
   return store.projectStats.find((p) => p.master_url === selectedProjectUrl.value);
 });
