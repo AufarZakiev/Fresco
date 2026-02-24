@@ -4,20 +4,21 @@ import Tooltip from "./Tooltip.vue";
 import { usePreferencesStore } from "../stores/preferences";
 import type { GlobalPreferences } from "../types/boinc";
 import { decimalHoursToTimeString } from "../utils/timeConversion";
-import { BOINC_DEFAULTS } from "../constants/boincDefaults";
+import { BOINC_DEFAULTS, BOINC_BOOL_DEFAULTS } from "../constants/boincDefaults";
 
 const props = defineProps<{
   open: boolean;
   anchorEl: HTMLElement | null;
   field: keyof GlobalPreferences;
-  overrideValue: number;
+  overrideValue: number | boolean;
   isTimeField?: boolean;
+  isBooleanField?: boolean;
   zeroLabel?: string;
 }>();
 
 const emit = defineEmits<{
   close: [];
-  "adopt-value": [value: number];
+  "adopt-value": [value: number | boolean];
   "clear-override": [];
   "popover-enter": [];
   "popover-leave": [];
@@ -27,16 +28,33 @@ const store = usePreferencesStore();
 const popoverRef = ref<HTMLElement | null>(null);
 const popoverStyle = ref<Record<string, string>>({});
 
-const fileValue = computed(() => store.getFileValue(props.field));
-const initialValue = computed(() => BOINC_DEFAULTS[props.field] ?? 0);
-const hasFileValue = computed(
-  () => fileValue.value != null && fileValue.value !== 0 && fileValue.value !== initialValue.value,
-);
-const hasOverride = computed(
-  () => props.overrideValue !== 0 && (!hasFileValue.value || props.overrideValue !== fileValue.value),
+const fileValue = computed(() =>
+  props.isBooleanField ? store.getBoolFileValue(props.field) : store.getFileValue(props.field),
 );
 
-function formatValue(val: number): string {
+const initialValue = computed(() =>
+  props.isBooleanField
+    ? (BOINC_BOOL_DEFAULTS[props.field] ?? false)
+    : (BOINC_DEFAULTS[props.field] ?? 0),
+);
+
+const hasFileValue = computed(() => {
+  if (props.isBooleanField) {
+    return fileValue.value != null && fileValue.value !== initialValue.value;
+  }
+  return fileValue.value != null && fileValue.value !== 0 && fileValue.value !== initialValue.value;
+});
+
+const hasOverride = computed(() => {
+  if (props.isBooleanField) {
+    return props.overrideValue !== initialValue.value
+      && (!hasFileValue.value || props.overrideValue !== fileValue.value);
+  }
+  return props.overrideValue !== 0 && (!hasFileValue.value || props.overrideValue !== fileValue.value);
+});
+
+function formatValue(val: number | boolean): string {
+  if (typeof val === "boolean") return val ? "On" : "Off";
   if (val === 0) return props.zeroLabel ?? "Default";
   if (props.isTimeField) return decimalHoursToTimeString(val);
   return String(val);
@@ -141,7 +159,7 @@ onUnmounted(() => {
       <!-- Initial (hardcoded BOINC default) -->
       <div class="source-row">
         <span class="source-dot initial" />
-        <span class="source-label">Initial</span>
+        <span class="source-label">Default</span>
         <span class="source-value">{{ formatValue(initialValue) }}</span>
       </div>
     </div>

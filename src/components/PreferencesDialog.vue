@@ -5,6 +5,8 @@ import { useManagerSettingsStore } from "../stores/managerSettings";
 import type { GlobalPreferences } from "../types/boinc";
 import PrefNumericInput from "./PrefNumericInput.vue";
 import PrefTimeInput from "./PrefTimeInput.vue";
+import PrefToggleSwitch from "./PrefToggleSwitch.vue";
+import Tooltip from "./Tooltip.vue";
 import ProxySettingsDialog from "./ProxySettingsDialog.vue";
 import ExclusiveAppsDialog from "./ExclusiveAppsDialog.vue";
 import TimeRangeSlider from "./TimeRangeSlider.vue";
@@ -24,6 +26,7 @@ const managerForm = ref({ ...managerStore.settings });
 const form = ref<GlobalPreferences | null>(null);
 const showProxy = ref(false);
 const showExclusiveApps = ref(false);
+const exclusiveAppsRef = ref<InstanceType<typeof ExclusiveAppsDialog> | null>(null);
 const dayEnabled = ref<boolean[]>([false, false, false, false, false, false, false]);
 const originalSnapshot = ref("");
 
@@ -39,6 +42,7 @@ watch(
     if (isOpen) {
       activeTab.value = props.initialTab;
       managerForm.value = { ...managerStore.settings };
+      exclusiveAppsRef.value?.prefetch();
       if (store.prefetched && store.prefs) {
         // Data already cached — show instantly
         initForm(store.prefs);
@@ -166,18 +170,16 @@ async function save() {
           <div class="prefs-body">
             <!-- Computing tab -->
             <div v-if="activeTab === 'computing'" class="prefs-section">
-              <label class="pref-row">
-                <span>Run on batteries</span>
-                <span class="toggle-switch" :class="{ on: form.run_on_batteries }" @click.prevent="form.run_on_batteries = !form.run_on_batteries">
-                  <span class="toggle-knob" />
-                </span>
-              </label>
-              <label class="pref-row">
-                <span>Run if user is active</span>
-                <span class="toggle-switch" :class="{ on: form.run_if_user_active }" @click.prevent="form.run_if_user_active = !form.run_if_user_active">
-                  <span class="toggle-knob" />
-                </span>
-              </label>
+              <PrefToggleSwitch
+                v-model="form.run_on_batteries"
+                label="Run on batteries"
+                field="run_on_batteries"
+              />
+              <PrefToggleSwitch
+                v-model="form.run_if_user_active"
+                label="Run if user is active"
+                field="run_if_user_active"
+              />
               <PrefNumericInput
                 v-model="form.idle_time_to_run"
                 label="Idle time before running (min)"
@@ -249,12 +251,11 @@ async function save() {
                 :step="1"
                 zero-label="Disabled"
               />
-              <label class="pref-row">
-                <span>Leave apps in memory</span>
-                <span class="toggle-switch" :class="{ on: form.leave_apps_in_memory }" @click.prevent="form.leave_apps_in_memory = !form.leave_apps_in_memory">
-                  <span class="toggle-knob" />
-                </span>
-              </label>
+              <PrefToggleSwitch
+                v-model="form.leave_apps_in_memory"
+                label="Leave apps in memory"
+                field="leave_apps_in_memory"
+              />
               <PrefNumericInput
                 v-model="form.work_buf_additional_days"
                 label="Additional work buffer (days)"
@@ -269,8 +270,9 @@ async function save() {
                 :min="0"
                 :step="1"
               />
-              <div class="section-divider" />
-              <button class="btn" @click="showExclusiveApps = true">Exclusive Applications...</button>
+              <Tooltip text="Apps that should suspend BOINC while running" placement="bottom">
+                <button class="btn section-btn" @click="showExclusiveApps = true">Exclusive Applications...</button>
+              </Tooltip>
             </div>
 
             <!-- Network tab -->
@@ -311,8 +313,7 @@ async function save() {
                 field="net_end_hour"
                 zero-label="All day"
               />
-              <div class="section-divider" />
-              <button class="btn" @click="showProxy = true">Proxy Settings...</button>
+              <button class="btn section-btn" @click="showProxy = true">Proxy Settings...</button>
             </div>
 
             <!-- Storage tab -->
@@ -357,11 +358,9 @@ async function save() {
                 <div v-for="(day, i) in dayNames" :key="i" class="schedule-day">
                   <div class="schedule-day-header">
                     <label class="day-toggle">
-                      <input
-                        type="checkbox"
-                        :checked="dayEnabled[i]"
-                        @change="toggleDay(i, ($event.target as HTMLInputElement).checked)"
-                      />
+                      <span class="toggle-switch toggle-sm" :class="{ on: dayEnabled[i] }" @click.prevent="toggleDay(i, !dayEnabled[i])">
+                        <span class="toggle-knob" />
+                      </span>
                       <span class="day-name">{{ day }}</span>
                     </label>
                     <span v-if="!dayEnabled[i]" class="uses-default-badge">{{ defaultBadge() }}</span>
@@ -466,7 +465,7 @@ async function save() {
       </div>
     </div>
     <ProxySettingsDialog :open="showProxy" @close="showProxy = false" />
-    <ExclusiveAppsDialog :open="showExclusiveApps" @close="showExclusiveApps = false" />
+    <ExclusiveAppsDialog ref="exclusiveAppsRef" :open="showExclusiveApps" @close="showExclusiveApps = false" />
   </Teleport>
 </template>
 
@@ -486,7 +485,7 @@ async function save() {
   background: var(--color-bg);
   border-radius: var(--radius-lg);
   width: min(580px, 95vw);
-  max-height: 80vh;
+  height: min(80vh, 700px);
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-lg);
@@ -557,7 +556,7 @@ async function save() {
 .prefs-body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 20px;
+  padding: 8px 20px 16px;
 }
 
 .prefs-section {
@@ -631,7 +630,7 @@ async function save() {
 .section-desc {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-xs);
   line-height: 1.5;
 }
 
@@ -665,10 +664,19 @@ async function save() {
   cursor: pointer;
 }
 
-.day-toggle input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  top: 0;
+.toggle-sm {
+  width: 28px !important;
+  height: 16px !important;
+  border-radius: 8px !important;
+}
+
+.toggle-sm .toggle-knob {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.toggle-sm.on .toggle-knob {
+  left: 14px !important;
 }
 
 .day-name {
@@ -693,10 +701,8 @@ async function save() {
   padding-left: 24px;
 }
 
-.section-divider {
-  height: 1px;
-  background: var(--color-border);
-  margin: var(--space-md) 0;
+.section-btn {
+  margin-top: var(--space-md);
 }
 
 /* ── Manager tab ─────────────────────────────────────────────────── */
@@ -717,6 +723,7 @@ async function save() {
 }
 
 .manager-select {
+  width: min(130px, 40vw);
   padding: 5px 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);

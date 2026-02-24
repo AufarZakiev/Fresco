@@ -71,6 +71,20 @@ export const usePreferencesStore = defineStore("preferences", () => {
     return typeof val === "number" ? val : null;
   }
 
+  /** Get the file-level value for a boolean field. */
+  function getBoolFileValue(field: keyof GlobalPreferences): boolean | null {
+    if (!filePrefs.value) return null;
+    const val = filePrefs.value[field];
+    return typeof val === "boolean" ? val : null;
+  }
+
+  /** Get the effective (working) value for a boolean field. */
+  function getBoolEffectiveValue(field: keyof GlobalPreferences): boolean | null {
+    if (!workingPrefs.value) return null;
+    const val = workingPrefs.value[field];
+    return typeof val === "boolean" ? val : null;
+  }
+
   async function savePreferences(newPrefs: GlobalPreferences) {
     saving.value = true;
     error.value = null;
@@ -103,6 +117,8 @@ export const usePreferencesStore = defineStore("preferences", () => {
     prefetchPreferences,
     getEffectiveValue,
     getFileValue,
+    getBoolFileValue,
+    getBoolEffectiveValue,
     savePreferences,
   };
 });

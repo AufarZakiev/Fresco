@@ -79,56 +79,70 @@ async function save() {
             <div v-if="activeTab === 'http'" class="proxy-section">
               <label class="pref-row">
                 <span>Use HTTP proxy</span>
-                <input v-model="form.use_http_proxy" type="checkbox" />
+                <span class="toggle-switch" :class="{ on: form.use_http_proxy }" @click.prevent="form.use_http_proxy = !form.use_http_proxy">
+                  <span class="toggle-knob" />
+                </span>
               </label>
-              <label class="pref-row">
-                <span>Server name</span>
-                <input v-model="form.http_server_name" type="text" />
-              </label>
-              <label class="pref-row">
-                <span>Port</span>
-                <input v-model.number="form.http_server_port" type="number" min="0" max="65535" />
-              </label>
-              <label class="pref-row">
-                <span>Use HTTP authentication</span>
-                <input v-model="form.use_http_auth" type="checkbox" />
-              </label>
-              <label class="pref-row">
-                <span>Username</span>
-                <input v-model="form.http_user_name" type="text" />
-              </label>
-              <label class="pref-row">
-                <span>Password</span>
-                <input v-model="form.http_user_passwd" type="password" />
-              </label>
+              <template v-if="form.use_http_proxy">
+                <label class="pref-row">
+                  <span>Server name</span>
+                  <input v-model="form.http_server_name" type="text" />
+                </label>
+                <label class="pref-row">
+                  <span>Port</span>
+                  <input v-model.number="form.http_server_port" type="number" min="0" max="65535" />
+                </label>
+                <label class="pref-row">
+                  <span>Use HTTP authentication</span>
+                  <span class="toggle-switch" :class="{ on: form.use_http_auth }" @click.prevent="form.use_http_auth = !form.use_http_auth">
+                    <span class="toggle-knob" />
+                  </span>
+                </label>
+                <template v-if="form.use_http_auth">
+                  <label class="pref-row">
+                    <span>Username</span>
+                    <input v-model="form.http_user_name" type="text" />
+                  </label>
+                  <label class="pref-row">
+                    <span>Password</span>
+                    <input v-model="form.http_user_passwd" type="password" />
+                  </label>
+                </template>
+              </template>
             </div>
 
             <!-- SOCKS Proxy tab -->
             <div v-if="activeTab === 'socks'" class="proxy-section">
               <label class="pref-row">
                 <span>Use SOCKS proxy</span>
-                <input v-model="form.use_socks_proxy" type="checkbox" />
+                <span class="toggle-switch" :class="{ on: form.use_socks_proxy }" @click.prevent="form.use_socks_proxy = !form.use_socks_proxy">
+                  <span class="toggle-knob" />
+                </span>
               </label>
-              <label class="pref-row">
-                <span>Server name</span>
-                <input v-model="form.socks_server_name" type="text" />
-              </label>
-              <label class="pref-row">
-                <span>Port</span>
-                <input v-model.number="form.socks_server_port" type="number" min="0" max="65535" />
-              </label>
-              <label class="pref-row">
-                <span>Username</span>
-                <input v-model="form.socks5_user_name" type="text" />
-              </label>
-              <label class="pref-row">
-                <span>Password</span>
-                <input v-model="form.socks5_user_passwd" type="password" />
-              </label>
-              <label class="pref-row">
-                <span>Use SOCKS5 remote DNS</span>
-                <input v-model="form.socks5_remote_dns" type="checkbox" />
-              </label>
+              <template v-if="form.use_socks_proxy">
+                <label class="pref-row">
+                  <span>Server name</span>
+                  <input v-model="form.socks_server_name" type="text" />
+                </label>
+                <label class="pref-row">
+                  <span>Port</span>
+                  <input v-model.number="form.socks_server_port" type="number" min="0" max="65535" />
+                </label>
+                <label class="pref-row">
+                  <span>Username</span>
+                  <input v-model="form.socks5_user_name" type="text" />
+                </label>
+                <label class="pref-row">
+                  <span>Password</span>
+                  <input v-model="form.socks5_user_passwd" type="password" />
+                </label>
+                <label class="pref-row">
+                  <span>Use SOCKS5 remote DNS</span>
+                  <span class="toggle-switch" :class="{ on: form.socks5_remote_dns }" @click.prevent="form.socks5_remote_dns = !form.socks5_remote_dns">
+                    <span class="toggle-knob" />
+                  </span>
+                </label>
+              </template>
             </div>
 
             <!-- Common section -->
@@ -274,16 +288,17 @@ async function save() {
 .pref-row input[type="text"],
 .pref-row input[type="password"],
 .pref-row input[type="number"] {
-  width: 200px;
+  width: min(130px, 40vw);
   padding: 5px 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-md);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
 }
 
 .pref-row input[type="number"] {
   text-align: right;
-  background: var(--color-bg);
   -moz-appearance: textfield;
 }
 
@@ -293,10 +308,36 @@ async function save() {
   margin: 0;
 }
 
-.pref-row input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--color-accent);
+.toggle-switch {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--color-text-tertiary);
+  opacity: 0.4;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.toggle-switch.on {
+  background: var(--color-accent);
+  opacity: 1;
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  transition: left 0.2s;
+}
+
+.toggle-switch.on .toggle-knob {
+  left: 18px;
 }
 
 .noproxy-row {

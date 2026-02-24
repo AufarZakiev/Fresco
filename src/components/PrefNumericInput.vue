@@ -99,8 +99,10 @@ function closePopover() {
   if (popoverOpen.value) store.activePopoverField = null;
 }
 
-function onAdoptValue(val: number) {
-  emit("update:modelValue", val);
+function onAdoptValue(val: number | boolean) {
+  if (typeof val === "number") {
+    emit("update:modelValue", val);
+  }
   store.activePopoverField = null;
 }
 

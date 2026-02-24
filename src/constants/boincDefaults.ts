@@ -1,5 +1,12 @@
 import type { GlobalPreferences } from "../types/boinc";
 
+/** BOINC hardcoded boolean defaults (from lib/prefs.cpp). */
+export const BOINC_BOOL_DEFAULTS: Partial<Record<keyof GlobalPreferences, boolean>> = {
+  run_on_batteries: false,
+  run_if_user_active: true,
+  leave_apps_in_memory: false,
+};
+
 /** BOINC hardcoded defaults (from lib/prefs.cpp). */
 export const BOINC_DEFAULTS: Partial<Record<keyof GlobalPreferences, number>> = {
   idle_time_to_run: 3,

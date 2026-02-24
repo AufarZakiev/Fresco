@@ -13,29 +13,51 @@ const config = ref<CcConfig | null>(null);
 const newCpuApp = ref("");
 const newGpuApp = ref("");
 
+let cachedConfig: CcConfig | null = null;
+
+/** Fire-and-forget prefetch so the dialog opens instantly. */
+async function prefetch() {
+  try {
+    cachedConfig = await getCcConfig();
+  } catch {
+    // Silent — dialog will fetch on open if cache miss
+  }
+}
+
+function initFromConfig(cc: CcConfig) {
+  config.value = {
+    ...cc,
+    exclusive_apps: [...cc.exclusive_apps],
+    exclusive_gpu_apps: [...cc.exclusive_gpu_apps],
+  };
+}
+
 watch(
   () => props.open,
   async (isOpen) => {
     if (isOpen) {
-      loading.value = true;
       error.value = "";
       newCpuApp.value = "";
       newGpuApp.value = "";
-      try {
-        const cc = await getCcConfig();
-        config.value = {
-          ...cc,
-          exclusive_apps: [...cc.exclusive_apps],
-          exclusive_gpu_apps: [...cc.exclusive_gpu_apps],
-        };
-      } catch (e) {
-        error.value = String(e);
-      } finally {
-        loading.value = false;
+
+      if (cachedConfig) {
+        initFromConfig(cachedConfig);
+        cachedConfig = null;
+      } else {
+        loading.value = true;
+        try {
+          initFromConfig(await getCcConfig());
+        } catch (e) {
+          error.value = String(e);
+        } finally {
+          loading.value = false;
+        }
       }
     }
   },
 );
+
+defineExpose({ prefetch });
 
 function addCpuApp() {
   const name = newCpuApp.value.trim();

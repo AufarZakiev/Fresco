@@ -276,15 +276,15 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
 .clock-trigger {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg);
   color: var(--color-text-primary);
   font-size: var(--font-size-md);
-  padding: 5px 12px;
+  padding: 5px 8px;
   cursor: pointer;
-  min-width: 80px;
+  width: min(130px, 40vw);
   transition: border-color var(--transition-fast);
 }
 
@@ -295,12 +295,13 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
 .clock-trigger.compact {
   font-size: var(--font-size-sm);
   padding: 4px 8px;
+  width: auto;
   min-width: 64px;
 }
 
 .trigger-placeholder {
   color: var(--color-text-tertiary);
-  font-size: inherit;
+  font-size: var(--font-size-sm);
 }
 
 /* ── overlay ── */
