@@ -27,7 +27,10 @@ dist-ssr
 .claude/settings.local.json
 .claude/commands/
 CLAUDE.md
+CLAUDE.local.md
 zvasiltodo.md
+.claude/skills/pullrequest/
+.claude/skills/lookforissue/
 
 # OS files
 .AppleDouble
