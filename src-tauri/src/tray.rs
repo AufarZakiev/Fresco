@@ -9,6 +9,13 @@ use tauri::{
 use crate::AppState;
 
 pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    // On macOS, use a dedicated monochrome icon so the system can render it
+    // as a proper template image (black in light mode, white in dark mode).
+    // On other platforms, fall back to the default window icon.
+    #[cfg(target_os = "macos")]
+    let icon = tauri::include_image!("icons/tray-icon.png");
+
+    #[cfg(not(target_os = "macos"))]
     let icon = app.default_window_icon().cloned().expect("no default icon");
 
     let open = MenuItemBuilder::with_id("tray_open", "Open Manager").build(app)?;
@@ -39,6 +46,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
     TrayIconBuilder::new()
         .icon(icon)
+        .icon_as_template(cfg!(target_os = "macos"))
         .tooltip("BOINC Manager")
         .menu(&menu)
         .on_menu_event(move |app, event| {
