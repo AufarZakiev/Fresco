@@ -905,6 +905,26 @@ fn get_build_time() -> String {
         .to_string()
 }
 
+#[tauri::command]
+fn get_platform() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "windows"
+    } else if cfg!(target_os = "macos") {
+        "macos"
+    } else {
+        "linux"
+    }
+}
+
+#[tauri::command]
+fn get_arch() -> &'static str {
+    if cfg!(target_arch = "aarch64") {
+        "arm64"
+    } else {
+        "x86_64"
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1053,6 +1073,8 @@ pub fn run() {
             get_message_count,
             get_daily_xfer_history,
             get_build_time,
+            get_platform,
+            get_arch,
             updater::download_update,
             updater::update_now,
             updater::install_update,

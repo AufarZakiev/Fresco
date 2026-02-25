@@ -89,6 +89,10 @@ export function handleIpc(cmd: string, payload?: InvokeArgs): unknown {
       return mockAllProjectsList;
     case "get_build_time":
       return "mock-dev-build";
+    case "get_platform":
+      return "macos";
+    case "get_arch":
+      return "arm64";
     case "download_update":
       return undefined;
 

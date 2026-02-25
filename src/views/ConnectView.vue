@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import Tooltip from "../components/Tooltip.vue";
+import { getOS, defaultDataDir, defaultClientDir, type OS } from "../composables/usePlatform";
 import { useConnectionStore } from "../stores/connection";
 import { useTasksStore } from "../stores/tasks";
 import { useProjectsStore } from "../stores/projects";
@@ -41,8 +42,11 @@ const RECENT_KEY = "boinc-recent-connections";
 const MAX_RECENT = 5;
 
 const mode = ref<ConnectionMode>(CONNECTION_MODE.LOCAL);
-const dataDir = ref(defaultDataDir());
-const clientDir = ref(defaultClientDir());
+// Initialise with Linux defaults so the Connect button is never blocked by
+// an empty path. onMounted overwrites these with the real platform values.
+let currentOS: OS = "linux";
+const dataDir = ref(defaultDataDir(currentOS));
+const clientDir = ref(defaultClientDir(currentOS));
 const host = ref("localhost");
 const port = ref(31416);
 const password = ref("");
@@ -50,23 +54,12 @@ const connecting = ref(false);
 const statusMessage = ref<string | null>(null);
 const recentConnections = ref<RecentConnection[]>([]);
 
-onMounted(() => {
+onMounted(async () => {
   loadRecent();
+  currentOS = await getOS();
+  dataDir.value = defaultDataDir(currentOS);
+  clientDir.value = defaultClientDir(currentOS);
 });
-
-function defaultDataDir(): string {
-  const platform = navigator.platform.toLowerCase();
-  if (platform.includes("win")) return "C:\\ProgramData\\BOINC";
-  if (platform.includes("mac")) return "/Library/Application Support/BOINC Data";
-  return "/var/lib/boinc-client";
-}
-
-function defaultClientDir(): string {
-  const platform = navigator.platform.toLowerCase();
-  if (platform.includes("win")) return "C:\\Program Files\\BOINC";
-  if (platform.includes("mac")) return "/Applications/BOINCManager.app/Contents/Resources";
-  return "/usr/bin";
-}
 
 function loadRecent() {
   try {
@@ -100,8 +93,8 @@ function removeRecent(index: number) {
 function applyRecent(entry: RecentConnection) {
   mode.value = entry.mode;
   if (entry.mode === CONNECTION_MODE.LOCAL) {
-    dataDir.value = entry.dataDir ?? defaultDataDir();
-    clientDir.value = entry.clientDir ?? defaultClientDir();
+    dataDir.value = entry.dataDir ?? defaultDataDir(currentOS);
+    clientDir.value = entry.clientDir ?? defaultClientDir(currentOS);
   } else {
     host.value = entry.host ?? "localhost";
     port.value = entry.port ?? 31416;
