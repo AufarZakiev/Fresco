@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { useManagerSettingsStore } from "../stores/managerSettings";
+import { getOS, getArch, platformAssetPattern } from "./usePlatform";
 
 const GITHUB_API_URL =
   "https://api.github.com/repos/AufarZakiev/Fresco/releases/latest";
@@ -38,31 +39,9 @@ invoke<string>("get_build_time").then((bt) => {
   buildTime.value = bt;
 });
 
-function getPlatformAssetPattern(): string {
-  const platform = navigator.platform.toLowerCase();
-  const ua = navigator.userAgent.toLowerCase();
-
-  if (platform.includes("win")) {
-    if (ua.includes("arm") || ua.includes("aarch64")) {
-      return "Windows_ARM64";
-    }
-    return "Windows_x86_64";
-  }
-  if (platform.includes("mac")) {
-    if (ua.includes("arm") || platform.includes("arm")) {
-      return "macOS_ARM64";
-    }
-    return "macOS_x86_64";
-  }
-  // Linux
-  if (ua.includes("aarch64") || ua.includes("arm64")) {
-    return "Linux_ARM64";
-  }
-  return "Linux_x86_64";
-}
-
-function matchAsset(assets: GitHubAsset[]): string {
-  const pattern = getPlatformAssetPattern();
+async function matchAsset(assets: GitHubAsset[]): Promise<string> {
+  const [os, arch] = await Promise.all([getOS(), getArch()]);
+  const pattern = platformAssetPattern(os, arch);
   const match = assets.find((a) => a.name.includes(pattern));
   return match?.browser_download_url ?? "";
 }
@@ -125,7 +104,7 @@ export async function checkForUpdates(force = false) {
       updateAvailable.value = true;
       releaseDate.value = release.published_at;
       releaseUrl.value = release.html_url;
-      assetUrl.value = matchAsset(release.assets);
+      assetUrl.value = await matchAsset(release.assets);
       dismissed.value = isDismissed(release.published_at);
     } else {
       updateAvailable.value = false;

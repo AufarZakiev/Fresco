@@ -15,6 +15,7 @@ import UpdateBanner from "./components/UpdateBanner.vue";
 import Tooltip from "./components/Tooltip.vue";
 import { useWindowState } from "./composables/useWindowState";
 import { useUpdateCheck } from "./composables/useUpdateCheck";
+import { getOS, defaultDataDir } from "./composables/usePlatform";
 import { notifyConnectionLost } from "./composables/useNotifications";
 import { useTasksStore } from "./stores/tasks";
 import { useProjectsStore } from "./stores/projects";
@@ -79,13 +80,6 @@ const { updateAvailable, dismissed, updateOnExit, downloaded, downloading, check
 
 // ── Auto-connect to local BOINC client on startup ───────────────
 
-function defaultDataDir(): string {
-  const platform = navigator.platform.toLowerCase();
-  if (platform.includes("win")) return "C:\\ProgramData\\BOINC";
-  if (platform.includes("mac")) return "/Library/Application Support/BOINC Data";
-  return "/var/lib/boinc-client";
-}
-
 function startAllPolling() {
   tasksStore.startPolling();
   projectsStore.startPolling();
@@ -99,7 +93,7 @@ function startAllPolling() {
 }
 
 async function autoConnect() {
-  const dataDir = defaultDataDir();
+  const dataDir = defaultDataDir(await getOS());
   loadingStatus.value = "Connecting to a local BOINC...";
   await connection.connectToLocal(dataDir);
 
