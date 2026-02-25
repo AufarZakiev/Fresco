@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from "vue";
+import DOMPurify from "dompurify";
 import { useNoticesStore } from "../stores/notices";
 import PageHeader from "../components/PageHeader.vue";
 import EmptyState from "../components/EmptyState.vue";
@@ -7,26 +8,10 @@ import StatusBadge from "../components/StatusBadge.vue";
 
 const store = useNoticesStore();
 
-/**
- * Simple HTML sanitizer that strips <script> tags and on* event handler attributes.
- * Also ensures all links open in a new tab.
- */
 function sanitizeHtml(html: string): string {
-  let sanitized = html;
-
-  // Remove <script> tags and their contents
-  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-
-  // Remove on* event handler attributes (onclick, onload, onerror, etc.)
-  sanitized = sanitized.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
-
-  // Remove javascript: protocol from href/src attributes
-  sanitized = sanitized.replace(/(href|src)\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*')/gi, '$1=""');
-
-  // Add target="_blank" rel="noopener" to existing anchor tags
-  sanitized = sanitized.replace(/<a\s/gi, '<a target="_blank" rel="noopener" ');
-
-  return sanitized;
+  const clean = DOMPurify.sanitize(html);
+  // Ensure all links open in a new tab without giving the target page window.opener access
+  return clean.replace(/<a\s/gi, '<a target="_blank" rel="noopener noreferrer" ');
 }
 
 function formatDate(timestamp: number): string {
