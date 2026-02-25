@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import DOMPurify from "dompurify";
 import {
   getAllProjectsList,
   lookupAccount,
@@ -307,7 +308,7 @@ function close() {
 
         <!-- Step 3: Terms of use -->
         <div v-if="step === 3" class="wizard-body">
-          <div class="terms-box" v-if="projectConfig?.terms_of_use_is_html" v-html="projectConfig?.terms_of_use"></div>
+          <div class="terms-box" v-if="projectConfig?.terms_of_use_is_html" v-html="DOMPurify.sanitize(projectConfig.terms_of_use)"></div>
           <pre v-else class="terms-box terms-text">{{ projectConfig?.terms_of_use }}</pre>
           <label class="terms-accept">
             <input v-model="termsAccepted" type="checkbox" />
