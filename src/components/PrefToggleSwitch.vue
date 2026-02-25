@@ -98,7 +98,11 @@ function onClearOverride() {
       <span
         class="toggle-switch"
         :class="{ on: modelValue }"
+        role="button"
+        tabindex="0"
         @click.prevent="emit('update:modelValue', !modelValue)"
+        @keydown.enter.prevent="emit('update:modelValue', !modelValue)"
+        @keydown.space.prevent="emit('update:modelValue', !modelValue)"
       >
         <span class="toggle-knob" />
       </span>

@@ -358,7 +358,7 @@ async function save() {
                 <div v-for="(day, i) in dayNames" :key="i" class="schedule-day">
                   <div class="schedule-day-header">
                     <label class="day-toggle">
-                      <span class="toggle-switch toggle-sm" :class="{ on: dayEnabled[i] }" @click.prevent="toggleDay(i, !dayEnabled[i])">
+                      <span class="toggle-switch toggle-sm" :class="{ on: dayEnabled[i] }" role="button" tabindex="0" @click.prevent="toggleDay(i, !dayEnabled[i])" @keydown.enter.prevent="toggleDay(i, !dayEnabled[i])" @keydown.space.prevent="toggleDay(i, !dayEnabled[i])">
                         <span class="toggle-knob" />
                       </span>
                       <span class="day-name">{{ day }}</span>
@@ -425,28 +425,28 @@ async function save() {
 
               <label class="pref-row">
                 <span>Show exit confirmation</span>
-                <span class="toggle-switch" :class="{ on: managerForm.showExitConfirmation }" @click.prevent="managerForm.showExitConfirmation = !managerForm.showExitConfirmation">
+                <span class="toggle-switch" :class="{ on: managerForm.showExitConfirmation }" role="button" tabindex="0" @click.prevent="managerForm.showExitConfirmation = !managerForm.showExitConfirmation" @keydown.enter.prevent="managerForm.showExitConfirmation = !managerForm.showExitConfirmation" @keydown.space.prevent="managerForm.showExitConfirmation = !managerForm.showExitConfirmation">
                   <span class="toggle-knob" />
                 </span>
               </label>
 
               <label class="pref-row">
                 <span>Show shutdown confirmation</span>
-                <span class="toggle-switch" :class="{ on: managerForm.showShutdownConfirmation }" @click.prevent="managerForm.showShutdownConfirmation = !managerForm.showShutdownConfirmation">
+                <span class="toggle-switch" :class="{ on: managerForm.showShutdownConfirmation }" role="button" tabindex="0" @click.prevent="managerForm.showShutdownConfirmation = !managerForm.showShutdownConfirmation" @keydown.enter.prevent="managerForm.showShutdownConfirmation = !managerForm.showShutdownConfirmation" @keydown.space.prevent="managerForm.showShutdownConfirmation = !managerForm.showShutdownConfirmation">
                   <span class="toggle-knob" />
                 </span>
               </label>
 
               <label class="pref-row">
                 <span>Minimize to tray on close</span>
-                <span class="toggle-switch" :class="{ on: managerForm.minimizeToTrayOnClose }" @click.prevent="managerForm.minimizeToTrayOnClose = !managerForm.minimizeToTrayOnClose">
+                <span class="toggle-switch" :class="{ on: managerForm.minimizeToTrayOnClose }" role="button" tabindex="0" @click.prevent="managerForm.minimizeToTrayOnClose = !managerForm.minimizeToTrayOnClose" @keydown.enter.prevent="managerForm.minimizeToTrayOnClose = !managerForm.minimizeToTrayOnClose" @keydown.space.prevent="managerForm.minimizeToTrayOnClose = !managerForm.minimizeToTrayOnClose">
                   <span class="toggle-knob" />
                 </span>
               </label>
 
               <label class="pref-row">
                 <span>Start minimized to tray</span>
-                <span class="toggle-switch" :class="{ on: managerForm.startMinimizedToTray }" @click.prevent="managerForm.startMinimizedToTray = !managerForm.startMinimizedToTray">
+                <span class="toggle-switch" :class="{ on: managerForm.startMinimizedToTray }" role="button" tabindex="0" @click.prevent="managerForm.startMinimizedToTray = !managerForm.startMinimizedToTray" @keydown.enter.prevent="managerForm.startMinimizedToTray = !managerForm.startMinimizedToTray" @keydown.space.prevent="managerForm.startMinimizedToTray = !managerForm.startMinimizedToTray">
                   <span class="toggle-knob" />
                 </span>
               </label>
