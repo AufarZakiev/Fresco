@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { onKeyStroke } from "@vueuse/core";
 import { getCcConfig, setCcConfig } from "../composables/useRpc";
 import type { CcConfig, LogFlags } from "../types/boinc";
 
@@ -23,6 +24,11 @@ const flagLabels: { key: keyof LogFlags; label: string }[] = [
   { key: "state_debug", label: "State debug" },
   { key: "statefile_debug", label: "State file debug" },
 ];
+
+onKeyStroke("Escape", () => {
+  if (!props.open) return;
+  emit("close");
+});
 
 watch(
   () => props.open,
@@ -65,10 +71,10 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="logflags-dialog">
+      <div class="logflags-dialog" role="dialog" aria-modal="true" aria-labelledby="log-flags-dialog-title">
         <div class="logflags-header">
-          <h3>Diagnostic Log Flags</h3>
-          <button class="close-btn" @click="emit('close')">&times;</button>
+          <h3 id="log-flags-dialog-title">Diagnostic Log Flags</h3>
+          <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
         </div>
 
         <div v-if="loading" class="logflags-loading">Loading configuration...</div>

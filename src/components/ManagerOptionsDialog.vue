@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { onKeyStroke } from "@vueuse/core";
 import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { useManagerSettingsStore } from "../stores/managerSettings";
 
@@ -9,6 +10,11 @@ const emit = defineEmits<{ close: [] }>();
 const store = useManagerSettingsStore();
 const form = ref({ ...store.settings });
 const launchAtLogin = ref(false);
+
+onKeyStroke("Escape", () => {
+  if (!props.open) return;
+  emit("close");
+});
 
 watch(
   () => props.open,
@@ -34,10 +40,10 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="options-dialog">
+      <div class="options-dialog" role="dialog" aria-modal="true" aria-labelledby="manager-options-dialog-title">
         <div class="options-header">
-          <h3>Manager Options</h3>
-          <button class="close-btn" @click="emit('close')">&times;</button>
+          <h3 id="manager-options-dialog-title">Manager Options</h3>
+          <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
         </div>
 
         <div class="options-body">

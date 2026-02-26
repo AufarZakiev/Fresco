@@ -91,4 +91,38 @@ describe("ConfirmDialog", () => {
 
     expect(wrapper.emitted("cancel")).toBeTruthy();
   });
+
+  it("emits cancel on Escape key", async () => {
+    const wrapper = mount(ConfirmDialog, {
+      props: {
+        open: false,
+        title: "Test",
+        message: "Confirm?",
+      },
+    });
+
+    await wrapper.setProps({ open: true });
+    await wrapper.vm.$nextTick();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted("cancel")).toBeTruthy();
+  });
+
+  it("has correct ARIA attributes when open", () => {
+    mount(ConfirmDialog, {
+      props: {
+        open: true,
+        title: "Delete Item",
+        message: "Are you sure?",
+      },
+    });
+    const dialog = document.body.querySelector("[role='dialog']");
+    expect(dialog).not.toBeNull();
+    expect(dialog!.getAttribute("aria-modal")).toBe("true");
+    expect(dialog!.getAttribute("aria-labelledby")).toBe("confirm-dialog-title");
+    const title = document.body.querySelector("#confirm-dialog-title");
+    expect(title).not.toBeNull();
+    expect(title!.textContent).toContain("Delete Item");
+  });
 });

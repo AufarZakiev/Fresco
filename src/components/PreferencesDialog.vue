@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { onKeyStroke } from "@vueuse/core";
 import { usePreferencesStore } from "../stores/preferences";
 import { useManagerSettingsStore } from "../stores/managerSettings";
 import type { GlobalPreferences } from "../types/boinc";
@@ -34,6 +35,12 @@ const hasChanges = computed(() => {
   const prefsChanged = form.value && JSON.stringify(form.value) !== originalSnapshot.value;
   const managerChanged = JSON.stringify(managerForm.value) !== JSON.stringify(managerStore.settings);
   return prefsChanged || managerChanged;
+});
+
+onKeyStroke("Escape", () => {
+  if (!props.open) return;
+  if (showProxy.value || showExclusiveApps.value) return;
+  emit("close");
 });
 
 watch(
@@ -132,10 +139,10 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay">
-      <div class="prefs-dialog">
+      <div class="prefs-dialog" role="dialog" aria-modal="true" aria-labelledby="preferences-dialog-title">
         <div class="prefs-header">
-          <h3>Preferences</h3>
-          <button class="close-btn" @click="emit('close')">&times;</button>
+          <h3 id="preferences-dialog-title">Preferences</h3>
+          <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
         </div>
 
         <div v-if="store.loading && !form" class="prefs-loading">Loading preferences...</div>

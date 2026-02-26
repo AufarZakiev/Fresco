@@ -1,5 +1,7 @@
 <script setup lang="ts">
-defineProps<{
+import { onKeyStroke } from "@vueuse/core";
+
+const props = defineProps<{
   open: boolean;
   title: string;
   message: string;
@@ -10,13 +12,18 @@ const emit = defineEmits<{
   confirm: [];
   cancel: [];
 }>();
+
+onKeyStroke("Escape", () => {
+  if (!props.open) return;
+  emit("cancel");
+});
 </script>
 
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('cancel')">
-      <div class="dialog">
-        <h3>{{ title }}</h3>
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+        <h3 id="confirm-dialog-title">{{ title }}</h3>
         <p>{{ message }}</p>
         <div class="dialog-actions">
           <button class="btn" @click="emit('cancel')">Cancel</button>

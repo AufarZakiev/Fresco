@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { onKeyStroke } from "@vueuse/core";
 import DOMPurify from "dompurify";
 import {
   getAllProjectsList,
@@ -21,7 +22,7 @@ import {
   ATTACH_POLL_DELAY_MS,
 } from "../constants/boinc";
 
-defineProps<{ open: boolean }>();
+const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
 const projects = useProjectsStore();
@@ -239,14 +240,19 @@ function close() {
   reset();
   emit("close");
 }
+
+onKeyStroke("Escape", () => {
+  if (!props.open) return;
+  close();
+});
 </script>
 
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="close">
-      <div class="wizard">
+      <div class="wizard" role="dialog" aria-modal="true" aria-labelledby="project-attach-wizard-title">
         <div class="wizard-header">
-          <h3>
+          <h3 id="project-attach-wizard-title">
             {{ step === 1 ? "Add Project"
              : step === 2 ? "Loading..."
              : step === 3 ? "Terms of Use"
@@ -254,7 +260,7 @@ function close() {
              : step === 5 ? "Attaching..."
              : "Done" }}
           </h3>
-          <button class="close-btn" @click="close">&times;</button>
+          <button class="close-btn" aria-label="Close" @click="close">&times;</button>
         </div>
 
         <!-- Step 1: Choose project -->

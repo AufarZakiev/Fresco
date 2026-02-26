@@ -147,4 +147,41 @@ describe("ItemPropertiesDialog", () => {
     const text = document.body.textContent ?? "";
     expect(text).toMatch(/Attached via account manager\s*Yes/);
   });
+
+  it("emits close on Escape key", async () => {
+    const task = makeTask();
+    const wrapper = mount(ItemPropertiesDialog, {
+      props: { open: false, type: "task", task },
+    });
+
+    await wrapper.setProps({ open: true });
+    await wrapper.vm.$nextTick();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted("close")).toBeTruthy();
+  });
+
+  it("has correct ARIA attributes when open", () => {
+    const task = makeTask();
+    mount(ItemPropertiesDialog, {
+      props: { open: true, type: "task", task },
+    });
+    const dialog = document.body.querySelector("[role='dialog']");
+    expect(dialog).not.toBeNull();
+    expect(dialog!.getAttribute("aria-modal")).toBe("true");
+    expect(dialog!.getAttribute("aria-labelledby")).toBe("item-properties-dialog-title");
+    const title = document.body.querySelector("#item-properties-dialog-title");
+    expect(title).not.toBeNull();
+  });
+
+  it("close button has aria-label", () => {
+    const task = makeTask();
+    mount(ItemPropertiesDialog, {
+      props: { open: true, type: "task", task },
+    });
+    const closeBtn = document.body.querySelector(".close-btn");
+    expect(closeBtn).not.toBeNull();
+    expect(closeBtn!.getAttribute("aria-label")).toBe("Close");
+  });
 });

@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { onKeyStroke } from "@vueuse/core";
 import { connect, connectLocal } from "../composables/useRpc";
 
-defineProps<{ open: boolean }>();
+const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
+
+onKeyStroke("Escape", () => {
+  if (!props.open) return;
+  emit("close");
+});
 
 const hostname = ref("localhost");
 const port = ref(31416);
@@ -41,10 +47,10 @@ async function doConnectLocal() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="dialog">
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="select-computer-dialog-title">
         <div class="dialog-header">
-          <h3>Select Computer</h3>
-          <button class="close-btn" @click="emit('close')">&times;</button>
+          <h3 id="select-computer-dialog-title">Select Computer</h3>
+          <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
         </div>
 
         <div class="dialog-body">
