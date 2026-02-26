@@ -12,7 +12,7 @@ import ContextMenu from "../components/ContextMenu.vue";
 import type { ContextMenuItem } from "../components/ContextMenu.vue";
 import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import Tooltip from "../components/Tooltip.vue";
-import { useKeyboard } from "../composables/useKeyboard";
+import { onKeyStroke } from "@vueuse/core";
 import { useColumnState } from "../composables/useColumnState";
 import { useToastStore } from "../stores/toast";
 
@@ -215,12 +215,26 @@ async function doAbort() {
   }
 }
 
-useKeyboard({
-  onSelectAll: () => handleSelectAll(true),
-  onDeselect: () => { selectedKeys.value = new Set(); },
-  onDelete: () => {
-    if (hasSelection.value) confirmAbort.value = true;
-  },
+// Keyboard shortcuts (ignore when typing in form fields)
+function isTypingInInput(e: KeyboardEvent): boolean {
+  const tag = (e.target as HTMLElement)?.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+}
+
+onKeyStroke("a", (e) => {
+  if (isTypingInInput(e) || !(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  handleSelectAll(true);
+});
+
+onKeyStroke("Escape", (e) => {
+  if (isTypingInInput(e)) return;
+  selectedKeys.value = new Set();
+});
+
+onKeyStroke("Delete", (e) => {
+  if (isTypingInInput(e)) return;
+  if (hasSelection.value) confirmAbort.value = true;
 });
 
 function isColVisible(key: string): boolean {
