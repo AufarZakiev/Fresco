@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { useRoute, useRouter } from "vue-router";
 import { useConnectionStore } from "./stores/connection";
@@ -36,6 +37,7 @@ import {
   startBoincClient,
 } from "./composables/useRpc";
 
+const { t } = useI18n();
 const connection = useConnectionStore();
 const route = useRoute();
 const router = useRouter();
@@ -55,19 +57,19 @@ const showSelectComputer = ref(false);
 const prefsInitialTab = ref<"computing" | "manager">("computing");
 const showExitConfirm = ref(false);
 const initializing = ref(true);
-const loadingStatus = ref("Connecting to a local BOINC...");
+const loadingStatus = ref(t("app.loading.connectingLocal"));
 const sidebarOpen = ref(false);
-const collapsedGroups = ref<string[]>(["Advanced"]);
+const collapsedGroups = ref<string[]>(["advanced"]);
 
-function isCollapsed(label: string): boolean {
-  return collapsedGroups.value.includes(label);
+function isCollapsed(key: string): boolean {
+  return collapsedGroups.value.includes(key);
 }
 
-function toggleCollapsed(label: string) {
-  if (isCollapsed(label)) {
-    collapsedGroups.value = collapsedGroups.value.filter((l) => l !== label);
+function toggleCollapsed(key: string) {
+  if (isCollapsed(key)) {
+    collapsedGroups.value = collapsedGroups.value.filter((l) => l !== key);
   } else {
-    collapsedGroups.value = [...collapsedGroups.value, label];
+    collapsedGroups.value = [...collapsedGroups.value, key];
   }
 }
 const hasSidebar = computed(
@@ -94,15 +96,15 @@ function startAllPolling() {
 
 async function autoConnect() {
   const dataDir = defaultDataDir(await getOS());
-  loadingStatus.value = "Connecting to a local BOINC...";
+  loadingStatus.value = t("app.loading.connectingLocal");
   await connection.connectToLocal(dataDir);
 
   // If connection failed with a non-auth error, try auto-starting BOINC
   if (connection.state !== CONNECTION_STATE.CONNECTED && connection.state !== CONNECTION_STATE.AUTH_ERROR) {
-    loadingStatus.value = "Starting BOINC, this may take a while...";
+    loadingStatus.value = t("app.loading.startingBoinc");
     try {
       await startBoincClient(dataDir);
-      loadingStatus.value = "BOINC started, connecting...";
+      loadingStatus.value = t("app.loading.boincStarted");
       await connection.connectToLocal(dataDir);
     } catch {
       // BOINC not installed or failed to start — fall back to ConnectView
@@ -204,32 +206,35 @@ async function doExit(doShutdownClient: boolean) {
   }
 }
 
-const navGroups = [
+const navGroups = computed(() => [
   {
-    label: "Computing",
+    key: "computing",
+    label: t("sidebar.computing"),
     items: [
-      { path: "/tasks", label: "Tasks", icon: "cpu" },
-      { path: "/projects", label: "Projects", icon: "folder" },
-      { path: "/notices", label: "Notices", icon: "bell" },
-      { path: "/statistics", label: "Statistics", icon: "chart" },
+      { path: "/tasks", label: t("sidebar.tasks"), icon: "cpu" },
+      { path: "/projects", label: t("sidebar.projects"), icon: "folder" },
+      { path: "/notices", label: t("sidebar.notices"), icon: "bell" },
+      { path: "/statistics", label: t("sidebar.statistics"), icon: "chart" },
     ],
   },
   {
-    label: "System",
+    key: "system",
+    label: t("sidebar.system"),
     items: [
-      { path: "/disk", label: "Disk Usage", icon: "disk" },
-      { path: "/host", label: "Host Info", icon: "monitor" },
+      { path: "/disk", label: t("sidebar.diskUsage"), icon: "disk" },
+      { path: "/host", label: t("sidebar.hostInfo"), icon: "monitor" },
     ],
   },
   {
-    label: "Advanced",
+    key: "advanced",
+    label: t("sidebar.advanced"),
     collapsible: true,
     items: [
-      { path: "/transfers", label: "Transfers", icon: "transfer" },
-      { path: "/event-log", label: "Event Log", icon: "message" },
+      { path: "/transfers", label: t("sidebar.transfers"), icon: "transfer" },
+      { path: "/event-log", label: t("sidebar.eventLog"), icon: "message" },
     ],
   },
-];
+]);
 
 function isActive(path: string): boolean {
   return route.path === path;
@@ -239,9 +244,9 @@ function isActive(path: string): boolean {
 watch(
   () => route.path,
   (path) => {
-    for (const group of navGroups) {
+    for (const group of navGroups.value) {
       if (group.collapsible && group.items.some((i) => i.path === path)) {
-        collapsedGroups.value = collapsedGroups.value.filter((l) => l !== group.label);
+        collapsedGroups.value = collapsedGroups.value.filter((l) => l !== group.key);
       }
     }
   },
@@ -278,17 +283,17 @@ watch(
 <template>
   <div v-if="initializing" class="loading-screen">
     <div class="loading-content">
-      <span class="loading-logo">Fresco</span>
+      <span class="loading-logo">{{ $t('app.loading.logo') }}</span>
       <div class="loading-spinner"></div>
       <span class="loading-text">{{ loadingStatus }}</span>
-      <button class="btn loading-cancel" @click="cancelAutoConnect">Cancel</button>
+      <button class="btn loading-cancel" @click="cancelAutoConnect">{{ $t('app.loading.cancel') }}</button>
     </div>
   </div>
   <div v-else class="app" :class="{ 'has-sidebar': hasSidebar }">
     <button
       v-if="hasSidebar"
       class="hamburger-btn"
-      aria-label="Toggle sidebar"
+      :aria-label="$t('sidebar.toggleSidebar')"
       @click="sidebarOpen = !sidebarOpen"
     >
       <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
@@ -302,18 +307,18 @@ watch(
     ></div>
     <aside v-if="hasSidebar" class="sidebar" :class="{ open: sidebarOpen }">
       <nav class="sidebar-nav">
-        <div v-for="group in navGroups" :key="group.label" class="nav-group">
+        <div v-for="group in navGroups" :key="group.key" class="nav-group">
           <span
             class="nav-group-label"
             :class="{ clickable: group.collapsible }"
-            @click="group.collapsible && toggleCollapsed(group.label)"
+            @click="group.collapsible && toggleCollapsed(group.key)"
           >
-            <span v-if="group.collapsible" class="nav-group-chevron" :class="{ collapsed: isCollapsed(group.label) }">&#9662;</span>
+            <span v-if="group.collapsible" class="nav-group-chevron" :class="{ collapsed: isCollapsed(group.key) }">&#9662;</span>
             {{ group.label }}
           </span>
           <router-link
             v-for="item in group.items"
-            v-show="!group.collapsible || !isCollapsed(group.label)"
+            v-show="!group.collapsible || !isCollapsed(group.key)"
             :key="item.path"
             :to="item.path"
             class="nav-item"
@@ -356,14 +361,14 @@ watch(
       <div class="sidebar-footer">
         <ActivityControls />
         <div class="sidebar-actions">
-          <Tooltip text="Select Computer">
+          <Tooltip :text="$t('sidebar.selectComputer')">
             <button class="sidebar-action-btn" @click="showSelectComputer = true">
               <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
                 <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm11 1H6v3h8V6zM6 15a1 1 0 100 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
               </svg>
             </button>
           </Tooltip>
-          <Tooltip text="Preferences">
+          <Tooltip :text="$t('sidebar.preferences')">
             <button class="sidebar-action-btn" @click="prefsInitialTab = 'computing'; showPreferences = true">
               <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
                 <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />

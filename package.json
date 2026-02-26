@@ -14,6 +14,7 @@
     "lint": "oxlint src/",
     "lint:rust": "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings",
     "lint:all": "pnpm lint && pnpm lint:rust",
+    "i18n:check": "npx tsx scripts/check-i18n.ts",
     "format": "prettier --write src/",
     "build:dev": "bash scripts/build-dev.sh"
   },
@@ -27,6 +28,7 @@
     "dompurify": "^3.3.1",
     "pinia": "^3.0.4",
     "vue": "^3.5.13",
+    "vue-i18n": "^11.2.8",
     "vue-router": "^5.0.2"
   },
   "devDependencies": {

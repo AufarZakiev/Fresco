@@ -1,29 +1,31 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { onKeyStroke } from "@vueuse/core";
+import { useI18n } from "vue-i18n";
 import { getCcConfig, setCcConfig } from "../composables/useRpc";
 import type { CcConfig, LogFlags } from "../types/boinc";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
+const { t } = useI18n();
 const loading = ref(false);
 const saving = ref(false);
 const error = ref("");
 const config = ref<CcConfig | null>(null);
 
-const flagLabels: { key: keyof LogFlags; label: string }[] = [
-  { key: "task", label: "Task" },
-  { key: "file_xfer", label: "File transfers" },
-  { key: "sched_ops", label: "Scheduler operations" },
-  { key: "cpu_sched", label: "CPU scheduling" },
-  { key: "network_xfer", label: "Network transfers" },
-  { key: "mem_usage", label: "Memory usage" },
-  { key: "disk_usage", label: "Disk usage" },
-  { key: "http_debug", label: "HTTP debug" },
-  { key: "state_debug", label: "State debug" },
-  { key: "statefile_debug", label: "State file debug" },
-];
+const flagLabels = computed<{ key: keyof LogFlags; label: string }[]>(() => [
+  { key: "task", label: t("logFlags.task") },
+  { key: "file_xfer", label: t("logFlags.fileTransfers") },
+  { key: "sched_ops", label: t("logFlags.schedulerOps") },
+  { key: "cpu_sched", label: t("logFlags.cpuScheduling") },
+  { key: "network_xfer", label: t("logFlags.networkTransfers") },
+  { key: "mem_usage", label: t("logFlags.memoryUsage") },
+  { key: "disk_usage", label: t("logFlags.diskUsage") },
+  { key: "http_debug", label: t("logFlags.httpDebug") },
+  { key: "state_debug", label: t("logFlags.stateDebug") },
+  { key: "statefile_debug", label: t("logFlags.stateFileDebug") },
+]);
 
 onKeyStroke("Escape", () => {
   if (!props.open) return;
@@ -73,11 +75,11 @@ async function save() {
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
       <div class="logflags-dialog" role="dialog" aria-modal="true" aria-labelledby="log-flags-dialog-title">
         <div class="logflags-header">
-          <h3 id="log-flags-dialog-title">Diagnostic Log Flags</h3>
+          <h3 id="log-flags-dialog-title">{{ $t('logFlags.title') }}</h3>
           <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
         </div>
 
-        <div v-if="loading" class="logflags-loading">Loading configuration...</div>
+        <div v-if="loading" class="logflags-loading">{{ $t('logFlags.loading') }}</div>
 
         <template v-else-if="config">
           <div class="logflags-body">
@@ -96,7 +98,7 @@ async function save() {
 
             <div class="logflags-section">
               <label class="pref-row">
-                <span>Max file transfers</span>
+                <span>{{ $t('logFlags.maxFileTransfers') }}</span>
                 <input
                   v-model.number="config.max_file_xfers"
                   type="number"
@@ -105,7 +107,7 @@ async function save() {
                 />
               </label>
               <label class="pref-row">
-                <span>Max CPUs</span>
+                <span>{{ $t('logFlags.maxCpus') }}</span>
                 <input
                   v-model.number="config.max_ncpus"
                   type="number"
@@ -114,7 +116,7 @@ async function save() {
                 />
               </label>
               <label class="pref-row">
-                <span>Report results immediately</span>
+                <span>{{ $t('logFlags.reportImmediately') }}</span>
                 <input v-model="config.report_results_immediately" type="checkbox" />
               </label>
             </div>
@@ -123,9 +125,9 @@ async function save() {
           <div v-if="error" class="logflags-error">{{ error }}</div>
 
           <div class="logflags-footer">
-            <button class="btn" @click="emit('close')">Cancel</button>
+            <button class="btn" @click="emit('close')">{{ $t('logFlags.cancel') }}</button>
             <button class="btn btn-primary" :disabled="saving" @click="save">
-              {{ saving ? "Saving..." : "Save" }}
+              {{ saving ? $t('logFlags.saving') : $t('logFlags.save') }}
             </button>
           </div>
         </template>

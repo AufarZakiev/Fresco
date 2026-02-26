@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { onKeyStroke } from "@vueuse/core";
+import { useI18n } from "vue-i18n";
 import DOMPurify from "dompurify";
 import {
   getAllProjectsList,
@@ -25,6 +26,7 @@ import {
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
+const { t } = useI18n();
 const projects = useProjectsStore();
 
 const step = ref(1);
@@ -133,7 +135,7 @@ async function fetchConfig() {
 
 async function doAttach() {
   if (!email.value || !password.value) {
-    error.value = "Please enter email and password";
+    error.value = t("projectAttach.enterCredentials");
     return;
   }
 
@@ -161,7 +163,7 @@ async function doAttach() {
       }
 
       if (!accountResult || accountResult.error_num !== 0) {
-        error.value = accountResult?.error_msg || "Account creation failed";
+        error.value = accountResult?.error_msg || t("projectAttach.accountCreationFailed");
         step.value = 4;
         loading.value = false;
         return;
@@ -183,7 +185,7 @@ async function doAttach() {
       }
 
       if (!accountResult || accountResult.error_num !== 0) {
-        error.value = accountResult?.error_msg || "Account lookup failed";
+        error.value = accountResult?.error_msg || t("projectAttach.accountLookupFailed");
         step.value = 4;
         loading.value = false;
         return;
@@ -204,11 +206,11 @@ async function doAttach() {
     }
 
     if (attachResult && attachResult.error_num === 0) {
-      resultMessage.value = "Successfully attached to project!";
+      resultMessage.value = t("projectAttach.success");
       step.value = 6;
       projects.fetchProjects();
     } else {
-      error.value = attachResult?.messages?.join(", ") || "Attach failed";
+      error.value = attachResult?.messages?.join(", ") || t("projectAttach.attachFailed");
       step.value = 4;
     }
   } catch (e) {
@@ -253,12 +255,12 @@ onKeyStroke("Escape", () => {
       <div class="wizard" role="dialog" aria-modal="true" aria-labelledby="project-attach-wizard-title">
         <div class="wizard-header">
           <h3 id="project-attach-wizard-title">
-            {{ step === 1 ? "Add Project"
-             : step === 2 ? "Loading..."
-             : step === 3 ? "Terms of Use"
-             : step === 4 ? "Account"
-             : step === 5 ? "Attaching..."
-             : "Done" }}
+            {{ step === 1 ? $t('projectAttach.title')
+             : step === 2 ? $t('projectAttach.loading')
+             : step === 3 ? $t('projectAttach.termsOfUse')
+             : step === 4 ? $t('projectAttach.account')
+             : step === 5 ? $t('projectAttach.attaching')
+             : $t('projectAttach.done') }}
           </h3>
           <button class="close-btn" aria-label="Close" @click="close">&times;</button>
         </div>
@@ -269,11 +271,11 @@ onKeyStroke("Escape", () => {
             v-model="search"
             type="text"
             class="search-input"
-            placeholder="Search projects..."
+            :placeholder="$t('projectAttach.searchPlaceholder')"
             @focus="loadProjects"
           />
 
-          <div v-if="loading" class="wizard-loading">Loading project list...</div>
+          <div v-if="loading" class="wizard-loading">{{ $t('projectAttach.loadingList') }}</div>
 
           <div v-else class="project-list">
             <div
@@ -287,12 +289,12 @@ onKeyStroke("Escape", () => {
               <div class="project-desc">{{ p.description }}</div>
             </div>
             <div v-if="!loading && filteredProjects.length === 0" class="no-results">
-              No projects found
+              {{ $t('projectAttach.noResults') }}
             </div>
           </div>
 
           <div class="manual-url">
-            <span class="manual-label">Or enter project URL:</span>
+            <span class="manual-label">{{ $t('projectAttach.orEnterUrl') }}</span>
             <div class="manual-row">
               <input
                 v-model="manualUrl"
@@ -300,7 +302,7 @@ onKeyStroke("Escape", () => {
                 placeholder="https://..."
               />
               <button class="btn btn-primary" :disabled="!manualUrl.trim()" @click="goToStep2Manual">
-                Next
+                {{ $t('projectAttach.next') }}
               </button>
             </div>
           </div>
@@ -309,7 +311,7 @@ onKeyStroke("Escape", () => {
         <!-- Step 2: Loading project config -->
         <div v-if="step === 2" class="wizard-body wizard-center">
           <div class="spinner"></div>
-          <p>Fetching project configuration...</p>
+          <p>{{ $t('projectAttach.fetchingConfig') }}</p>
         </div>
 
         <!-- Step 3: Terms of use -->
@@ -318,11 +320,11 @@ onKeyStroke("Escape", () => {
           <pre v-else class="terms-box terms-text">{{ projectConfig?.terms_of_use }}</pre>
           <label class="terms-accept">
             <input v-model="termsAccepted" type="checkbox" />
-            <span>I accept the terms of use</span>
+            <span>{{ $t('projectAttach.acceptTerms') }}</span>
           </label>
           <div class="wizard-actions">
-            <button class="btn" @click="step = 1">Back</button>
-            <button class="btn btn-primary" :disabled="!termsAccepted" @click="step = 4">Continue</button>
+            <button class="btn" @click="step = 1">{{ $t('projectAttach.back') }}</button>
+            <button class="btn btn-primary" :disabled="!termsAccepted" @click="step = 4">{{ $t('projectAttach.continue') }}</button>
           </div>
         </div>
 
@@ -333,35 +335,35 @@ onKeyStroke("Escape", () => {
           </div>
 
           <div v-if="!projectConfig?.account_creation_disabled" class="auth-tabs">
-            <button class="auth-tab" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">Login</button>
-            <button class="auth-tab" :class="{ active: authMode === 'create' }" @click="authMode = 'create'">Create Account</button>
+            <button class="auth-tab" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">{{ $t('projectAttach.login') }}</button>
+            <button class="auth-tab" :class="{ active: authMode === 'create' }" @click="authMode = 'create'">{{ $t('projectAttach.createAccount') }}</button>
           </div>
 
           <div v-if="error" class="wizard-error">{{ error }}</div>
 
           <label class="field">
-            <span>Email</span>
+            <span>{{ $t('projectAttach.email') }}</span>
             <input v-model="email" type="email" placeholder="you@example.com" />
           </label>
           <label class="field">
-            <span>Password</span>
+            <span>{{ $t('projectAttach.password') }}</span>
             <input v-model="password" type="password" />
           </label>
           <template v-if="authMode === 'create'">
             <label class="field">
-              <span>{{ projectConfig?.uses_username ? "Username" : "Name" }}</span>
+              <span>{{ projectConfig?.uses_username ? $t('projectAttach.username') : $t('projectAttach.name') }}</span>
               <input v-model="userName" type="text" />
             </label>
             <label class="field">
-              <span>Team name (optional)</span>
+              <span>{{ $t('projectAttach.teamOptional') }}</span>
               <input v-model="teamName" type="text" />
             </label>
           </template>
 
           <div class="wizard-actions">
-            <button class="btn" @click="step = projectConfig?.terms_of_use ? 3 : 1">Back</button>
+            <button class="btn" @click="step = projectConfig?.terms_of_use ? 3 : 1">{{ $t('projectAttach.back') }}</button>
             <button class="btn btn-primary" @click="doAttach">
-              {{ authMode === 'create' ? 'Create &amp; Attach' : 'Attach' }}
+              {{ authMode === 'create' ? $t('projectAttach.createAndAttach') : $t('projectAttach.attach') }}
             </button>
           </div>
         </div>
@@ -369,14 +371,14 @@ onKeyStroke("Escape", () => {
         <!-- Step 5: Progress -->
         <div v-if="step === 5" class="wizard-body wizard-center">
           <div class="spinner"></div>
-          <p>Attaching to project...</p>
+          <p>{{ $t('projectAttach.attachingToProject') }}</p>
         </div>
 
         <!-- Step 6: Success -->
         <div v-if="step === 6" class="wizard-body wizard-center">
           <div class="success-icon">&#10003;</div>
           <p>{{ resultMessage }}</p>
-          <button class="btn btn-primary" @click="close">Done</button>
+          <button class="btn btn-primary" @click="close">{{ $t('projectAttach.done') }}</button>
         </div>
       </div>
     </div>

@@ -26,9 +26,9 @@ onKeyStroke("Escape", () => {
         <h3 id="confirm-dialog-title">{{ title }}</h3>
         <p>{{ message }}</p>
         <div class="dialog-actions">
-          <button class="btn" @click="emit('cancel')">Cancel</button>
+          <button class="btn" @click="emit('cancel')">{{ $t('confirm.cancel') }}</button>
           <button class="btn btn-danger-fill" @click="emit('confirm')">
-            {{ confirmLabel ?? "Confirm" }}
+            {{ confirmLabel ?? $t('confirm.confirm') }}
           </button>
         </div>
       </div>

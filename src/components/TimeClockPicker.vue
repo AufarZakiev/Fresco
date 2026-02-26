@@ -256,10 +256,10 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
 
           <!-- Actions -->
           <div class="clock-actions">
-            <button type="button" class="action-btn" @click="clear">Clear</button>
+            <button type="button" class="action-btn" @click="clear">{{ $t('timePicker.clear') }}</button>
             <div style="flex:1" />
-            <button type="button" class="action-btn" @click="close">Cancel</button>
-            <button type="button" class="action-btn primary" @click="confirmAndClose">OK</button>
+            <button type="button" class="action-btn" @click="close">{{ $t('timePicker.cancel') }}</button>
+            <button type="button" class="action-btn primary" @click="confirmAndClose">{{ $t('timePicker.ok') }}</button>
           </div>
         </div>
       </div>

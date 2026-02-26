@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
+import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { useUpdateCheck, startBackgroundDownload } from "../composables/useUpdateCheck";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
+const { t } = useI18n();
 const updating = ref(false);
 const updateError = ref("");
 const {
@@ -37,7 +39,7 @@ watch(
 );
 
 function formatBuildTime(bt: string): string {
-  if (!bt || bt === "dev") return "Development build";
+  if (!bt || bt === "dev") return t("about.devBuild");
   try {
     return new Date(bt).toLocaleString(undefined, {
       year: "numeric",
@@ -68,7 +70,7 @@ function formatDate(iso: string): string {
 
 async function updateNow() {
   if (!assetUrl.value) {
-    updateError.value = "No download URL available for your platform";
+    updateError.value = t("about.noDownloadUrl");
     return;
   }
   updating.value = true;
@@ -113,12 +115,12 @@ async function openGitHub() {
         <div class="about-logo">
           <img src="/icon.png" alt="Fresco" width="64" height="64" />
         </div>
-        <h3 id="about-dialog-title">Fresco</h3>
-        <p class="build-time">Built: {{ formatBuildTime(buildTime) }}</p>
+        <h3 id="about-dialog-title">{{ $t('about.title') }}</h3>
+        <p class="build-time">{{ $t('about.built', { time: formatBuildTime(buildTime) }) }}</p>
         <p class="description">
-          A modern alternative to the official BOINC Manager, built with Tauri.
+          {{ $t('about.description') }}
         </p>
-        <button class="link-btn" @click="openGitHub">GitHub</button>
+        <button class="link-btn" @click="openGitHub">{{ $t('about.github') }}</button>
 
         <div class="update-section">
           <button
@@ -127,12 +129,12 @@ async function openGitHub() {
             :disabled="checking"
             @click="checkForUpdates(true)"
           >
-            {{ checking ? "Checking..." : "Check for Updates" }}
+            {{ checking ? $t('about.checking') : $t('about.checkForUpdates') }}
           </button>
 
           <template v-if="updateAvailable">
             <p class="update-available">
-              Update available (released {{ formatDate(releaseDate) }})
+              {{ $t('about.updateAvailable', { date: formatDate(releaseDate) }) }}
             </p>
             <p v-if="updateError" class="update-error">{{ updateError }}</p>
             <div class="update-actions">
@@ -141,25 +143,25 @@ async function openGitHub() {
                 :disabled="updating || !assetUrl"
                 @click="updateNow"
               >
-                {{ updating ? "Updating..." : "Update now" }}
+                {{ updating ? $t('about.updating') : $t('about.updateNow') }}
               </button>
               <button class="btn" :disabled="updating" @click="setUpdateOnExit">
-                Update on exit
+                {{ $t('about.updateOnExit') }}
               </button>
               <button class="btn" :disabled="updating" @click="dismissUpdate">
-                Remind me later
+                {{ $t('about.remindLater') }}
               </button>
             </div>
           </template>
 
           <p v-else-if="buildTime && buildTime !== 'dev' && !checking && !checkError" class="up-to-date">
-            You're up to date
+            {{ $t('about.upToDate') }}
           </p>
           <p v-if="checkError" class="update-error">{{ checkError }}</p>
         </div>
 
         <div class="about-footer">
-          <button class="btn" @click="emit('close')">Close</button>
+          <button class="btn" @click="emit('close')">{{ $t('about.close') }}</button>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useProjectsStore } from "../stores/projects";
 import type { Project, SortDir } from "../types/boinc";
 import { SORT_DIR } from "../types/boinc";
@@ -20,6 +21,7 @@ import { onKeyStroke } from "@vueuse/core";
 import { useColumnState } from "../composables/useColumnState";
 import { useToastStore } from "../stores/toast";
 
+const { t } = useI18n();
 const store = useProjectsStore();
 const toast = useToastStore();
 const actionBusy = ref(false);
@@ -48,18 +50,18 @@ const ctxOpen = ref(false);
 const ctxX = ref(0);
 const ctxY = ref(0);
 
-const allColumns: DataTableColumn[] = [
-  { key: "project", label: "Project", sortable: true },
-  { key: "account", label: "Account", sortable: true },
-  { key: "team", label: "Team", sortable: true },
-  { key: "totalCredit", label: "Total Credit", sortable: true, align: "right" },
-  { key: "avgCredit", label: "Avg Credit", sortable: true, align: "right" },
-  { key: "status", label: "Status", sortable: true },
-  { key: "source", label: "Source", sortable: true },
-];
+const allColumns = computed<DataTableColumn[]>(() => [
+  { key: "project", label: t("projects.col.project"), sortable: true },
+  { key: "account", label: t("projects.col.account"), sortable: true },
+  { key: "team", label: t("projects.col.team"), sortable: true },
+  { key: "totalCredit", label: t("projects.col.totalCredit"), sortable: true, align: "right" },
+  { key: "avgCredit", label: t("projects.col.avgCredit"), sortable: true, align: "right" },
+  { key: "status", label: t("projects.col.status"), sortable: true },
+  { key: "source", label: t("projects.col.source"), sortable: true },
+]);
 
 const columns = computed(() =>
-  allColumns.map((c) => ({ ...c, visible: visibleKeys.value.includes(c.key) })),
+  allColumns.value.map((c) => ({ ...c, visible: visibleKeys.value.includes(c.key) })),
 );
 
 function formatCredit(credit: number): string {
@@ -67,9 +69,9 @@ function formatCredit(credit: number): string {
 }
 
 function projectStatus(project: Project): string {
-  if (project.suspended_via_gui) return "Suspended";
-  if (project.dont_request_more_work) return "No new tasks";
-  return "Active";
+  if (project.suspended_via_gui) return t("projects.status.suspended");
+  if (project.dont_request_more_work) return t("projects.status.noNewTasks");
+  return t("projects.status.active");
 }
 
 function statusVariant(status: string): "default" | "success" | "warning" | "danger" | "info" {
@@ -92,7 +94,7 @@ function getSortValue(project: Project, key: string): number | string {
     case "team": return project.team_name;
     case "totalCredit": return project.user_total_credit;
     case "avgCredit": return project.user_expavg_credit;
-    case "source": return project.attached_via_acct_mgr ? "Manager" : "User";
+    case "source": return project.attached_via_acct_mgr ? t("projects.source.manager") : t("projects.source.user");
     case "status": return projectStatus(project);
     default: return 0;
   }
@@ -176,35 +178,35 @@ function handleRowContext(event: MouseEvent, _project: Project, _index: number) 
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
   const items: ContextMenuItem[] = [];
   const p = singleSelected.value;
-  items.push({ label: "Update", action: "update" });
+  items.push({ label: t("projects.context.update"), action: "update" });
   items.push({
-    label: p?.suspended_via_gui ? "Resume" : "Suspend",
+    label: p?.suspended_via_gui ? t("projects.drawer.resume") : t("projects.drawer.suspend"),
     action: "suspend-resume",
   });
   items.push({
-    label: p?.dont_request_more_work ? "Allow new tasks" : "No new tasks",
+    label: p?.dont_request_more_work ? t("projects.drawer.allowNewTasks") : t("projects.drawer.noNewTasks"),
     action: "no-new-allow",
   });
   if (p && p.gui_urls && p.gui_urls.length > 1) {
     for (let i = 0; i < p.gui_urls.length; i++) {
       items.push({
-        label: p.gui_urls[i].name || `Web Page ${i + 1}`,
+        label: p.gui_urls[i].name || `${t("projects.drawer.webPage")} ${i + 1}`,
         action: `webpage-${i}`,
       });
     }
   } else {
     items.push({
-      label: "Web Page",
+      label: t("projects.drawer.webPage"),
       action: "webpage-0",
       disabled: !p || !p.gui_urls || p.gui_urls.length === 0,
     });
   }
   items.push({ label: "", action: "", divider: true });
-  items.push({ label: "Reset", action: "reset", danger: true });
-  items.push({ label: "Detach", action: "detach", danger: true });
+  items.push({ label: t("projects.context.reset"), action: "reset", danger: true });
+  items.push({ label: t("projects.context.detach"), action: "detach", danger: true });
   items.push({ label: "", action: "", divider: true });
   items.push({
-    label: "Properties",
+    label: t("projects.context.properties"),
     action: "properties",
     disabled: selectedUrls.value.size !== 1,
   });
@@ -268,9 +270,9 @@ async function handleSuspendResume() {
         await store.suspendProject(p.master_url);
       }
     }
-    toast.show("Project updated", "success");
+    toast.show(t("projects.toast.updated"), "success");
   } catch (e) {
-    toast.show(`Action failed: ${e}`, "error");
+    toast.show(t("projects.toast.actionFailed", { error: String(e) }), "error");
   } finally {
     actionBusy.value = false;
   }
@@ -286,9 +288,9 @@ async function handleNoNewAllowTasks() {
         await store.noNewTasks(p.master_url);
       }
     }
-    toast.show("Task preference updated", "success");
+    toast.show(t("projects.toast.taskPrefUpdated"), "success");
   } catch (e) {
-    toast.show(`Action failed: ${e}`, "error");
+    toast.show(t("projects.toast.actionFailed", { error: String(e) }), "error");
   } finally {
     actionBusy.value = false;
   }
@@ -300,9 +302,9 @@ async function handleUpdate() {
     for (const p of selectedProjects.value) {
       await store.updateProject(p.master_url);
     }
-    toast.show("Project update requested", "success");
+    toast.show(t("projects.toast.updateRequested"), "success");
   } catch (e) {
-    toast.show(`Update failed: ${e}`, "error");
+    toast.show(t("projects.toast.updateFailed", { error: String(e) }), "error");
   } finally {
     actionBusy.value = false;
   }
@@ -313,8 +315,8 @@ function handleReset() {
   const urls = selectedProjects.value.map((p) => p.master_url);
   const names = selectedProjects.value.map((p) => p.project_name).join(", ");
   confirmAction.value = {
-    title: "Reset Project",
-    message: `Reset "${names}"? All tasks for this project will be lost.`,
+    title: t("projects.resetDialog.title"),
+    message: t("projects.resetDialog.message", { names }),
     action: async () => {
       for (const url of urls) {
         await store.resetProject(url);
@@ -329,8 +331,8 @@ function handleDetach() {
   const urls = selectedProjects.value.map((p) => p.master_url);
   const names = selectedProjects.value.map((p) => p.project_name).join(", ");
   confirmAction.value = {
-    title: "Detach Project",
-    message: `Detach from "${names}"? You will stop contributing to this project.`,
+    title: t("projects.detachDialog.title"),
+    message: t("projects.detachDialog.message", { names }),
     action: async () => {
       for (const url of urls) {
         await store.detachProject(url);
@@ -379,10 +381,10 @@ function isColVisible(key: string): boolean {
 
 <template>
   <div class="projects-view">
-    <PageHeader title="Projects">
-      <button class="btn btn-primary" @click="showAttachWizard = true">Add Project</button>
-      <button class="btn" @click="showAcctMgr = true">Account Manager</button>
-      <Tooltip text="Columns">
+    <PageHeader :title="$t('projects.title')">
+      <button class="btn btn-primary" @click="showAttachWizard = true">{{ $t('projects.addProject') }}</button>
+      <button class="btn" @click="showAcctMgr = true">{{ $t('projects.accountManager') }}</button>
+      <Tooltip :text="$t('projects.columns')">
         <button class="btn-columns" @click="showColumns = true">
           <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
             <rect x="1" y="2" width="3" height="12" rx="0.5" />
@@ -400,13 +402,13 @@ function isColVisible(key: string): boolean {
         <EmptyState
           v-else-if="store.loading && store.projects.length === 0"
           icon="&#8987;"
-          message="Loading projects..."
+          :message="$t('projects.loading')"
         />
 
         <EmptyState
           v-else-if="store.projects.length === 0"
           icon="&#128194;"
-          message="No projects attached."
+          :message="$t('projects.empty')"
         />
 
         <DataTable
@@ -448,9 +450,9 @@ function isColVisible(key: string): boolean {
               <span
                 class="source-badge"
                 :class="project.attached_via_acct_mgr ? 'source-manager' : 'source-user'"
-                :title="project.attached_via_acct_mgr ? 'Manager' : 'User'"
+                :title="project.attached_via_acct_mgr ? $t('projects.source.manager') : $t('projects.source.user')"
               >
-                <span class="source-label">{{ project.attached_via_acct_mgr ? "Manager" : "User" }}</span>
+                <span class="source-label">{{ project.attached_via_acct_mgr ? $t('projects.source.manager') : $t('projects.source.user') }}</span>
               </span>
             </td>
           </tr>
@@ -460,39 +462,39 @@ function isColVisible(key: string): boolean {
       <Transition name="drawer">
         <div v-if="hasSelection" class="drawer-panel">
           <div class="drawer-header">
-            <h3>{{ singleSelected?.project_name ?? `${selectedUrls.size} projects` }}</h3>
+            <h3>{{ singleSelected?.project_name ?? $t('projects.nProjects', selectedUrls.size) }}</h3>
           </div>
 
           <div class="drawer-section">
-            <Tooltip text="Fetch latest project status from server">
-              <button class="btn" :disabled="actionBusy" @click="handleUpdate">Update</button>
+            <Tooltip :text="$t('projects.tooltip.update')">
+              <button class="btn" :disabled="actionBusy" @click="handleUpdate">{{ $t('projects.drawer.update') }}</button>
             </Tooltip>
-            <Tooltip :text="singleSelected?.suspended_via_gui ? 'Resume work for this project' : 'Temporarily stop all work for this project'">
+            <Tooltip :text="singleSelected?.suspended_via_gui ? $t('projects.tooltip.resume') : $t('projects.tooltip.suspend')">
               <button class="btn" :disabled="actionBusy" @click="handleSuspendResume">
-                {{ singleSelected?.suspended_via_gui ? "Resume" : "Suspend" }}
+                {{ singleSelected?.suspended_via_gui ? $t('projects.drawer.resume') : $t('projects.drawer.suspend') }}
               </button>
             </Tooltip>
-            <Tooltip :text="singleSelected?.dont_request_more_work ? 'Start requesting new tasks again' : 'Finish current tasks but request no more'">
+            <Tooltip :text="singleSelected?.dont_request_more_work ? $t('projects.tooltip.allowNewTasks') : $t('projects.tooltip.noNewTasks')">
               <button class="btn" :disabled="actionBusy" @click="handleNoNewAllowTasks">
-                {{ singleSelected?.dont_request_more_work ? "Allow new tasks" : "No new tasks" }}
+                {{ singleSelected?.dont_request_more_work ? $t('projects.drawer.allowNewTasks') : $t('projects.drawer.noNewTasks') }}
               </button>
             </Tooltip>
-            <Tooltip v-if="selectedUrls.size === 1" text="View detailed project information">
-              <button class="btn" @click="openProperties">Properties</button>
+            <Tooltip v-if="selectedUrls.size === 1" :text="$t('projects.tooltip.properties')">
+              <button class="btn" @click="openProperties">{{ $t('projects.drawer.properties') }}</button>
             </Tooltip>
           </div>
 
           <div class="drawer-section drawer-danger">
-            <Tooltip text="Delete all tasks and download them again">
-              <button class="btn btn-danger" @click="handleReset">Reset</button>
+            <Tooltip :text="$t('projects.tooltip.reset')">
+              <button class="btn btn-danger" @click="handleReset">{{ $t('projects.drawer.reset') }}</button>
             </Tooltip>
-            <Tooltip text="Remove this project completely">
-              <button class="btn btn-danger" @click="handleDetach">Detach</button>
+            <Tooltip :text="$t('projects.tooltip.detach')">
+              <button class="btn btn-danger" @click="handleDetach">{{ $t('projects.drawer.detach') }}</button>
             </Tooltip>
           </div>
 
           <div v-if="singleSelected?.gui_urls?.length" class="drawer-section drawer-links">
-            <div class="drawer-section-label">Web Links</div>
+            <div class="drawer-section-label">{{ $t('projects.drawer.webLinks') }}</div>
             <a
               v-for="(gu, i) in singleSelected.gui_urls"
               :key="gu.url"
@@ -500,7 +502,7 @@ function isColVisible(key: string): boolean {
               href="#"
               @click.prevent="openWebPage(i)"
             >
-              {{ gu.name || 'Web Page' }}
+              {{ gu.name || $t('projects.drawer.webPage') }}
             </a>
           </div>
         </div>

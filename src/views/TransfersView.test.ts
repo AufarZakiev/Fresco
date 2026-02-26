@@ -81,6 +81,6 @@ describe("TransfersView", () => {
     // Dialog is teleported to body
     const body = document.body.textContent ?? "";
     expect(body).toContain("Abort Transfer");
-    expect(body).toContain("Abort 1 selected transfer(s)?");
+    expect(body).toContain("Abort 1 selected transfer?");
   });
 });

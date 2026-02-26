@@ -30,25 +30,25 @@ function confirm() {
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
       <div class="exit-dialog" role="dialog" aria-modal="true" aria-labelledby="exit-confirm-dialog-title">
-        <h3 id="exit-confirm-dialog-title">Exit BOINC Manager</h3>
+        <h3 id="exit-confirm-dialog-title">{{ $t('exitConfirm.title') }}</h3>
         <p class="exit-message">
-          Are you sure you want to exit? BOINC will continue running in the background.
+          {{ $t('exitConfirm.message') }}
         </p>
 
         <div class="exit-options">
           <label class="exit-toggle">
             <input type="checkbox" v-model="shutdownClient" />
-            <span>Also shut down the BOINC client</span>
+            <span>{{ $t('exitConfirm.shutdownClient') }}</span>
           </label>
           <label class="exit-toggle">
             <input type="checkbox" v-model="dontAskAgain" />
-            <span>Don't ask again</span>
+            <span>{{ $t('exitConfirm.dontAskAgain') }}</span>
           </label>
         </div>
 
         <div class="exit-footer">
-          <button class="btn" @click="emit('close')">Cancel</button>
-          <button class="btn btn-primary" @click="confirm">Exit</button>
+          <button class="btn" @click="emit('close')">{{ $t('exitConfirm.cancel') }}</button>
+          <button class="btn btn-primary" @click="confirm">{{ $t('exitConfirm.exit') }}</button>
         </div>
       </div>
     </div>

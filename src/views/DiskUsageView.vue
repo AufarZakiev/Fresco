@@ -132,25 +132,25 @@ onUnmounted(() => {
 
 <template>
   <div class="disk-usage-view">
-    <PageHeader title="Disk Usage" />
+    <PageHeader :title="$t('disk.title')" />
 
     <p v-if="store.error" class="error-text">{{ store.error }}</p>
 
     <div v-if="store.loading && store.usage.d_total === 0" class="loading-text">
-      Loading disk usage...
+      {{ $t('disk.loading') }}
     </div>
 
     <EmptyState
       v-else-if="store.usage.d_total === 0 && !store.loading"
       icon="&#x1f4be;"
-      message="No disk usage data available."
+      :message="$t('disk.empty')"
     />
 
     <template v-else>
       <div class="content-layout">
         <!-- BOINC Usage by Project (left on wide screens) -->
         <div class="breakdown-section">
-          <h3 class="section-title">BOINC Usage by Project</h3>
+          <h3 class="section-title">{{ $t('disk.boincByProject') }}</h3>
           <div class="boinc-chart-card">
             <svg width="240" height="240" viewBox="0 0 240 240" class="doughnut-svg">
               <path
@@ -163,7 +163,7 @@ onUnmounted(() => {
               >
                 <title>{{ seg.label }}</title>
               </path>
-              <text x="120" y="114" class="center-label" text-anchor="middle">Total</text>
+              <text x="120" y="114" class="center-label" text-anchor="middle">{{ $t('disk.chartTotal') }}</text>
               <text x="120" y="134" class="center-value" text-anchor="middle">
                 {{ formatBytes(store.usage.d_boinc) }}
               </text>
@@ -189,19 +189,19 @@ onUnmounted(() => {
         <!-- Summary Cards (right on wide screens) -->
         <div class="summary-cards">
           <div class="summary-card">
-            <span class="summary-label">Total Disk</span>
+            <span class="summary-label">{{ $t('disk.totalDisk') }}</span>
             <span class="summary-value">{{ formatBytes(store.usage.d_total) }}</span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">BOINC Usage</span>
+            <span class="summary-label">{{ $t('disk.boincUsage') }}</span>
             <span class="summary-value">{{ formatBytes(store.usage.d_boinc) }}</span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">Free Space</span>
+            <span class="summary-label">{{ $t('disk.freeSpace') }}</span>
             <span class="summary-value">{{ formatBytes(store.usage.d_free) }}</span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">Allowed</span>
+            <span class="summary-label">{{ $t('disk.allowed') }}</span>
             <span class="summary-value">{{ formatBytes(store.usage.d_allowed) }}</span>
           </div>
         </div>

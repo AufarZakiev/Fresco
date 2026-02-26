@@ -49,7 +49,7 @@ async function doConnectLocal() {
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
       <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="select-computer-dialog-title">
         <div class="dialog-header">
-          <h3 id="select-computer-dialog-title">Select Computer</h3>
+          <h3 id="select-computer-dialog-title">{{ $t('selectComputer.title') }}</h3>
           <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
         </div>
 
@@ -57,7 +57,7 @@ async function doConnectLocal() {
           <div v-if="error" class="dialog-error">{{ error }}</div>
 
           <label class="field">
-            <span>Hostname</span>
+            <span>{{ $t('selectComputer.hostname') }}</span>
             <input
               v-model="hostname"
               type="text"
@@ -67,7 +67,7 @@ async function doConnectLocal() {
           </label>
 
           <label class="field">
-            <span>Port</span>
+            <span>{{ $t('selectComputer.port') }}</span>
             <input
               v-model.number="port"
               type="number"
@@ -77,43 +77,42 @@ async function doConnectLocal() {
           </label>
 
           <label class="field">
-            <span>Password</span>
+            <span>{{ $t('selectComputer.password') }}</span>
             <input
               v-model="password"
               type="password"
-              placeholder="Remote password"
+              :placeholder="$t('selectComputer.passwordPlaceholder')"
               :disabled="connecting"
             />
           </label>
 
           <div class="dialog-actions">
             <button class="btn" :disabled="connecting" @click="emit('close')">
-              Cancel
+              {{ $t('selectComputer.cancel') }}
             </button>
             <button
               class="btn btn-primary"
               :disabled="connecting || !hostname.trim()"
               @click="doConnect"
             >
-              {{ connecting ? "Connecting..." : "Connect" }}
+              {{ connecting ? $t('selectComputer.connecting') : $t('selectComputer.connect') }}
             </button>
           </div>
 
           <div class="divider">
-            <span>or</span>
+            <span>{{ $t('selectComputer.or') }}</span>
           </div>
 
           <div class="local-section">
             <p class="local-info">
-              Connect to the BOINC client on this computer. The data directory
-              will be auto-detected.
+              {{ $t('selectComputer.localInfo') }}
             </p>
             <button
               class="btn btn-primary local-btn"
               :disabled="connecting"
               @click="doConnectLocal"
             >
-              {{ connecting ? "Connecting..." : "Connect Local" }}
+              {{ connecting ? $t('selectComputer.connecting') : $t('selectComputer.connectLocal') }}
             </button>
           </div>
         </div>

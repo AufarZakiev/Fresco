@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useTransfersStore } from "../stores/transfers";
 import type { FileTransfer, SortDir } from "../types/boinc";
 import { SORT_DIR } from "../types/boinc";
@@ -16,6 +17,7 @@ import { onKeyStroke } from "@vueuse/core";
 import { useColumnState } from "../composables/useColumnState";
 import { useToastStore } from "../stores/toast";
 
+const { t } = useI18n();
 const store = useTransfersStore();
 const toast = useToastStore();
 const actionBusy = ref(false);
@@ -36,21 +38,21 @@ const ctxOpen = ref(false);
 const ctxX = ref(0);
 const ctxY = ref(0);
 
-const allColumns: DataTableColumn[] = [
-  { key: "file", label: "File", sortable: true },
-  { key: "project", label: "Project", sortable: true },
-  { key: "direction", label: "Direction", sortable: true },
-  { key: "progress", label: "Progress", sortable: true },
-  { key: "size", label: "Size", sortable: true, align: "right" },
-  { key: "speed", label: "Speed", sortable: true, align: "right" },
-];
+const allColumns = computed<DataTableColumn[]>(() => [
+  { key: "file", label: t("transfers.col.file"), sortable: true },
+  { key: "project", label: t("transfers.col.project"), sortable: true },
+  { key: "direction", label: t("transfers.col.direction"), sortable: true },
+  { key: "progress", label: t("transfers.col.progress"), sortable: true },
+  { key: "size", label: t("transfers.col.size"), sortable: true, align: "right" },
+  { key: "speed", label: t("transfers.col.speed"), sortable: true, align: "right" },
+]);
 
 const columns = computed(() =>
-  allColumns.map((c) => ({ ...c, visible: visibleKeys.value.includes(c.key) })),
+  allColumns.value.map((c) => ({ ...c, visible: visibleKeys.value.includes(c.key) })),
 );
 
-function transferKey(t: FileTransfer): string {
-  return `${t.project_url}:${t.name}`;
+function transferKey(transfer: FileTransfer): string {
+  return `${transfer.project_url}:${transfer.name}`;
 }
 
 function formatSize(bytes: number): string {
@@ -65,27 +67,27 @@ function formatSpeed(bytesPerSec: number): string {
   return `${formatSize(bytesPerSec)}/s`;
 }
 
-function transferProgress(t: FileTransfer): number {
-  if (t.nbytes <= 0) return 0;
-  return t.bytes_xferred / t.nbytes;
+function transferProgress(transfer: FileTransfer): number {
+  if (transfer.nbytes <= 0) return 0;
+  return transfer.bytes_xferred / transfer.nbytes;
 }
 
-function transferProgressText(t: FileTransfer): string {
-  return `${(transferProgress(t) * 100).toFixed(1)}%`;
+function transferProgressText(transfer: FileTransfer): string {
+  return `${(transferProgress(transfer) * 100).toFixed(1)}%`;
 }
 
-function transferDirection(t: FileTransfer): string {
-  return t.is_upload ? "Upload" : "Download";
+function transferDirection(transfer: FileTransfer): string {
+  return transfer.is_upload ? t("transfers.direction.upload") : t("transfers.direction.download");
 }
 
-function getSortValue(t: FileTransfer, key: string): number | string {
+function getSortValue(transfer: FileTransfer, key: string): number | string {
   switch (key) {
-    case "file": return t.name;
-    case "project": return t.project_name;
-    case "direction": return t.is_upload ? "Upload" : "Download";
-    case "progress": return transferProgress(t);
-    case "size": return t.nbytes;
-    case "speed": return t.xfer_speed;
+    case "file": return transfer.name;
+    case "project": return transfer.project_name;
+    case "direction": return transfer.is_upload ? "1" : "0";
+    case "progress": return transferProgress(transfer);
+    case "size": return transfer.nbytes;
+    case "speed": return transfer.xfer_speed;
     default: return 0;
   }
 }
@@ -169,9 +171,9 @@ function handleRowContext(event: MouseEvent, transfer: FileTransfer, index: numb
 }
 
 const contextMenuItems = computed<ContextMenuItem[]>(() => [
-  { label: "Retry", action: "retry" },
+  { label: t("transfers.retry"), action: "retry" },
   { label: "", action: "", divider: true },
-  { label: "Abort", action: "abort", danger: true },
+  { label: t("transfers.abort"), action: "abort", danger: true },
 ]);
 
 async function handleContextAction(action: string) {
@@ -191,9 +193,9 @@ async function handleRetry() {
     for (const t of selectedTransfers.value) {
       await store.retryTransfer(t.project_url, t.name);
     }
-    toast.show("Transfer retry requested", "success");
+    toast.show(t("transfers.toast.retryRequested"), "success");
   } catch (e) {
-    toast.show(`Retry failed: ${e}`, "error");
+    toast.show(t("transfers.toast.retryFailed", { error: String(e) }), "error");
   } finally {
     actionBusy.value = false;
   }
@@ -205,9 +207,9 @@ async function doAbort() {
     for (const t of selectedTransfers.value) {
       await store.abortTransfer(t.project_url, t.name);
     }
-    toast.show("Transfer aborted", "success");
+    toast.show(t("transfers.toast.aborted"), "success");
   } catch (e) {
-    toast.show(`Abort failed: ${e}`, "error");
+    toast.show(t("transfers.toast.abortFailed", { error: String(e) }), "error");
   } finally {
     actionBusy.value = false;
     selectedKeys.value = new Set();
@@ -244,12 +246,12 @@ function isColVisible(key: string): boolean {
 
 <template>
   <div class="transfers-view">
-    <PageHeader title="Transfers">
+    <PageHeader :title="$t('transfers.title')">
       <template v-if="hasSelection">
-        <button class="btn" :disabled="actionBusy" @click="handleRetry">Retry</button>
-        <button class="btn btn-danger" :disabled="actionBusy" @click="confirmAbort = true">Abort</button>
+        <button class="btn" :disabled="actionBusy" @click="handleRetry">{{ $t('transfers.retry') }}</button>
+        <button class="btn btn-danger" :disabled="actionBusy" @click="confirmAbort = true">{{ $t('transfers.abort') }}</button>
       </template>
-      <Tooltip text="Columns">
+      <Tooltip :text="$t('transfers.columns')">
         <button class="btn-columns" @click="showColumns = true">
           <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
             <rect x="1" y="2" width="3" height="12" rx="0.5" />
@@ -265,13 +267,13 @@ function isColVisible(key: string): boolean {
     <EmptyState
       v-else-if="store.loading && store.transfers.length === 0"
       icon="&#8987;"
-      message="Loading transfers..."
+      :message="$t('transfers.loading')"
     />
 
     <EmptyState
       v-else-if="store.transfers.length === 0"
       icon="&#128259;"
-      message="No active file transfers."
+      :message="$t('transfers.empty')"
     />
 
     <DataTable
@@ -327,9 +329,9 @@ function isColVisible(key: string): boolean {
 
     <ConfirmDialog
       :open="confirmAbort"
-      title="Abort Transfer"
-      :message="`Abort ${selectedKeys.size} selected transfer(s)?`"
-      confirm-label="Abort"
+      :title="$t('transfers.abortDialog.title')"
+      :message="$t('transfers.abortDialog.message', selectedKeys.size)"
+      :confirm-label="$t('transfers.abortDialog.confirm')"
       @confirm="doAbort"
       @cancel="confirmAbort = false"
     />
