@@ -20,7 +20,7 @@ import type { ContextMenuItem } from "../components/ContextMenu.vue";
 import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import ItemPropertiesDialog from "../components/ItemPropertiesDialog.vue";
 import Tooltip from "../components/Tooltip.vue";
-import { useKeyboard } from "../composables/useKeyboard";
+import { onKeyStroke } from "@vueuse/core";
 import { useColumnState } from "../composables/useColumnState";
 import { launchGraphics, launchRemoteDesktop } from "../composables/useRpc";
 import { useProjectsStore } from "../stores/projects";
@@ -366,13 +366,26 @@ async function doAbort() {
   }
 }
 
-// Keyboard shortcuts
-useKeyboard({
-  onSelectAll: () => handleSelectAll(true),
-  onDeselect: () => { selectedNames.value = new Set(); },
-  onDelete: () => {
-    if (hasSelection.value) confirmAbort.value = true;
-  },
+// Keyboard shortcuts (ignore when typing in form fields)
+function isTypingInInput(e: KeyboardEvent): boolean {
+  const tag = (e.target as HTMLElement)?.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+}
+
+onKeyStroke("a", (e) => {
+  if (isTypingInInput(e) || !(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  handleSelectAll(true);
+});
+
+onKeyStroke("Escape", (e) => {
+  if (isTypingInInput(e)) return;
+  selectedNames.value = new Set();
+});
+
+onKeyStroke("Delete", (e) => {
+  if (isTypingInInput(e)) return;
+  if (hasSelection.value) confirmAbort.value = true;
 });
 
 function isColVisible(key: string): boolean {
