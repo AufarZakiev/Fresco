@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
 
 export interface ContextMenuItem {
   label: string;
@@ -22,6 +22,62 @@ const emit = defineEmits<{
 }>();
 
 const menuRef = ref<HTMLElement | null>(null);
+const focusedIndex = ref(-1);
+
+// Indices of non-divider items within props.items
+const actionableIndices = computed(() =>
+  props.items.reduce<number[]>((acc, item, i) => {
+    if (!item.divider) acc.push(i);
+    return acc;
+  }, []),
+);
+
+const enabledIndices = computed(() =>
+  actionableIndices.value.filter((i) => !props.items[i].disabled),
+);
+
+function getMenuItemButtons(): HTMLElement[] {
+  if (!menuRef.value) return [];
+  return Array.from(menuRef.value.querySelectorAll<HTMLElement>("[role='menuitem']"));
+}
+
+function focusActionableAt(actionablePos: number) {
+  focusedIndex.value = actionablePos;
+  const buttons = getMenuItemButtons();
+  buttons[actionablePos]?.focus();
+}
+
+function findActionablePos(itemIndex: number): number {
+  return actionableIndices.value.indexOf(itemIndex);
+}
+
+function focusFirstEnabled() {
+  const firstIdx = enabledIndices.value[0];
+  if (firstIdx !== undefined) {
+    focusActionableAt(findActionablePos(firstIdx));
+  }
+}
+
+function focusLastEnabled() {
+  const lastIdx = enabledIndices.value[enabledIndices.value.length - 1];
+  if (lastIdx !== undefined) {
+    focusActionableAt(findActionablePos(lastIdx));
+  }
+}
+
+function focusNextEnabled() {
+  const currentItemIdx = actionableIndices.value[focusedIndex.value];
+  const currentEnabledPos = enabledIndices.value.indexOf(currentItemIdx);
+  const nextPos = (currentEnabledPos + 1) % enabledIndices.value.length;
+  focusActionableAt(findActionablePos(enabledIndices.value[nextPos]));
+}
+
+function focusPrevEnabled() {
+  const currentItemIdx = actionableIndices.value[focusedIndex.value];
+  const currentEnabledPos = enabledIndices.value.indexOf(currentItemIdx);
+  const prevPos = (currentEnabledPos - 1 + enabledIndices.value.length) % enabledIndices.value.length;
+  focusActionableAt(findActionablePos(enabledIndices.value[prevPos]));
+}
 
 function handleClickOutside(e: MouseEvent) {
   if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
@@ -30,8 +86,34 @@ function handleClickOutside(e: MouseEvent) {
 }
 
 function handleKeydown(e: KeyboardEvent) {
-  if (e.key === "Escape") {
-    emit("close");
+  switch (e.key) {
+    case "Escape":
+      emit("close");
+      break;
+    case "ArrowDown":
+      e.preventDefault();
+      if (focusedIndex.value < 0) {
+        focusFirstEnabled();
+      } else {
+        focusNextEnabled();
+      }
+      break;
+    case "ArrowUp":
+      e.preventDefault();
+      if (focusedIndex.value < 0) {
+        focusLastEnabled();
+      } else {
+        focusPrevEnabled();
+      }
+      break;
+    case "Home":
+      e.preventDefault();
+      focusFirstEnabled();
+      break;
+    case "End":
+      e.preventDefault();
+      focusLastEnabled();
+      break;
   }
 }
 
@@ -41,14 +123,23 @@ function handleAction(item: ContextMenuItem) {
   emit("close");
 }
 
+function getTabIndex(itemIndex: number): number {
+  const actionablePos = findActionablePos(itemIndex);
+  return actionablePos === focusedIndex.value ? 0 : -1;
+}
+
 watch(
   () => props.open,
-  (isOpen) => {
+  async (isOpen) => {
     if (isOpen) {
+      focusedIndex.value = -1;
+      document.addEventListener("keydown", handleKeydown);
+      // Delay click listener to avoid the opening click from immediately closing
       setTimeout(() => {
         document.addEventListener("click", handleClickOutside);
-        document.addEventListener("keydown", handleKeydown);
       }, 0);
+      await nextTick();
+      focusFirstEnabled();
     } else {
       document.removeEventListener("click", handleClickOutside);
       document.removeEventListener("keydown", handleKeydown);
@@ -58,8 +149,8 @@ watch(
 
 onMounted(() => {
   if (props.open) {
-    document.addEventListener("click", handleClickOutside);
     document.addEventListener("keydown", handleKeydown);
+    document.addEventListener("click", handleClickOutside);
   }
 });
 
@@ -74,16 +165,20 @@ onUnmounted(() => {
     <div
       v-if="open"
       ref="menuRef"
+      role="menu"
       class="context-menu"
       :style="{ left: `${x}px`, top: `${y}px` }"
     >
       <template v-for="(item, idx) in items" :key="idx">
-        <div v-if="item.divider" class="context-divider" />
+        <div v-if="item.divider" role="separator" class="context-divider" />
         <button
           v-else
+          role="menuitem"
           class="context-item"
           :class="{ danger: item.danger, disabled: item.disabled }"
-          :disabled="item.disabled"
+          :disabled="item.disabled || undefined"
+          :aria-disabled="item.disabled || undefined"
+          :tabindex="getTabIndex(idx)"
           @click="handleAction(item)"
         >
           {{ item.label }}
@@ -118,16 +213,19 @@ onUnmounted(() => {
   transition: background var(--transition-fast);
 }
 
-.context-item:hover:not(.disabled) {
+.context-item:hover:not(.disabled),
+.context-item:focus:not(.disabled) {
   background: var(--color-accent-light);
   color: var(--color-accent);
+  outline: none;
 }
 
 .context-item.danger {
   color: var(--color-danger);
 }
 
-.context-item.danger:hover:not(.disabled) {
+.context-item.danger:hover:not(.disabled),
+.context-item.danger:focus:not(.disabled) {
   background: var(--color-danger-light);
   color: var(--color-danger);
 }
