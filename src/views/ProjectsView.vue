@@ -16,7 +16,7 @@ import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.v
 import ItemPropertiesDialog from "../components/ItemPropertiesDialog.vue";
 import AccountManagerWizard from "../components/AccountManagerWizard.vue";
 import Tooltip from "../components/Tooltip.vue";
-import { useKeyboard } from "../composables/useKeyboard";
+import { onKeyStroke } from "@vueuse/core";
 import { useColumnState } from "../composables/useColumnState";
 import { useToastStore } from "../stores/toast";
 
@@ -355,9 +355,21 @@ async function doConfirm() {
   }
 }
 
-useKeyboard({
-  onSelectAll: () => handleSelectAll(true),
-  onDeselect: () => { selectedUrls.value = new Set(); },
+// Keyboard shortcuts (ignore when typing in form fields)
+function isTypingInInput(e: KeyboardEvent): boolean {
+  const tag = (e.target as HTMLElement)?.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+}
+
+onKeyStroke("a", (e) => {
+  if (isTypingInInput(e) || !(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  handleSelectAll(true);
+});
+
+onKeyStroke("Escape", (e) => {
+  if (isTypingInInput(e)) return;
+  selectedUrls.value = new Set();
 });
 
 function isColVisible(key: string): boolean {
