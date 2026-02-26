@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { onKeyStroke } from "@vueuse/core";
 import { getProxySettings, setProxySettings } from "../composables/useRpc";
 import type { ProxyInfo } from "../types/boinc";
 
@@ -11,6 +12,11 @@ const loading = ref(false);
 const saving = ref(false);
 const error = ref("");
 const form = ref<ProxyInfo | null>(null);
+
+onKeyStroke("Escape", () => {
+  if (!props.open) return;
+  emit("close");
+});
 
 watch(
   () => props.open,
@@ -48,10 +54,10 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="proxy-dialog">
+      <div class="proxy-dialog" role="dialog" aria-modal="true" aria-labelledby="proxy-settings-dialog-title">
         <div class="proxy-header">
-          <h3>Proxy Settings</h3>
-          <button class="close-btn" @click="emit('close')">&times;</button>
+          <h3 id="proxy-settings-dialog-title">Proxy Settings</h3>
+          <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
         </div>
 
         <div v-if="loading" class="proxy-loading">Loading proxy settings...</div>

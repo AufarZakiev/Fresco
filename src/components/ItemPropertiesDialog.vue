@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { onKeyStroke } from "@vueuse/core";
 import type { TaskResult, Project } from "../types/boinc";
 import { RESULT_STATE, ACTIVE_TASK_STATE, SCHEDULER_STATE } from "../types/boinc";
 
@@ -11,6 +12,11 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{ close: [] }>();
+
+onKeyStroke("Escape", () => {
+  if (!props.open) return;
+  emit("close");
+});
 
 // ── Formatting helpers ──────────────────────────────────────────
 
@@ -248,10 +254,10 @@ function copyAll() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="props-dialog">
+      <div class="props-dialog" role="dialog" aria-modal="true" aria-labelledby="item-properties-dialog-title">
         <div class="props-header">
-          <h3>{{ dialogTitle }}</h3>
-          <button class="close-btn" @click="emit('close')">&times;</button>
+          <h3 id="item-properties-dialog-title">{{ dialogTitle }}</h3>
+          <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
         </div>
 
         <div class="props-body">

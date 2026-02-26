@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { onKeyStroke } from "@vueuse/core";
 import { getCcConfig, setCcConfig } from "../composables/useRpc";
 import type { CcConfig } from "../types/boinc";
 
@@ -31,6 +32,11 @@ function initFromConfig(cc: CcConfig) {
     exclusive_gpu_apps: [...cc.exclusive_gpu_apps],
   };
 }
+
+onKeyStroke("Escape", () => {
+  if (!props.open) return;
+  emit("close");
+});
 
 watch(
   () => props.open,
@@ -105,10 +111,10 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="exclusive-dialog">
+      <div class="exclusive-dialog" role="dialog" aria-modal="true" aria-labelledby="exclusive-apps-dialog-title">
         <div class="exclusive-header">
-          <h3>Exclusive Applications</h3>
-          <button class="close-btn" @click="emit('close')">&times;</button>
+          <h3 id="exclusive-apps-dialog-title">Exclusive Applications</h3>
+          <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
         </div>
 
         <div v-if="loading" class="exclusive-loading">Loading configuration...</div>

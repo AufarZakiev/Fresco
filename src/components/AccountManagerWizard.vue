@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { onKeyStroke } from "@vueuse/core";
 import { acctMgrInfo, acctMgrRpc, acctMgrRpcPoll } from "../composables/useRpc";
 import type { AcctMgrInfo } from "../types/boinc";
 import {
@@ -23,6 +24,11 @@ const currentMgr = ref<AcctMgrInfo | null>(null);
 const mgrUrl = ref("");
 const userName = ref("");
 const password = ref("");
+
+onKeyStroke("Escape", () => {
+  if (!props.open) return;
+  close();
+});
 
 watch(
   () => props.open,
@@ -132,9 +138,9 @@ function close() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="close">
-      <div class="wizard">
+      <div class="wizard" role="dialog" aria-modal="true" aria-labelledby="account-manager-wizard-title">
         <div class="wizard-header">
-          <h3>
+          <h3 id="account-manager-wizard-title">
             {{
               step === "form"
                 ? "Account Manager"
@@ -143,7 +149,7 @@ function close() {
                   : "Done"
             }}
           </h3>
-          <button class="close-btn" @click="close">&times;</button>
+          <button class="close-btn" aria-label="Close" @click="close">&times;</button>
         </div>
 
         <!-- Step 1: Form -->
