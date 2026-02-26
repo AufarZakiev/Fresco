@@ -128,18 +128,18 @@ onUnmounted(() => {
 
 <template>
   <div class="statistics-view">
-    <PageHeader title="Statistics" />
+    <PageHeader :title="$t('statistics.title')" />
 
     <p v-if="store.error" class="error-text">{{ store.error }}</p>
 
     <div v-if="store.loading && store.projectStats.length === 0" class="loading-text">
-      Loading statistics...
+      {{ $t('statistics.loading') }}
     </div>
 
     <EmptyState
       v-else-if="store.projectStats.length === 0 && !store.loading"
       icon="&#x1f4ca;"
-      message="No statistics available yet. Attach a project and compute to see data."
+      :message="$t('statistics.empty')"
     />
 
     <template v-else>
@@ -150,19 +150,19 @@ onUnmounted(() => {
             :class="['segment', { active: viewMode === 'single' }]"
             @click="viewMode = 'single'"
           >
-            Single Project
+            {{ $t('statistics.singleProject') }}
           </button>
           <button
             :class="['segment', { active: viewMode === 'all' }]"
             @click="viewMode = 'all'"
           >
-            All Together
+            {{ $t('statistics.allTogether') }}
           </button>
           <button
             :class="['segment', { active: viewMode === 'separate' }]"
             @click="viewMode = 'separate'"
           >
-            All Separate
+            {{ $t('statistics.allSeparate') }}
           </button>
         </div>
 
@@ -186,7 +186,7 @@ onUnmounted(() => {
             @change="toggleActor('user')"
           />
           <span class="series-swatch" :style="{ background: actorColors.user }"></span>
-          <span class="series-label">User</span>
+          <span class="series-label">{{ $t('statistics.user') }}</span>
         </label>
         <label class="series-toggle">
           <input
@@ -195,7 +195,7 @@ onUnmounted(() => {
             @change="toggleActor('host')"
           />
           <span class="series-swatch" :style="{ background: actorColors.host }"></span>
-          <span class="series-label">Host</span>
+          <span class="series-label">{{ $t('statistics.host') }}</span>
         </label>
       </div>
 
@@ -203,12 +203,12 @@ onUnmounted(() => {
       <template v-if="chartData && viewMode !== 'separate'">
         <StatisticsChart
           :data="chartData"
-          title="Total Credit"
+          :title="$t('statistics.totalCredit')"
           :enabled-series="enabledTotalSeries"
         />
         <StatisticsChart
           :data="chartData"
-          title="Average Credit"
+          :title="$t('statistics.avgCredit')"
           :enabled-series="enabledAvgSeries"
         />
       </template>
@@ -218,19 +218,19 @@ onUnmounted(() => {
         <template v-for="chart in separateCharts" :key="chart.url">
           <StatisticsChart
             :data="chart.data"
-            :title="chart.url + ' — Total Credit'"
+            :title="chart.url + ' — ' + $t('statistics.totalCredit')"
             :enabled-series="enabledTotalSeries"
           />
           <StatisticsChart
             :data="chart.data"
-            :title="chart.url + ' — Average Credit'"
+            :title="chart.url + ' — ' + $t('statistics.avgCredit')"
             :enabled-series="enabledAvgSeries"
           />
         </template>
         <EmptyState
           v-if="separateCharts.length === 0"
           icon="&#x1f4ca;"
-          message="No project statistics to display."
+          :message="$t('statistics.emptySeparate')"
         />
       </div>
     </template>

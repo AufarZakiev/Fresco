@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { onKeyStroke } from "@vueuse/core";
+import { useI18n } from "vue-i18n";
 import type { TaskResult, Project } from "../types/boinc";
 import { RESULT_STATE, ACTIVE_TASK_STATE, SCHEDULER_STATE } from "../types/boinc";
 
@@ -18,10 +19,12 @@ onKeyStroke("Escape", () => {
   emit("close");
 });
 
+const { t } = useI18n();
+
 // ── Formatting helpers ──────────────────────────────────────────
 
 function formatDate(epoch: number): string {
-  if (!epoch) return "N/A";
+  if (!epoch) return t("properties.na");
   return new Date(epoch * 1000).toLocaleString();
 }
 
@@ -50,37 +53,37 @@ function formatCredit(val: number): string {
 
 function resultStateName(state: number): string {
   const map: Record<number, string> = {
-    [RESULT_STATE.NEW]: "New",
-    [RESULT_STATE.FILES_DOWNLOADING]: "Downloading",
-    [RESULT_STATE.FILES_DOWNLOADED]: "Downloaded",
-    [RESULT_STATE.COMPUTE_ERROR]: "Compute error",
-    [RESULT_STATE.FILES_UPLOADING]: "Uploading",
-    [RESULT_STATE.FILES_UPLOADED]: "Uploaded",
-    [RESULT_STATE.ABORTED]: "Aborted",
-    [RESULT_STATE.UPLOAD_FAILED]: "Upload failed",
+    [RESULT_STATE.NEW]: t("properties.task.stateNew"),
+    [RESULT_STATE.FILES_DOWNLOADING]: t("properties.task.stateDownloading"),
+    [RESULT_STATE.FILES_DOWNLOADED]: t("properties.task.stateDownloaded"),
+    [RESULT_STATE.COMPUTE_ERROR]: t("properties.task.stateComputeError"),
+    [RESULT_STATE.FILES_UPLOADING]: t("properties.task.stateUploading"),
+    [RESULT_STATE.FILES_UPLOADED]: t("properties.task.stateUploaded"),
+    [RESULT_STATE.ABORTED]: t("properties.task.stateAborted"),
+    [RESULT_STATE.UPLOAD_FAILED]: t("properties.task.stateUploadFailed"),
   };
-  return map[state] ?? `Unknown (${state})`;
+  return map[state] ?? t("properties.unknown", { code: state });
 }
 
 function schedulerStateName(state: number): string {
   const map: Record<number, string> = {
-    [SCHEDULER_STATE.UNINITIALIZED]: "Uninitialized",
-    [SCHEDULER_STATE.PREEMPTED]: "Preempted",
-    [SCHEDULER_STATE.SCHEDULED]: "Scheduled",
+    [SCHEDULER_STATE.UNINITIALIZED]: t("properties.task.schedulerUninitialized"),
+    [SCHEDULER_STATE.PREEMPTED]: t("properties.task.schedulerPreempted"),
+    [SCHEDULER_STATE.SCHEDULED]: t("properties.task.schedulerScheduled"),
   };
-  return map[state] ?? `Unknown (${state})`;
+  return map[state] ?? t("properties.unknown", { code: state });
 }
 
 function activeTaskStateName(state: number): string {
   const map: Record<number, string> = {
-    [ACTIVE_TASK_STATE.UNINITIALIZED]: "Uninitialized",
-    [ACTIVE_TASK_STATE.EXECUTING]: "Executing",
-    [ACTIVE_TASK_STATE.SUSPENDED]: "Suspended",
-    [ACTIVE_TASK_STATE.ABORT_PENDING]: "Abort pending",
-    [ACTIVE_TASK_STATE.QUIT_PENDING]: "Quit pending",
-    [ACTIVE_TASK_STATE.COPY_PENDING]: "Copy pending",
+    [ACTIVE_TASK_STATE.UNINITIALIZED]: t("properties.task.activeUninitialized"),
+    [ACTIVE_TASK_STATE.EXECUTING]: t("properties.task.activeExecuting"),
+    [ACTIVE_TASK_STATE.SUSPENDED]: t("properties.task.activeSuspended"),
+    [ACTIVE_TASK_STATE.ABORT_PENDING]: t("properties.task.activeAbortPending"),
+    [ACTIVE_TASK_STATE.QUIT_PENDING]: t("properties.task.activeQuitPending"),
+    [ACTIVE_TASK_STATE.COPY_PENDING]: t("properties.task.activeCopyPending"),
   };
-  return map[state] ?? `Unknown (${state})`;
+  return map[state] ?? t("properties.unknown", { code: state });
 }
 
 // ── Section definitions ─────────────────────────────────────────
@@ -100,57 +103,57 @@ const taskSections = computed<Section[]>(() => {
   if (!task) return [];
   return [
     {
-      title: "General",
+      title: t("properties.general"),
       rows: [
-        { label: "Name", value: task.name },
-        { label: "Work unit", value: task.wu_name },
-        { label: "Project URL", value: task.project_url },
-        { label: "Plan class", value: task.plan_class || "(none)" },
-        { label: "Resources", value: task.resources || "(standard)" },
-        { label: "State", value: resultStateName(task.state) },
-        { label: "Scheduler state", value: schedulerStateName(task.scheduler_state) },
-        { label: "Active task state", value: activeTaskStateName(task.active_task_state) },
+        { label: t("properties.task.name"), value: task.name },
+        { label: t("properties.task.workUnit"), value: task.wu_name },
+        { label: t("properties.task.projectUrl"), value: task.project_url },
+        { label: t("properties.task.planClass"), value: task.plan_class || t("properties.none") },
+        { label: t("properties.task.resources"), value: task.resources || t("properties.standard") },
+        { label: t("properties.task.state"), value: resultStateName(task.state) },
+        { label: t("properties.task.schedulerState"), value: schedulerStateName(task.scheduler_state) },
+        { label: t("properties.task.activeTaskState"), value: activeTaskStateName(task.active_task_state) },
       ],
     },
     {
-      title: "Timing",
+      title: t("properties.timing"),
       rows: [
-        { label: "Received", value: formatDate(task.received_time) },
-        { label: "Report deadline", value: formatDate(task.report_deadline) },
-        { label: "Elapsed time", value: formatDuration(task.elapsed_time) },
-        { label: "Remaining (est.)", value: formatDuration(task.estimated_cpu_time_remaining) },
-        { label: "Current CPU time", value: formatDuration(task.current_cpu_time) },
-        { label: "Checkpoint CPU time", value: formatDuration(task.checkpoint_cpu_time) },
+        { label: t("properties.task.received"), value: formatDate(task.received_time) },
+        { label: t("properties.task.reportDeadline"), value: formatDate(task.report_deadline) },
+        { label: t("properties.task.elapsedTime"), value: formatDuration(task.elapsed_time) },
+        { label: t("properties.task.remainingEst"), value: formatDuration(task.estimated_cpu_time_remaining) },
+        { label: t("properties.task.currentCpuTime"), value: formatDuration(task.current_cpu_time) },
+        { label: t("properties.task.checkpointCpuTime"), value: formatDuration(task.checkpoint_cpu_time) },
       ],
     },
     {
-      title: "Progress",
+      title: t("properties.progress"),
       rows: [
-        { label: "Done", value: formatPercent(task.fraction_done) },
-        { label: "Progress rate", value: String(task.progress_rate) },
+        { label: t("properties.task.done"), value: formatPercent(task.fraction_done) },
+        { label: t("properties.task.progressRate"), value: String(task.progress_rate) },
       ],
     },
     {
-      title: "Resources",
+      title: t("properties.resources"),
       rows: [
-        { label: "Working set", value: formatMegabytes(task.working_set_size_smoothed) },
-        { label: "Swap size", value: formatMegabytes(task.swap_size) },
-        { label: "Slot", value: String(task.slot ?? "---") },
-        { label: "PID", value: String(task.pid ?? "---") },
-        { label: "Slot path", value: task.slot_path || "---" },
+        { label: t("properties.task.workingSet"), value: formatMegabytes(task.working_set_size_smoothed) },
+        { label: t("properties.task.swapSize"), value: formatMegabytes(task.swap_size) },
+        { label: t("properties.task.slot"), value: String(task.slot ?? "---") },
+        { label: t("properties.task.pid"), value: String(task.pid ?? "---") },
+        { label: t("properties.task.slotPath"), value: task.slot_path || "---" },
       ],
     },
     {
-      title: "Graphics",
+      title: t("properties.graphics"),
       rows: [
         ...(task.graphics_exec_path
-          ? [{ label: "Graphics app", value: task.graphics_exec_path }]
+          ? [{ label: t("properties.task.graphicsApp"), value: task.graphics_exec_path }]
           : []),
         ...(task.web_graphics_url
-          ? [{ label: "Web graphics", value: task.web_graphics_url }]
+          ? [{ label: t("properties.task.webGraphics"), value: task.web_graphics_url }]
           : []),
         ...(task.remote_desktop_addr
-          ? [{ label: "Remote desktop", value: task.remote_desktop_addr }]
+          ? [{ label: t("properties.task.remoteDesktop"), value: task.remote_desktop_addr }]
           : []),
       ],
     },
@@ -162,51 +165,51 @@ const projectSections = computed<Section[]>(() => {
   if (!project) return [];
   return [
     {
-      title: "General",
+      title: t("properties.general"),
       rows: [
-        { label: "Project", value: project.project_name },
-        { label: "Master URL", value: project.master_url },
-        { label: "User", value: project.user_name || "---" },
-        { label: "Team", value: project.team_name || "---" },
-        { label: "Venue", value: project.venue || "(default)" },
+        { label: t("properties.project.project"), value: project.project_name },
+        { label: t("properties.project.masterUrl"), value: project.master_url },
+        { label: t("properties.project.user"), value: project.user_name || "---" },
+        { label: t("properties.project.team"), value: project.team_name || "---" },
+        { label: t("properties.project.venue"), value: project.venue || t("properties.default") },
       ],
     },
     {
-      title: "Credits",
+      title: t("properties.credits"),
       rows: [
-        { label: "User total credit", value: formatCredit(project.user_total_credit) },
-        { label: "User avg credit", value: formatCredit(project.user_expavg_credit) },
-        { label: "Host total credit", value: formatCredit(project.host_total_credit) },
-        { label: "Host avg credit", value: formatCredit(project.host_expavg_credit) },
+        { label: t("properties.project.userTotalCredit"), value: formatCredit(project.user_total_credit) },
+        { label: t("properties.project.userAvgCredit"), value: formatCredit(project.user_expavg_credit) },
+        { label: t("properties.project.hostTotalCredit"), value: formatCredit(project.host_total_credit) },
+        { label: t("properties.project.hostAvgCredit"), value: formatCredit(project.host_expavg_credit) },
       ],
     },
     {
-      title: "Scheduling",
+      title: t("properties.scheduling"),
       rows: [
-        { label: "Resource share", value: String(project.resource_share) },
-        { label: "Priority", value: String(project.sched_priority) },
-        { label: "Duration correction", value: String(project.duration_correction_factor) },
+        { label: t("properties.project.resourceShare"), value: String(project.resource_share) },
+        { label: t("properties.project.priority"), value: String(project.sched_priority) },
+        { label: t("properties.project.durationCorrection"), value: String(project.duration_correction_factor) },
       ],
     },
     {
-      title: "Network",
+      title: t("properties.network"),
       rows: [
-        { label: "RPC failures", value: String(project.nrpc_failures) },
-        { label: "Min RPC time", value: formatDate(project.min_rpc_time) },
-        { label: "Last RPC time", value: formatDate(project.last_rpc_time) },
-        { label: "Download backoff", value: `${project.download_backoff}s` },
-        { label: "Upload backoff", value: `${project.upload_backoff}s` },
+        { label: t("properties.project.rpcFailures"), value: String(project.nrpc_failures) },
+        { label: t("properties.project.minRpcTime"), value: formatDate(project.min_rpc_time) },
+        { label: t("properties.project.lastRpcTime"), value: formatDate(project.last_rpc_time) },
+        { label: t("properties.project.downloadBackoff"), value: `${project.download_backoff}s` },
+        { label: t("properties.project.uploadBackoff"), value: `${project.upload_backoff}s` },
       ],
     },
     {
-      title: "Status",
+      title: t("properties.status"),
       rows: [
-        { label: "Suspended", value: project.suspended_via_gui ? "Yes" : "No" },
-        { label: "No new tasks", value: project.dont_request_more_work ? "Yes" : "No" },
-        { label: "Attached via account manager", value: project.attached_via_acct_mgr ? "Yes" : "No" },
-        { label: "Jobs succeeded", value: String(project.njobs_success) },
-        { label: "Jobs failed", value: String(project.njobs_error) },
-        { label: "Disk usage", value: formatMegabytes(project.disk_usage) },
+        { label: t("properties.project.suspended"), value: project.suspended_via_gui ? t("properties.yes") : t("properties.no") },
+        { label: t("properties.project.noNewTasks"), value: project.dont_request_more_work ? t("properties.yes") : t("properties.no") },
+        { label: t("properties.project.attachedViaMgr"), value: project.attached_via_acct_mgr ? t("properties.yes") : t("properties.no") },
+        { label: t("properties.project.jobsSucceeded"), value: String(project.njobs_success) },
+        { label: t("properties.project.jobsFailed"), value: String(project.njobs_error) },
+        { label: t("properties.project.diskUsage"), value: formatMegabytes(project.disk_usage) },
       ],
     },
   ];
@@ -218,8 +221,8 @@ const sections = computed(() =>
 
 const dialogTitle = computed(() =>
   props.type === "task"
-    ? props.task?.name ?? "Task Properties"
-    : props.project?.project_name ?? "Project Properties",
+    ? props.task?.name ?? t("properties.taskProperties")
+    : props.project?.project_name ?? t("properties.projectProperties"),
 );
 
 const guiUrls = computed(() =>
@@ -273,7 +276,7 @@ function copyAll() {
 
           <!-- GUI URLs (project only) -->
           <div v-if="guiUrls.length > 0" class="props-section">
-            <div class="section-title">Web Links</div>
+            <div class="section-title">{{ $t('properties.webLinks') }}</div>
             <div class="section-rows">
               <div v-for="gu in guiUrls" :key="gu.url" class="gui-url-row">
                 <div class="gui-url-name">{{ gu.name }}</div>
@@ -287,8 +290,8 @@ function copyAll() {
         </div>
 
         <div class="props-footer">
-          <button class="btn" @click="copyAll">Copy All</button>
-          <button class="btn btn-primary" @click="emit('close')">Close</button>
+          <button class="btn" @click="copyAll">{{ $t('properties.copyAll') }}</button>
+          <button class="btn btn-primary" @click="emit('close')">{{ $t('properties.close') }}</button>
         </div>
       </div>
     </div>

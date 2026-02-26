@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
+import { useI18n } from "vue-i18n";
 import { acctMgrInfo, acctMgrRpc, acctMgrRpcPoll } from "../composables/useRpc";
 import type { AcctMgrInfo } from "../types/boinc";
 import {
@@ -12,6 +13,7 @@ import {
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
+const { t } = useI18n();
 const step = ref<"form" | "processing" | "result">("form");
 const loading = ref(false);
 const error = ref("");
@@ -53,7 +55,7 @@ async function loadCurrentInfo() {
 
 async function doAttach() {
   if (!mgrUrl.value.trim()) {
-    error.value = "Please enter an account manager URL";
+    error.value = t("accountManager.enterUrl");
     return;
   }
 
@@ -74,11 +76,11 @@ async function doAttach() {
     }
 
     if (reply && reply.error_num === 0) {
-      resultMessage.value = "Successfully attached to account manager!";
+      resultMessage.value = t("accountManager.successAttach");
       step.value = "result";
     } else {
       error.value =
-        reply?.messages?.join(", ") || "Failed to attach to account manager";
+        reply?.messages?.join(", ") || t("accountManager.failAttach");
       step.value = "form";
     }
   } catch (e) {
@@ -105,12 +107,12 @@ async function doDetach() {
     }
 
     if (reply && reply.error_num === 0) {
-      resultMessage.value = "Successfully detached from account manager.";
+      resultMessage.value = t("accountManager.successDetach");
       currentMgr.value = null;
       step.value = "result";
     } else {
       error.value =
-        reply?.messages?.join(", ") || "Failed to detach from account manager";
+        reply?.messages?.join(", ") || t("accountManager.failDetach");
       step.value = "form";
     }
   } catch (e) {
@@ -143,10 +145,10 @@ function close() {
           <h3 id="account-manager-wizard-title">
             {{
               step === "form"
-                ? "Account Manager"
+                ? $t('accountManager.title')
                 : step === "processing"
-                  ? "Processing..."
-                  : "Done"
+                  ? $t('accountManager.processing')
+                  : $t('accountManager.done')
             }}
           </h3>
           <button class="close-btn" aria-label="Close" @click="close">&times;</button>
@@ -156,22 +158,22 @@ function close() {
         <div v-if="step === 'form'" class="wizard-body">
           <!-- Current manager info -->
           <div v-if="currentMgr?.have_credentials" class="current-mgr">
-            <div class="current-mgr-label">Currently attached to:</div>
+            <div class="current-mgr-label">{{ $t('accountManager.currentlyAttached') }}</div>
             <div class="current-mgr-name">{{ currentMgr.acct_mgr_name }}</div>
             <div class="current-mgr-url">{{ currentMgr.acct_mgr_url }}</div>
             <button class="btn btn-danger-outline detach-btn" @click="doDetach">
-              Detach
+              {{ $t('accountManager.detach') }}
             </button>
           </div>
 
           <div v-if="currentMgr?.have_credentials" class="divider">
-            <span>or attach to a different manager</span>
+            <span>{{ $t('accountManager.orAttachDifferent') }}</span>
           </div>
 
           <div v-if="error" class="wizard-error">{{ error }}</div>
 
           <label class="field">
-            <span>Manager URL</span>
+            <span>{{ $t('accountManager.managerUrl') }}</span>
             <input
               v-model="mgrUrl"
               type="text"
@@ -180,31 +182,31 @@ function close() {
           </label>
 
           <label class="field">
-            <span>User Name</span>
+            <span>{{ $t('accountManager.userName') }}</span>
             <input
               v-model="userName"
               type="text"
-              placeholder="Your user name"
+              :placeholder="$t('accountManager.userNamePlaceholder')"
             />
           </label>
 
           <label class="field">
-            <span>Password</span>
+            <span>{{ $t('accountManager.password') }}</span>
             <input
               v-model="password"
               type="password"
-              placeholder="Your password"
+              :placeholder="$t('accountManager.passwordPlaceholder')"
             />
           </label>
 
           <div class="wizard-actions">
-            <button class="btn" @click="close">Cancel</button>
+            <button class="btn" @click="close">{{ $t('accountManager.cancel') }}</button>
             <button
               class="btn btn-primary"
               :disabled="!mgrUrl.trim()"
               @click="doAttach"
             >
-              Attach
+              {{ $t('accountManager.attach') }}
             </button>
           </div>
         </div>
@@ -212,14 +214,14 @@ function close() {
         <!-- Step 2: Processing -->
         <div v-if="step === 'processing'" class="wizard-body wizard-center">
           <div class="spinner"></div>
-          <p>Communicating with account manager...</p>
+          <p>{{ $t('accountManager.communicating') }}</p>
         </div>
 
         <!-- Step 3: Result -->
         <div v-if="step === 'result'" class="wizard-body wizard-center">
           <div class="success-icon">&#10003;</div>
           <p>{{ resultMessage }}</p>
-          <button class="btn btn-primary" @click="close">Done</button>
+          <button class="btn btn-primary" @click="close">{{ $t('accountManager.done') }}</button>
         </div>
       </div>
     </div>

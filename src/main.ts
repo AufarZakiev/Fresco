@@ -1,6 +1,7 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import router from "./router";
+import i18n, { applyStoredLocale } from "./i18n";
 
 async function bootstrap() {
   // In a regular browser (no Tauri runtime), install IPC mocks
@@ -16,9 +17,17 @@ async function bootstrap() {
   // invoke("get_build_time") at module level.
   const { default: App } = await import("./App.vue");
 
+  const pinia = createPinia();
   const app = createApp(App);
-  app.use(createPinia());
+  app.use(pinia);
   app.use(router);
+  app.use(i18n);
+
+  // Apply saved language before first render
+  const { useManagerSettingsStore } = await import("./stores/managerSettings");
+  const managerSettings = useManagerSettingsStore();
+  await applyStoredLocale(managerSettings.settings.language);
+
   app.mount("#app");
 }
 

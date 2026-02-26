@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useTasksStore } from "../stores/tasks";
 import type { TaskResult } from "../types/boinc";
 import {
@@ -26,6 +27,7 @@ import { launchGraphics, launchRemoteDesktop } from "../composables/useRpc";
 import { useProjectsStore } from "../stores/projects";
 import { useToastStore } from "../stores/toast";
 
+const { t } = useI18n();
 const store = useTasksStore();
 const projectsStore = useProjectsStore();
 const toast = useToastStore();
@@ -62,18 +64,18 @@ function projectName(url: string): string {
   return projectNameByUrl.value.get(url) || url;
 }
 
-const allColumns: DataTableColumn[] = [
-  { key: "project", label: "Project", sortable: true },
-  { key: "progress", label: "Progress", sortable: true },
-  { key: "elapsed", label: "Elapsed", sortable: true, align: "right" },
-  { key: "remaining", label: "Remaining", sortable: true, align: "right" },
-  { key: "status", label: "Status", sortable: true },
-  { key: "resources", label: "Resources", sortable: true },
-  { key: "task", label: "Task", sortable: true },
-];
+const allColumns = computed<DataTableColumn[]>(() => [
+  { key: "project", label: t("tasks.col.project"), sortable: true },
+  { key: "progress", label: t("tasks.col.progress"), sortable: true },
+  { key: "elapsed", label: t("tasks.col.elapsed"), sortable: true, align: "right" },
+  { key: "remaining", label: t("tasks.col.remaining"), sortable: true, align: "right" },
+  { key: "status", label: t("tasks.col.status"), sortable: true },
+  { key: "resources", label: t("tasks.col.resources"), sortable: true },
+  { key: "task", label: t("tasks.col.task"), sortable: true },
+]);
 
 const columns = computed(() =>
-  allColumns.map((c) => ({ ...c, visible: visibleKeys.value.includes(c.key) })),
+  allColumns.value.map((c) => ({ ...c, visible: visibleKeys.value.includes(c.key) })),
 );
 
 function formatTime(seconds: number): string {
@@ -96,22 +98,22 @@ function taskStatus(task: {
   suspended_via_gui: boolean;
   ready_to_report: boolean;
 }): string {
-  if (task.ready_to_report) return "Ready to report";
-  if (task.suspended_via_gui) return "Suspended";
-  if (task.state === RESULT_STATE.FILES_DOWNLOADING) return "Downloading";
-  if (task.state === RESULT_STATE.FILES_UPLOADING) return "Uploading";
-  if (task.state === RESULT_STATE.COMPUTE_ERROR) return "Computation error";
-  if (task.state === RESULT_STATE.ABORTED) return "Aborted";
+  if (task.ready_to_report) return t("tasks.status.readyToReport");
+  if (task.suspended_via_gui) return t("tasks.status.suspended");
+  if (task.state === RESULT_STATE.FILES_DOWNLOADING) return t("tasks.status.downloading");
+  if (task.state === RESULT_STATE.FILES_UPLOADING) return t("tasks.status.uploading");
+  if (task.state === RESULT_STATE.COMPUTE_ERROR) return t("tasks.status.computeError");
+  if (task.state === RESULT_STATE.ABORTED) return t("tasks.status.aborted");
   if (task.active_task) {
     if (task.active_task_state === ACTIVE_TASK_STATE.EXECUTING) {
       return task.scheduler_state === SCHEDULER_STATE.SCHEDULED
-        ? "Running"
-        : "Waiting to run";
+        ? t("tasks.status.running")
+        : t("tasks.status.waitingToRun");
     }
     if (task.active_task_state === ACTIVE_TASK_STATE.SUSPENDED)
-      return "Suspended";
+      return t("tasks.status.suspended");
   }
-  return "Waiting";
+  return t("tasks.status.waiting");
 }
 
 function statusVariant(status: string): "default" | "success" | "warning" | "danger" | "info" {
@@ -182,7 +184,7 @@ const allSelectedSuspended = computed(() =>
 );
 
 const suspendResumeLabel = computed(() =>
-  allSelectedSuspended.value ? "Resume" : "Suspend",
+  allSelectedSuspended.value ? t("tasks.resume") : t("tasks.suspend"),
 );
 
 const allSelected = computed(() =>
@@ -245,28 +247,28 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
   const items: ContextMenuItem[] = [];
   const isSuspended = allSelectedSuspended.value;
   items.push({
-    label: isSuspended ? "Resume" : "Suspend",
+    label: isSuspended ? t("tasks.resume") : t("tasks.suspend"),
     action: "suspend-resume",
   });
   items.push({
-    label: "Show Graphics",
+    label: t("tasks.context.showGraphics"),
     action: "graphics",
     disabled: !hasGraphics.value,
   });
   items.push({
-    label: "Show VM Console",
+    label: t("tasks.context.showVmConsole"),
     action: "vm-console",
     disabled: !hasVmConsole.value,
   });
   items.push({ label: "", action: "", divider: true });
   items.push({
-    label: "Abort",
+    label: t("tasks.abort"),
     action: "abort",
     danger: true,
   });
   items.push({ label: "", action: "", divider: true });
   items.push({
-    label: "Properties",
+    label: t("tasks.properties"),
     action: "properties",
     disabled: selectedNames.value.size !== 1,
   });
@@ -342,9 +344,9 @@ async function handleSuspendResume() {
         await store.suspendTask(task.project_url, task.name);
       }
     }
-    toast.show(allSelectedSuspended.value ? "Tasks resumed" : "Tasks suspended", "success");
+    toast.show(allSelectedSuspended.value ? t("tasks.toast.resumed") : t("tasks.toast.suspended"), "success");
   } catch (e) {
-    toast.show(`Action failed: ${e}`, "error");
+    toast.show(t("tasks.toast.actionFailed", { error: String(e) }), "error");
   } finally {
     actionBusy.value = false;
   }
@@ -356,9 +358,9 @@ async function doAbort() {
     for (const task of selectedTasks.value) {
       await store.abortTask(task.project_url, task.name);
     }
-    toast.show("Tasks aborted", "success");
+    toast.show(t("tasks.toast.aborted"), "success");
   } catch (e) {
-    toast.show(`Abort failed: ${e}`, "error");
+    toast.show(t("tasks.toast.abortFailed", { error: String(e) }), "error");
   } finally {
     actionBusy.value = false;
     selectedNames.value = new Set();
@@ -395,28 +397,28 @@ function isColVisible(key: string): boolean {
 
 <template>
   <div class="tasks-view">
-    <PageHeader title="Tasks">
+    <PageHeader :title="$t('tasks.title')">
       <button
         :class="['btn', { 'btn-toggle-active': activeTasksOnly }]"
         @click="activeTasksOnly = !activeTasksOnly"
       >
-        Active Tasks Only
+        {{ $t('tasks.activeOnly') }}
       </button>
       <template v-if="hasSelection">
         <button class="btn" :disabled="actionBusy" @click="handleSuspendResume">
           {{ suspendResumeLabel }}
         </button>
         <button v-if="hasGraphics" class="btn" :disabled="actionBusy" @click="handleShowGraphics">
-          Graphics
+          {{ $t('tasks.graphics') }}
         </button>
         <button class="btn btn-danger" :disabled="actionBusy" @click="confirmAbort = true">
-          Abort
+          {{ $t('tasks.abort') }}
         </button>
         <button v-if="selectedNames.size === 1" class="btn" @click="openProperties">
-          Properties
+          {{ $t('tasks.properties') }}
         </button>
       </template>
-      <Tooltip text="Columns">
+      <Tooltip :text="$t('tasks.columns')">
         <button class="btn-columns" @click="showColumns = true">
           <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
             <rect x="1" y="2" width="3" height="12" rx="0.5" />
@@ -432,15 +434,15 @@ function isColVisible(key: string): boolean {
     <EmptyState
       v-else-if="store.loading && store.tasks.length === 0"
       icon="&#8987;"
-      message="Loading tasks..."
+      :message="$t('tasks.loading')"
     />
 
     <EmptyState
       v-else-if="filteredTasks.length === 0"
       icon="&#128203;"
       :message="activeTasksOnly
-        ? 'No active tasks right now.'
-        : 'No tasks. Attach a project to start computing.'"
+        ? $t('tasks.emptyActive')
+        : $t('tasks.emptyAll')"
     />
 
     <DataTable
@@ -490,7 +492,7 @@ function isColVisible(key: string): boolean {
             {{ taskStatus(task) }}
           </StatusBadge>
         </td>
-        <td v-if="isColVisible('resources')">{{ task.resources || "1 CPU" }}</td>
+        <td v-if="isColVisible('resources')">{{ task.resources || $t('tasks.defaultResources') }}</td>
         <td v-if="isColVisible('task')" class="col-name" :title="task.name">{{ task.wu_name }}</td>
       </tr>
     </DataTable>
@@ -506,9 +508,9 @@ function isColVisible(key: string): boolean {
 
     <ConfirmDialog
       :open="confirmAbort"
-      title="Abort Tasks"
-      :message="`Abort ${selectedNames.size} selected task(s)? This cannot be undone.`"
-      confirm-label="Abort"
+      :title="$t('tasks.abortDialog.title')"
+      :message="$t('tasks.abortDialog.message', selectedNames.size)"
+      :confirm-label="$t('tasks.abortDialog.confirm')"
       @confirm="doAbort"
       @cancel="confirmAbort = false"
     />

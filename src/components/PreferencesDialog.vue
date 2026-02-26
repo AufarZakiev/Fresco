@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
+import { useI18n } from "vue-i18n";
+import { SUPPORTED_LOCALES, loadLocale, resolveLocale } from "../i18n";
 import { usePreferencesStore } from "../stores/preferences";
 import { useManagerSettingsStore } from "../stores/managerSettings";
 import type { GlobalPreferences } from "../types/boinc";
@@ -20,6 +22,7 @@ const props = withDefaults(defineProps<{ open: boolean; initialTab?: TabName }>(
 });
 const emit = defineEmits<{ close: [] }>();
 
+const { t, locale } = useI18n({ useScope: "global" });
 const store = usePreferencesStore();
 const managerStore = useManagerSettingsStore();
 const activeTab = ref<TabName>("computing");
@@ -81,7 +84,11 @@ function initForm(prefs: GlobalPreferences) {
   dayEnabled.value = enabled;
 }
 
-const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const dayNames = computed(() => [
+  t("prefs.dayNames.sunday"), t("prefs.dayNames.monday"), t("prefs.dayNames.tuesday"),
+  t("prefs.dayNames.wednesday"), t("prefs.dayNames.thursday"), t("prefs.dayNames.friday"),
+  t("prefs.dayNames.saturday"),
+]);
 
 function getDayPref(dayOfWeek: number) {
   if (!form.value) return { day_of_week: dayOfWeek, start_hour: 0, end_hour: 0, net_start_hour: 0, net_end_hour: 0 };
@@ -107,7 +114,7 @@ function toggleDay(dayOfWeek: number, enabled: boolean) {
 }
 
 function fmtRange(start: number, end: number): string {
-  if (start === 0 && end === 0) return "All day";
+  if (start === 0 && end === 0) return t("prefs.schedule.allDay");
   return `${decimalHoursToTimeString(start)} – ${decimalHoursToTimeString(end)}`;
 }
 
@@ -124,6 +131,11 @@ function setDayField(dayOfWeek: number, field: "start_hour" | "end_hour" | "net_
 
 async function save() {
   // Always save manager settings
+  const resolved = resolveLocale(managerForm.value.language);
+  if (resolved !== locale.value) {
+    await loadLocale(resolved);
+    locale.value = resolved;
+  }
   Object.assign(managerStore.settings, managerForm.value);
   if (!form.value) {
     emit("close");
@@ -141,11 +153,11 @@ async function save() {
     <div v-if="open" class="dialog-overlay">
       <div class="prefs-dialog" role="dialog" aria-modal="true" aria-labelledby="preferences-dialog-title">
         <div class="prefs-header">
-          <h3 id="preferences-dialog-title">Preferences</h3>
+          <h3 id="preferences-dialog-title">{{ $t('prefs.title') }}</h3>
           <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
         </div>
 
-        <div v-if="store.loading && !form" class="prefs-loading">Loading preferences...</div>
+        <div v-if="store.loading && !form" class="prefs-loading">{{ $t('prefs.loading') }}</div>
 
         <template v-else-if="form">
           <div class="tabs">
@@ -154,24 +166,24 @@ async function save() {
               :class="{ active: activeTab === 'computing' }"
               @click="activeTab = 'computing'"
             >
-              Computing
+              {{ $t('prefs.tabs.computing') }}
             </button>
             <button
               class="tab"
               :class="{ active: activeTab === 'network' }"
               @click="activeTab = 'network'"
             >
-              Network
+              {{ $t('prefs.tabs.network') }}
             </button>
             <button
               class="tab"
               :class="{ active: activeTab === 'storage' }"
               @click="activeTab = 'storage'"
             >
-              Storage
+              {{ $t('prefs.tabs.storage') }}
             </button>
-            <button class="tab" :class="{ active: activeTab === 'schedule' }" @click="activeTab = 'schedule'">Schedule</button>
-            <button class="tab" :class="{ active: activeTab === 'manager' }" @click="activeTab = 'manager'">Manager</button>
+            <button class="tab" :class="{ active: activeTab === 'schedule' }" @click="activeTab = 'schedule'">{{ $t('prefs.tabs.schedule') }}</button>
+            <button class="tab" :class="{ active: activeTab === 'manager' }" @click="activeTab = 'manager'">{{ $t('prefs.tabs.manager') }}</button>
           </div>
 
           <div class="prefs-body">
@@ -179,43 +191,43 @@ async function save() {
             <div v-if="activeTab === 'computing'" class="prefs-section">
               <PrefToggleSwitch
                 v-model="form.run_on_batteries"
-                label="Run on batteries"
+                :label="$t('prefs.computing.runOnBatteries')"
                 field="run_on_batteries"
               />
               <PrefToggleSwitch
                 v-model="form.run_if_user_active"
-                label="Run if user is active"
+                :label="$t('prefs.computing.runIfUserActive')"
                 field="run_if_user_active"
               />
               <PrefNumericInput
                 v-model="form.idle_time_to_run"
-                label="Idle time before running (min)"
+                :label="$t('prefs.computing.idleTime')"
                 field="idle_time_to_run"
                 :min="0"
                 :step="1"
-                zero-label="No wait"
+                :zero-label="$t('prefs.zeroLabel.noWait')"
               />
               <PrefNumericInput
                 v-model="form.max_ncpus_pct"
-                label="Max CPUs used (%)"
+                :label="$t('prefs.computing.maxCpus')"
                 field="max_ncpus_pct"
                 :min="0"
                 :max="100"
                 :step="1"
-                zero-label="Use all"
+                :zero-label="$t('prefs.zeroLabel.useAll')"
               />
               <PrefNumericInput
                 v-model="form.cpu_usage_limit"
-                label="CPU usage limit (%)"
+                :label="$t('prefs.computing.cpuUsageLimit')"
                 field="cpu_usage_limit"
                 :min="0"
                 :max="100"
                 :step="1"
-                zero-label="No limit"
+                :zero-label="$t('prefs.zeroLabel.noLimit')"
               />
               <PrefNumericInput
                 v-model="form.ram_max_used_busy_frac"
-                label="RAM when busy (fraction)"
+                :label="$t('prefs.computing.ramBusy')"
                 field="ram_max_used_busy_frac"
                 :min="0"
                 :max="1"
@@ -223,7 +235,7 @@ async function save() {
               />
               <PrefNumericInput
                 v-model="form.ram_max_used_idle_frac"
-                label="RAM when idle (fraction)"
+                :label="$t('prefs.computing.ramIdle')"
                 field="ram_max_used_idle_frac"
                 :min="0"
                 :max="1"
@@ -231,54 +243,54 @@ async function save() {
               />
               <PrefTimeInput
                 v-model="form.start_hour"
-                label="Computing start hour"
+                :label="$t('prefs.computing.startHour')"
                 field="start_hour"
-                zero-label="All day"
+                :zero-label="$t('prefs.schedule.allDay')"
               />
               <PrefTimeInput
                 v-model="form.end_hour"
-                label="Computing end hour"
+                :label="$t('prefs.computing.endHour')"
                 field="end_hour"
-                zero-label="All day"
+                :zero-label="$t('prefs.schedule.allDay')"
               />
               <PrefNumericInput
                 v-model="form.suspend_if_no_recent_input"
-                label="Suspend if no recent input (min)"
+                :label="$t('prefs.computing.suspendNoInput')"
                 field="suspend_if_no_recent_input"
                 :min="0"
                 :step="1"
-                zero-label="Disabled"
+                :zero-label="$t('prefs.zeroLabel.disabled')"
               />
               <PrefNumericInput
                 v-model="form.suspend_cpu_usage"
-                label="Suspend if CPU usage above (%)"
+                :label="$t('prefs.computing.suspendCpuUsage')"
                 field="suspend_cpu_usage"
                 :min="0"
                 :max="100"
                 :step="1"
-                zero-label="Disabled"
+                :zero-label="$t('prefs.zeroLabel.disabled')"
               />
               <PrefToggleSwitch
                 v-model="form.leave_apps_in_memory"
-                label="Leave apps in memory"
+                :label="$t('prefs.computing.leaveInMemory')"
                 field="leave_apps_in_memory"
               />
               <PrefNumericInput
                 v-model="form.work_buf_additional_days"
-                label="Additional work buffer (days)"
+                :label="$t('prefs.computing.additionalBuffer')"
                 field="work_buf_additional_days"
                 :min="0"
                 :step="0.1"
               />
               <PrefNumericInput
                 v-model="form.cpu_scheduling_period_minutes"
-                label="CPU scheduling period (min)"
+                :label="$t('prefs.computing.schedulingPeriod')"
                 field="cpu_scheduling_period_minutes"
                 :min="0"
                 :step="1"
               />
-              <Tooltip text="Apps that should suspend BOINC while running" placement="bottom">
-                <button class="btn section-btn" @click="showExclusiveApps = true">Exclusive Applications...</button>
+              <Tooltip :text="$t('prefs.computing.exclusiveAppsTooltip')" placement="bottom">
+                <button class="btn section-btn" @click="showExclusiveApps = true">{{ $t('prefs.computing.exclusiveApps') }}</button>
               </Tooltip>
             </div>
 
@@ -286,72 +298,72 @@ async function save() {
             <div v-if="activeTab === 'network'" class="prefs-section">
               <PrefNumericInput
                 v-model="form.max_bytes_sec_down"
-                label="Max download rate (bytes/s)"
+                :label="$t('prefs.network.maxDownload')"
                 field="max_bytes_sec_down"
                 :min="0"
                 :step="1024"
-                zero-label="No limit"
+                :zero-label="$t('prefs.zeroLabel.noLimit')"
               />
               <PrefNumericInput
                 v-model="form.max_bytes_sec_up"
-                label="Max upload rate (bytes/s)"
+                :label="$t('prefs.network.maxUpload')"
                 field="max_bytes_sec_up"
                 :min="0"
                 :step="1024"
-                zero-label="No limit"
+                :zero-label="$t('prefs.zeroLabel.noLimit')"
               />
               <PrefNumericInput
                 v-model="form.daily_xfer_limit_mb"
-                label="Daily transfer limit (MB)"
+                :label="$t('prefs.network.dailyLimit')"
                 field="daily_xfer_limit_mb"
                 :min="0"
                 :step="100"
-                zero-label="No limit"
+                :zero-label="$t('prefs.zeroLabel.noLimit')"
               />
               <PrefTimeInput
                 v-model="form.net_start_hour"
-                label="Network start hour"
+                :label="$t('prefs.network.startHour')"
                 field="net_start_hour"
-                zero-label="All day"
+                :zero-label="$t('prefs.schedule.allDay')"
               />
               <PrefTimeInput
                 v-model="form.net_end_hour"
-                label="Network end hour"
+                :label="$t('prefs.network.endHour')"
                 field="net_end_hour"
-                zero-label="All day"
+                :zero-label="$t('prefs.schedule.allDay')"
               />
-              <button class="btn section-btn" @click="showProxy = true">Proxy Settings...</button>
+              <button class="btn section-btn" @click="showProxy = true">{{ $t('prefs.network.proxySettings') }}</button>
             </div>
 
             <!-- Storage tab -->
             <div v-if="activeTab === 'storage'" class="prefs-section">
               <PrefNumericInput
                 v-model="form.disk_max_used_gb"
-                label="Max disk used (GB)"
+                :label="$t('prefs.storage.maxDiskGb')"
                 field="disk_max_used_gb"
                 :min="0"
                 :step="1"
-                zero-label="No limit"
+                :zero-label="$t('prefs.zeroLabel.noLimit')"
               />
               <PrefNumericInput
                 v-model="form.disk_max_used_pct"
-                label="Max disk used (%)"
+                :label="$t('prefs.storage.maxDiskPct')"
                 field="disk_max_used_pct"
                 :min="0"
                 :max="100"
                 :step="1"
-                zero-label="No limit"
+                :zero-label="$t('prefs.zeroLabel.noLimit')"
               />
               <PrefNumericInput
                 v-model="form.disk_min_free_gb"
-                label="Min free disk (GB)"
+                :label="$t('prefs.storage.minFreeGb')"
                 field="disk_min_free_gb"
                 :min="0"
                 :step="0.1"
               />
               <PrefNumericInput
                 v-model="form.work_buf_min_days"
-                label="Work buffer (days)"
+                :label="$t('prefs.storage.workBuffer')"
                 field="work_buf_min_days"
                 :min="0"
                 :step="0.1"
@@ -360,7 +372,7 @@ async function save() {
 
             <!-- Schedule tab -->
             <div v-if="activeTab === 'schedule'" class="prefs-section">
-              <p class="section-desc">Override computing and network hours for specific days. Unchecked days use the global hours set above.</p>
+              <p class="section-desc">{{ $t('prefs.schedule.desc') }}</p>
               <div class="schedule-days">
                 <div v-for="(day, i) in dayNames" :key="i" class="schedule-day">
                   <div class="schedule-day-header">
@@ -395,64 +407,59 @@ async function save() {
             <!-- Manager tab -->
             <div v-if="activeTab === 'manager'" class="prefs-section">
               <div class="manager-row">
-                <span class="manager-label">Appearance</span>
+                <span class="manager-label">{{ $t('prefs.manager.appearance') }}</span>
                 <select v-model="managerForm.theme" class="manager-select">
-                  <option value="system">System</option>
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
+                  <option value="system">{{ $t('prefs.manager.themeSystem') }}</option>
+                  <option value="light">{{ $t('prefs.manager.themeLight') }}</option>
+                  <option value="dark">{{ $t('prefs.manager.themeDark') }}</option>
                 </select>
               </div>
 
               <div class="manager-row">
-                <span class="manager-label">Language</span>
+                <span class="manager-label">{{ $t('prefs.manager.language') }}</span>
                 <select v-model="managerForm.language" class="manager-select">
-                  <option value="auto">Auto-detect</option>
-                  <option value="en">English</option>
-                  <option value="de">Deutsch</option>
-                  <option value="fr">Français</option>
-                  <option value="es">Español</option>
-                  <option value="pt">Português</option>
-                  <option value="zh">中文</option>
-                  <option value="ja">日本語</option>
-                  <option value="ru">Русский</option>
+                  <option value="auto">{{ $t('prefs.manager.langAuto') }}</option>
+                  <option v-for="loc in SUPPORTED_LOCALES" :key="loc.code" :value="loc.code">
+                    {{ loc.name }}
+                  </option>
                 </select>
               </div>
 
               <div class="manager-row">
-                <span class="manager-label">Notice reminder</span>
+                <span class="manager-label">{{ $t('prefs.manager.noticeReminder') }}</span>
                 <select v-model="managerForm.reminderFrequency" class="manager-select">
-                  <option value="always">Every time</option>
-                  <option value="1h">Every hour</option>
-                  <option value="6h">Every 6 hours</option>
-                  <option value="1d">Once a day</option>
-                  <option value="1w">Once a week</option>
-                  <option value="never">Never</option>
+                  <option value="always">{{ $t('prefs.manager.reminderAlways') }}</option>
+                  <option value="1h">{{ $t('prefs.manager.reminder1h') }}</option>
+                  <option value="6h">{{ $t('prefs.manager.reminder6h') }}</option>
+                  <option value="1d">{{ $t('prefs.manager.reminder1d') }}</option>
+                  <option value="1w">{{ $t('prefs.manager.reminder1w') }}</option>
+                  <option value="never">{{ $t('prefs.manager.reminderNever') }}</option>
                 </select>
               </div>
 
               <label class="pref-row">
-                <span>Show exit confirmation</span>
+                <span>{{ $t('prefs.manager.showExitConfirm') }}</span>
                 <span class="toggle-switch" :class="{ on: managerForm.showExitConfirmation }" role="button" tabindex="0" @click.prevent="managerForm.showExitConfirmation = !managerForm.showExitConfirmation" @keydown.enter.prevent="managerForm.showExitConfirmation = !managerForm.showExitConfirmation" @keydown.space.prevent="managerForm.showExitConfirmation = !managerForm.showExitConfirmation">
                   <span class="toggle-knob" />
                 </span>
               </label>
 
               <label class="pref-row">
-                <span>Show shutdown confirmation</span>
+                <span>{{ $t('prefs.manager.showShutdownConfirm') }}</span>
                 <span class="toggle-switch" :class="{ on: managerForm.showShutdownConfirmation }" role="button" tabindex="0" @click.prevent="managerForm.showShutdownConfirmation = !managerForm.showShutdownConfirmation" @keydown.enter.prevent="managerForm.showShutdownConfirmation = !managerForm.showShutdownConfirmation" @keydown.space.prevent="managerForm.showShutdownConfirmation = !managerForm.showShutdownConfirmation">
                   <span class="toggle-knob" />
                 </span>
               </label>
 
               <label class="pref-row">
-                <span>Minimize to tray on close</span>
+                <span>{{ $t('prefs.manager.minimizeToTray') }}</span>
                 <span class="toggle-switch" :class="{ on: managerForm.minimizeToTrayOnClose }" role="button" tabindex="0" @click.prevent="managerForm.minimizeToTrayOnClose = !managerForm.minimizeToTrayOnClose" @keydown.enter.prevent="managerForm.minimizeToTrayOnClose = !managerForm.minimizeToTrayOnClose" @keydown.space.prevent="managerForm.minimizeToTrayOnClose = !managerForm.minimizeToTrayOnClose">
                   <span class="toggle-knob" />
                 </span>
               </label>
 
               <label class="pref-row">
-                <span>Start minimized to tray</span>
+                <span>{{ $t('prefs.manager.startMinimized') }}</span>
                 <span class="toggle-switch" :class="{ on: managerForm.startMinimizedToTray }" role="button" tabindex="0" @click.prevent="managerForm.startMinimizedToTray = !managerForm.startMinimizedToTray" @keydown.enter.prevent="managerForm.startMinimizedToTray = !managerForm.startMinimizedToTray" @keydown.space.prevent="managerForm.startMinimizedToTray = !managerForm.startMinimizedToTray">
                   <span class="toggle-knob" />
                 </span>
@@ -463,9 +470,9 @@ async function save() {
           <div v-if="store.error" class="prefs-error">{{ store.error }}</div>
 
           <div class="prefs-footer">
-            <button class="btn" @click="emit('close')">Cancel</button>
+            <button class="btn" @click="emit('close')">{{ $t('confirm.cancel') }}</button>
             <button class="btn btn-primary" :disabled="store.saving || !hasChanges" @click="save">
-              {{ store.saving ? "Saving..." : "Save" }}
+              {{ store.saving ? $t('prefs.saving') : $t('prefs.save') }}
             </button>
           </div>
         </template>

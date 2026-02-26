@@ -56,11 +56,11 @@ async function save() {
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
       <div class="proxy-dialog" role="dialog" aria-modal="true" aria-labelledby="proxy-settings-dialog-title">
         <div class="proxy-header">
-          <h3 id="proxy-settings-dialog-title">Proxy Settings</h3>
+          <h3 id="proxy-settings-dialog-title">{{ $t('proxy.title') }}</h3>
           <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
         </div>
 
-        <div v-if="loading" class="proxy-loading">Loading proxy settings...</div>
+        <div v-if="loading" class="proxy-loading">{{ $t('proxy.loading') }}</div>
 
         <template v-else-if="form">
           <div class="tabs">
@@ -69,14 +69,14 @@ async function save() {
               :class="{ active: activeTab === 'http' }"
               @click="activeTab = 'http'"
             >
-              HTTP Proxy
+              {{ $t('proxy.httpProxy') }}
             </button>
             <button
               class="tab"
               :class="{ active: activeTab === 'socks' }"
               @click="activeTab = 'socks'"
             >
-              SOCKS Proxy
+              {{ $t('proxy.socksProxy') }}
             </button>
           </div>
 
@@ -84,33 +84,33 @@ async function save() {
             <!-- HTTP Proxy tab -->
             <div v-if="activeTab === 'http'" class="proxy-section">
               <label class="pref-row">
-                <span>Use HTTP proxy</span>
+                <span>{{ $t('proxy.useHttp') }}</span>
                 <span class="toggle-switch" :class="{ on: form.use_http_proxy }" role="button" tabindex="0" @click.prevent="form.use_http_proxy = !form.use_http_proxy" @keydown.enter.prevent="form.use_http_proxy = !form.use_http_proxy" @keydown.space.prevent="form.use_http_proxy = !form.use_http_proxy">
                   <span class="toggle-knob" />
                 </span>
               </label>
               <template v-if="form.use_http_proxy">
                 <label class="pref-row">
-                  <span>Server name</span>
+                  <span>{{ $t('proxy.serverName') }}</span>
                   <input v-model="form.http_server_name" type="text" />
                 </label>
                 <label class="pref-row">
-                  <span>Port</span>
+                  <span>{{ $t('proxy.port') }}</span>
                   <input v-model.number="form.http_server_port" type="number" min="0" max="65535" />
                 </label>
                 <label class="pref-row">
-                  <span>Use HTTP authentication</span>
+                  <span>{{ $t('proxy.useHttpAuth') }}</span>
                   <span class="toggle-switch" :class="{ on: form.use_http_auth }" role="button" tabindex="0" @click.prevent="form.use_http_auth = !form.use_http_auth" @keydown.enter.prevent="form.use_http_auth = !form.use_http_auth" @keydown.space.prevent="form.use_http_auth = !form.use_http_auth">
                     <span class="toggle-knob" />
                   </span>
                 </label>
                 <template v-if="form.use_http_auth">
                   <label class="pref-row">
-                    <span>Username</span>
+                    <span>{{ $t('proxy.username') }}</span>
                     <input v-model="form.http_user_name" type="text" />
                   </label>
                   <label class="pref-row">
-                    <span>Password</span>
+                    <span>{{ $t('proxy.password') }}</span>
                     <input v-model="form.http_user_passwd" type="password" />
                   </label>
                 </template>
@@ -120,30 +120,30 @@ async function save() {
             <!-- SOCKS Proxy tab -->
             <div v-if="activeTab === 'socks'" class="proxy-section">
               <label class="pref-row">
-                <span>Use SOCKS proxy</span>
+                <span>{{ $t('proxy.useSocks') }}</span>
                 <span class="toggle-switch" :class="{ on: form.use_socks_proxy }" role="button" tabindex="0" @click.prevent="form.use_socks_proxy = !form.use_socks_proxy" @keydown.enter.prevent="form.use_socks_proxy = !form.use_socks_proxy" @keydown.space.prevent="form.use_socks_proxy = !form.use_socks_proxy">
                   <span class="toggle-knob" />
                 </span>
               </label>
               <template v-if="form.use_socks_proxy">
                 <label class="pref-row">
-                  <span>Server name</span>
+                  <span>{{ $t('proxy.serverName') }}</span>
                   <input v-model="form.socks_server_name" type="text" />
                 </label>
                 <label class="pref-row">
-                  <span>Port</span>
+                  <span>{{ $t('proxy.port') }}</span>
                   <input v-model.number="form.socks_server_port" type="number" min="0" max="65535" />
                 </label>
                 <label class="pref-row">
-                  <span>Username</span>
+                  <span>{{ $t('proxy.username') }}</span>
                   <input v-model="form.socks5_user_name" type="text" />
                 </label>
                 <label class="pref-row">
-                  <span>Password</span>
+                  <span>{{ $t('proxy.password') }}</span>
                   <input v-model="form.socks5_user_passwd" type="password" />
                 </label>
                 <label class="pref-row">
-                  <span>Use SOCKS5 remote DNS</span>
+                  <span>{{ $t('proxy.useSocks5Dns') }}</span>
                   <span class="toggle-switch" :class="{ on: form.socks5_remote_dns }" role="button" tabindex="0" @click.prevent="form.socks5_remote_dns = !form.socks5_remote_dns" @keydown.enter.prevent="form.socks5_remote_dns = !form.socks5_remote_dns" @keydown.space.prevent="form.socks5_remote_dns = !form.socks5_remote_dns">
                     <span class="toggle-knob" />
                   </span>
@@ -154,7 +154,7 @@ async function save() {
             <!-- Common section -->
             <div class="proxy-section noproxy-section">
               <label class="pref-row noproxy-row">
-                <span>No proxy hosts (comma-separated)</span>
+                <span>{{ $t('proxy.noProxyHosts') }}</span>
                 <textarea v-model="form.noproxy_hosts" rows="3"></textarea>
               </label>
             </div>
@@ -163,9 +163,9 @@ async function save() {
           <div v-if="error" class="proxy-error">{{ error }}</div>
 
           <div class="proxy-footer">
-            <button class="btn" @click="emit('close')">Cancel</button>
+            <button class="btn" @click="emit('close')">{{ $t('proxy.cancel') }}</button>
             <button class="btn btn-primary" :disabled="saving" @click="save">
-              {{ saving ? "Saving..." : "Save" }}
+              {{ saving ? $t('proxy.saving') : $t('proxy.save') }}
             </button>
           </div>
         </template>

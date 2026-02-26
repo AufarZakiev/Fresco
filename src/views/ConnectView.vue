@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
 import Tooltip from "../components/Tooltip.vue";
 import { getOS, defaultDataDir, defaultClientDir, type OS } from "../composables/usePlatform";
 import { useConnectionStore } from "../stores/connection";
@@ -16,6 +17,7 @@ import { startBoincClient } from "../composables/useRpc";
 import { CONNECTION_STATE, CONNECTION_MODE } from "../types/boinc";
 import type { ConnectionMode } from "../types/boinc";
 
+const { t } = useI18n();
 const connection = useConnectionStore();
 const tasks = useTasksStore();
 const projects = useProjectsStore();
@@ -129,10 +131,10 @@ async function handleConnect() {
 
     // If local connection failed with a non-auth error, try auto-starting BOINC
     if (connection.state !== CONNECTION_STATE.CONNECTED && connection.state !== CONNECTION_STATE.AUTH_ERROR) {
-      statusMessage.value = "Starting BOINC client...";
+      statusMessage.value = t("connect.startingBoinc");
       try {
         await startBoincClient(dataDir.value, clientDir.value);
-        statusMessage.value = "BOINC client started, connecting...";
+        statusMessage.value = t("connect.boincStartedConnecting");
         await connection.connectToLocal(dataDir.value);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -180,7 +182,7 @@ function formatTimestamp(ts: number): string {
 <template>
   <div class="connect-view">
     <div class="connect-card">
-      <h2 class="connect-title">Connect to BOINC Client</h2>
+      <h2 class="connect-title">{{ $t('connect.title') }}</h2>
 
       <div class="mode-toggle">
         <button
@@ -188,14 +190,14 @@ function formatTimestamp(ts: number): string {
           :class="{ active: mode === CONNECTION_MODE.LOCAL }"
           @click="mode = CONNECTION_MODE.LOCAL"
         >
-          Local
+          {{ $t('connect.local') }}
         </button>
         <button
           class="toggle-btn"
           :class="{ active: mode === CONNECTION_MODE.REMOTE }"
           @click="mode = CONNECTION_MODE.REMOTE"
         >
-          Remote
+          {{ $t('connect.remote') }}
         </button>
       </div>
 
@@ -203,23 +205,23 @@ function formatTimestamp(ts: number): string {
         <!-- Local mode -->
         <template v-if="mode === CONNECTION_MODE.LOCAL">
           <label class="field">
-            <span class="field-label">Data directory</span>
+            <span class="field-label">{{ $t('connect.dataDir') }}</span>
             <input
               v-model="dataDir"
               type="text"
               class="field-input"
               :disabled="connecting"
-              placeholder="Path to BOINC data directory"
+              :placeholder="$t('connect.dataDirPlaceholder')"
             />
           </label>
           <label class="field">
-            <span class="field-label">Client directory</span>
+            <span class="field-label">{{ $t('connect.clientDir') }}</span>
             <input
               v-model="clientDir"
               type="text"
               class="field-input"
               :disabled="connecting"
-              placeholder="Path to BOINC client executable"
+              :placeholder="$t('connect.clientDirPlaceholder')"
             />
           </label>
         </template>
@@ -227,7 +229,7 @@ function formatTimestamp(ts: number): string {
         <!-- Remote mode -->
         <template v-if="mode === CONNECTION_MODE.REMOTE">
           <label class="field">
-            <span class="field-label">Host</span>
+            <span class="field-label">{{ $t('connect.host') }}</span>
             <input
               v-model="host"
               type="text"
@@ -237,7 +239,7 @@ function formatTimestamp(ts: number): string {
             />
           </label>
           <label class="field">
-            <span class="field-label">Port</span>
+            <span class="field-label">{{ $t('connect.port') }}</span>
             <input
               v-model.number="port"
               type="number"
@@ -247,13 +249,13 @@ function formatTimestamp(ts: number): string {
             />
           </label>
           <label class="field">
-            <span class="field-label">Password</span>
+            <span class="field-label">{{ $t('connect.password') }}</span>
             <input
               v-model="password"
               type="password"
               class="field-input"
               :disabled="connecting"
-              placeholder="GUI RPC password"
+              :placeholder="$t('connect.passwordPlaceholder')"
             />
           </label>
         </template>
@@ -263,7 +265,7 @@ function formatTimestamp(ts: number): string {
           :disabled="connecting"
           @click="handleConnect"
         >
-          {{ statusMessage ?? (connecting ? "Connecting..." : "Connect") }}
+          {{ statusMessage ?? (connecting ? $t('connect.connecting') : $t('connect.connect')) }}
         </button>
 
         <p v-if="connection.error && !statusMessage" class="error">{{ connection.error }}</p>
@@ -271,7 +273,7 @@ function formatTimestamp(ts: number): string {
 
       <!-- Recent connections -->
       <div v-if="recentConnections.length > 0" class="recent-section">
-        <h3 class="recent-title">Recent Connections</h3>
+        <h3 class="recent-title">{{ $t('connect.recentConnections') }}</h3>
         <ul class="recent-list">
           <li
             v-for="(entry, index) in recentConnections"
@@ -279,11 +281,11 @@ function formatTimestamp(ts: number): string {
             class="recent-item"
           >
             <button class="recent-btn" @click="applyRecent(entry)">
-              <span class="recent-mode-badge">{{ entry.mode === CONNECTION_MODE.LOCAL ? "Local" : "Remote" }}</span>
+              <span class="recent-mode-badge">{{ entry.mode === CONNECTION_MODE.LOCAL ? $t('connect.local') : $t('connect.remote') }}</span>
               <span class="recent-label">{{ entry.label }}</span>
               <span class="recent-time">{{ formatTimestamp(entry.timestamp) }}</span>
             </button>
-            <Tooltip text="Remove">
+            <Tooltip :text="$t('connect.remove')">
               <button
                 class="recent-remove"
                 @click.stop="removeRecent(index)"

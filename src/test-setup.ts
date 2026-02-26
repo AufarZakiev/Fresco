@@ -5,6 +5,11 @@
 // it with a simple Map-backed implementation that satisfies the Storage
 // interface used by the tests.
 
+import { config } from "@vue/test-utils";
+import i18n from "./i18n";
+
+config.global.plugins = [i18n];
+
 const _storage = new Map<string, string>();
 
 Object.defineProperty(globalThis, "localStorage", {

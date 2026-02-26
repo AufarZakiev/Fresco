@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import Tooltip from "./Tooltip.vue";
 import { useUpdateCheck, startBackgroundDownload } from "../composables/useUpdateCheck";
 
+const { t } = useI18n();
 const { releaseDate, assetUrl, updateOnExit, dismissUpdate } = useUpdateCheck();
 const updating = ref(false);
 const updateError = ref("");
@@ -24,7 +26,7 @@ function formatDate(iso: string): string {
 
 async function updateNow() {
   if (!assetUrl.value) {
-    updateError.value = "No download URL available for your platform";
+    updateError.value = t("about.noDownloadUrl");
     return;
   }
   updating.value = true;
@@ -57,13 +59,13 @@ function setUpdateOnExit() {
   <Teleport to="body">
     <div class="update-notification">
       <div class="update-header">
-        <span class="update-title">Update available</span>
-        <Tooltip text="Dismiss">
+        <span class="update-title">{{ $t('updateBanner.title') }}</span>
+        <Tooltip :text="$t('updateBanner.dismiss')">
           <button class="close-btn" @click="dismissUpdate">&times;</button>
         </Tooltip>
       </div>
       <p class="update-text">
-        A newer version of Fresco was released on {{ formatDate(releaseDate) }}
+        {{ $t('updateBanner.text', { date: formatDate(releaseDate) }) }}
       </p>
       <p v-if="updateError" class="update-error">{{ updateError }}</p>
       <div class="update-actions">
@@ -72,13 +74,13 @@ function setUpdateOnExit() {
           :disabled="updating || !assetUrl"
           @click="updateNow"
         >
-          {{ updating ? "Updating..." : "Update now" }}
+          {{ updating ? $t('updateBanner.updating') : $t('updateBanner.updateNow') }}
         </button>
         <button class="btn" :disabled="updating" @click="setUpdateOnExit">
-          Update on exit
+          {{ $t('updateBanner.updateOnExit') }}
         </button>
         <button class="btn" :disabled="updating" @click="dismissUpdate">
-          Remind me later
+          {{ $t('updateBanner.remindLater') }}
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch, nextTick } from "vue";
+import { useI18n } from "vue-i18n";
 import { useMessagesStore } from "../stores/messages";
 import { MSG_PRIORITY, SORT_DIR } from "../types/boinc";
 import type { Message, SortDir } from "../types/boinc";
@@ -11,6 +12,7 @@ import StatusBadge from "../components/StatusBadge.vue";
 import LogFlagsDialog from "../components/LogFlagsDialog.vue";
 import { useColumnState } from "../composables/useColumnState";
 
+const { t } = useI18n();
 const store = useMessagesStore();
 const showLogFlags = ref(false);
 const selectedSeqnos = ref<Set<number>>(new Set());
@@ -27,15 +29,15 @@ const { sortKey, sortDir } = useColumnState(
   SORT_DIR.ASC,
 );
 
-const allColumns: DataTableColumn[] = [
-  { key: "time", label: "Time", sortable: true },
-  { key: "project", label: "Project", sortable: true },
-  { key: "type", label: "Type", sortable: true },
-  { key: "message", label: "Message", sortable: true },
-];
+const allColumns = computed<DataTableColumn[]>(() => [
+  { key: "time", label: t("messages.col.time"), sortable: true },
+  { key: "project", label: t("messages.col.project"), sortable: true },
+  { key: "type", label: t("messages.col.type"), sortable: true },
+  { key: "message", label: t("messages.col.message"), sortable: true },
+]);
 
 const columns = computed(() =>
-  allColumns.map((c) => ({ ...c, visible: true })),
+  allColumns.value.map((c) => ({ ...c, visible: true })),
 );
 
 function formatTimestamp(ts: number): string {
@@ -50,9 +52,9 @@ function priorityClass(priority: number): string {
 }
 
 function priorityLabel(priority: number): string {
-  if (priority === MSG_PRIORITY.INTERNAL_ERROR) return "Error";
-  if (priority === MSG_PRIORITY.USER_ALERT) return "Alert";
-  return "Info";
+  if (priority === MSG_PRIORITY.INTERNAL_ERROR) return t("messages.priority.error");
+  if (priority === MSG_PRIORITY.USER_ALERT) return t("messages.priority.alert");
+  return t("messages.priority.info");
 }
 
 function priorityVariant(priority: number): "default" | "warning" | "danger" {
@@ -197,11 +199,11 @@ onUnmounted(() => {
 
 <template>
   <div class="messages-view">
-    <PageHeader title="Event Log">
-      <button class="btn" @click="showLogFlags = true">Log Flags...</button>
-      <button class="btn" @click="selectAll">Select All</button>
+    <PageHeader :title="$t('messages.title')">
+      <button class="btn" @click="showLogFlags = true">{{ $t('messages.logFlags') }}</button>
+      <button class="btn" @click="selectAll">{{ $t('messages.selectAll') }}</button>
       <button class="btn" @click="copySelectedToClipboard">
-        {{ selectedSeqnos.size > 0 ? `Copy Selected (${selectedSeqnos.size})` : "Copy All" }}
+        {{ selectedSeqnos.size > 0 ? $t('messages.copySelected', selectedSeqnos.size) : $t('messages.copyAll') }}
       </button>
     </PageHeader>
 
@@ -214,7 +216,7 @@ onUnmounted(() => {
           v-model="store.searchText"
           type="text"
           class="search-input"
-          placeholder="Search messages..."
+          :placeholder="$t('messages.searchPlaceholder')"
         />
       </div>
 
@@ -223,19 +225,19 @@ onUnmounted(() => {
           :class="['btn', 'type-btn', { active: typeFilter === 'all' }]"
           @click="typeFilter = 'all'"
         >
-          All
+          {{ $t('messages.filterAll') }}
         </button>
         <button
           :class="['btn', 'type-btn', { active: typeFilter === 'alerts' }]"
           @click="typeFilter = 'alerts'"
         >
-          User Alerts
+          {{ $t('messages.filterAlerts') }}
         </button>
         <button
           :class="['btn', 'type-btn', { active: typeFilter === 'errors' }]"
           @click="typeFilter = 'errors'"
         >
-          Errors
+          {{ $t('messages.filterErrors') }}
         </button>
       </div>
     </div>
@@ -243,7 +245,7 @@ onUnmounted(() => {
     <EmptyState
       v-if="sortedMessages.length === 0"
       icon="&#x1f4ac;"
-      message="No messages to display."
+      :message="$t('messages.empty')"
     />
 
     <DataTable

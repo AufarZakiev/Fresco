@@ -54,7 +54,7 @@ function save() {
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
       <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="column-dialog-title">
         <div class="dialog-header">
-          <h3 id="column-dialog-title">Columns</h3>
+          <h3 id="column-dialog-title">{{ $t('columns.title') }}</h3>
           <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
         </div>
         <div class="dialog-body">
@@ -72,8 +72,8 @@ function save() {
           </label>
         </div>
         <div class="dialog-footer">
-          <button class="btn" @click="emit('close')">Cancel</button>
-          <button class="btn btn-primary" @click="save">Apply</button>
+          <button class="btn" @click="emit('close')">{{ $t('columns.cancel') }}</button>
+          <button class="btn btn-primary" @click="save">{{ $t('columns.apply') }}</button>
         </div>
       </div>
     </div>

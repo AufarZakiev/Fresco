@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { useI18n } from "vue-i18n";
 import Tooltip from "./Tooltip.vue";
 import { usePreferencesStore } from "../stores/preferences";
 import type { GlobalPreferences } from "../types/boinc";
@@ -24,6 +25,7 @@ const emit = defineEmits<{
   "popover-leave": [];
 }>();
 
+const { t } = useI18n();
 const store = usePreferencesStore();
 const popoverRef = ref<HTMLElement | null>(null);
 const popoverStyle = ref<Record<string, string>>({});
@@ -54,8 +56,8 @@ const hasOverride = computed(() => {
 });
 
 function formatValue(val: number | boolean): string {
-  if (typeof val === "boolean") return val ? "On" : "Off";
-  if (val === 0) return props.zeroLabel ?? "Default";
+  if (typeof val === "boolean") return val ? t("prefSource.on") : t("prefSource.off");
+  if (val === 0) return props.zeroLabel ?? t("prefSource.default");
   if (props.isTimeField) return decimalHoursToTimeString(val);
   return String(val);
 }
@@ -127,14 +129,14 @@ onUnmounted(() => {
       @mouseenter="emit('popover-enter')"
       @mouseleave="emit('popover-leave')"
     >
-      <div class="popover-header">Preference sources</div>
+      <div class="popover-header">{{ $t('prefSource.title') }}</div>
 
       <!-- Your override -->
       <div v-if="hasOverride" class="source-row">
         <span class="source-dot override" />
-        <span class="source-label">Your override</span>
+        <span class="source-label">{{ $t('prefSource.yourOverride') }}</span>
         <span class="source-value">{{ formatValue(overrideValue) }}</span>
-        <Tooltip text="Clear override">
+        <Tooltip :text="$t('prefSource.clearOverride')">
           <button class="source-action clear" @click="emit('clear-override')">
             &times;
           </button>
@@ -144,9 +146,9 @@ onUnmounted(() => {
       <!-- Project default -->
       <div v-if="hasFileValue" class="source-row">
         <span class="source-dot file" />
-        <span class="source-label">Account manager</span>
+        <span class="source-label">{{ $t('prefSource.accountManager') }}</span>
         <span class="source-value">{{ formatValue(fileValue!) }}</span>
-        <Tooltip text="Use this value">
+        <Tooltip :text="$t('prefSource.useThisValue')">
           <button
             class="source-action adopt"
             @click="emit('adopt-value', fileValue!)"
@@ -159,7 +161,7 @@ onUnmounted(() => {
       <!-- Initial (hardcoded BOINC default) -->
       <div class="source-row">
         <span class="source-dot initial" />
-        <span class="source-label">Default</span>
+        <span class="source-label">{{ $t('prefSource.default') }}</span>
         <span class="source-value">{{ formatValue(initialValue) }}</span>
       </div>
     </div>

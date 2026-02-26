@@ -43,18 +43,18 @@ onUnmounted(() => {
 
 <template>
   <div class="notices-view">
-    <PageHeader title="Notices" />
+    <PageHeader :title="$t('notices.title')" />
 
     <p v-if="store.error" class="error-text">{{ store.error }}</p>
 
     <div v-if="store.loading && store.notices.length === 0" class="loading-text">
-      Loading notices...
+      {{ $t('notices.loading') }}
     </div>
 
     <EmptyState
       v-else-if="store.notices.length === 0 && !store.loading"
       icon="&#x1f4f0;"
-      message="No notices at this time."
+      :message="$t('notices.empty')"
     />
 
     <div v-else class="notices-list">
