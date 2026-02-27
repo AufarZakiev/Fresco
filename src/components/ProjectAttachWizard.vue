@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import DOMPurify from "dompurify";
@@ -17,6 +17,7 @@ import {
 } from "../composables/useRpc";
 import type { ProjectListEntry, ProjectConfig } from "../types/boinc";
 import { useProjectsStore } from "../stores/projects";
+import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 import {
   BOINC_ERROR_IN_PROGRESS,
   MAX_ATTACH_POLL_ATTEMPTS,
@@ -25,6 +26,13 @@ import {
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+const { activate, deactivate } = useFocusTrap(dialogRef);
+watch(() => props.open, async (isOpen) => {
+  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
+  else { deactivate(); }
+});
 
 const { t } = useI18n();
 const projects = useProjectsStore();
@@ -252,7 +260,7 @@ onKeyStroke("Escape", () => {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="close">
-      <div class="wizard" role="dialog" aria-modal="true" aria-labelledby="project-attach-wizard-title">
+      <div ref="dialogRef" class="wizard" role="dialog" aria-modal="true" aria-labelledby="project-attach-wizard-title">
         <div class="wizard-header">
           <h3 id="project-attach-wizard-title">
             {{ step === 1 ? $t('projectAttach.title')

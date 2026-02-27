@@ -1,12 +1,20 @@
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { getCcConfig, setCcConfig } from "../composables/useRpc";
 import type { CcConfig, LogFlags } from "../types/boinc";
+import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+const { activate, deactivate } = useFocusTrap(dialogRef);
+watch(() => props.open, async (isOpen) => {
+  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
+  else { deactivate(); }
+});
 
 const { t } = useI18n();
 const loading = ref(false);
@@ -73,7 +81,7 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="logflags-dialog" role="dialog" aria-modal="true" aria-labelledby="log-flags-dialog-title">
+      <div ref="dialogRef" class="logflags-dialog" role="dialog" aria-modal="true" aria-labelledby="log-flags-dialog-title">
         <div class="logflags-header">
           <h3 id="log-flags-dialog-title">{{ $t('logFlags.title') }}</h3>
           <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>

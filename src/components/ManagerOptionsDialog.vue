@@ -1,11 +1,19 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { nextTick, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
 import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { useManagerSettingsStore } from "../stores/managerSettings";
+import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+const { activate, deactivate } = useFocusTrap(dialogRef);
+watch(() => props.open, async (isOpen) => {
+  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
+  else { deactivate(); }
+});
 
 const store = useManagerSettingsStore();
 const form = ref({ ...store.settings });
@@ -40,7 +48,7 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="options-dialog" role="dialog" aria-modal="true" aria-labelledby="manager-options-dialog-title">
+      <div ref="dialogRef" class="options-dialog" role="dialog" aria-modal="true" aria-labelledby="manager-options-dialog-title">
         <div class="options-header">
           <h3 id="manager-options-dialog-title">{{ $t('managerOptions.title') }}</h3>
           <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>

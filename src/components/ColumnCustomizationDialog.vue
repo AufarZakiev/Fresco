@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { nextTick, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
 import type { DataTableColumn } from "./DataTable.vue";
+import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
 const props = defineProps<{
   open: boolean;
@@ -13,6 +14,13 @@ const emit = defineEmits<{
   update: [keys: string[]];
   close: [];
 }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+const { activate, deactivate } = useFocusTrap(dialogRef);
+watch(() => props.open, async (isOpen) => {
+  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
+  else { deactivate(); }
+});
 
 const localKeys = ref<Set<string>>(new Set());
 
@@ -52,7 +60,7 @@ function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="column-dialog-title">
+      <div ref="dialogRef" class="dialog" role="dialog" aria-modal="true" aria-labelledby="column-dialog-title">
         <div class="dialog-header">
           <h3 id="column-dialog-title">{{ $t('columns.title') }}</h3>
           <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>

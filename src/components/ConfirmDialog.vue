@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { ref, nextTick, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
+import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
 const props = defineProps<{
   open: boolean;
@@ -13,6 +15,13 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 
+const dialogRef = ref<HTMLElement | null>(null);
+const { activate, deactivate } = useFocusTrap(dialogRef);
+watch(() => props.open, async (isOpen) => {
+  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
+  else { deactivate(); }
+});
+
 onKeyStroke("Escape", () => {
   if (!props.open) return;
   emit("cancel");
@@ -22,7 +31,7 @@ onKeyStroke("Escape", () => {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('cancel')">
-      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+      <div ref="dialogRef" class="dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
         <h3 id="confirm-dialog-title">{{ title }}</h3>
         <p>{{ message }}</p>
         <div class="dialog-actions">

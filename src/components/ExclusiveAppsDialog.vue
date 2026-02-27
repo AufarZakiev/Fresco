@@ -1,11 +1,19 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { nextTick, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
 import { getCcConfig, setCcConfig } from "../composables/useRpc";
 import type { CcConfig } from "../types/boinc";
+import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+const { activate, deactivate } = useFocusTrap(dialogRef);
+watch(() => props.open, async (isOpen) => {
+  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
+  else { deactivate(); }
+});
 
 const loading = ref(false);
 const saving = ref(false);
@@ -111,7 +119,7 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="exclusive-dialog" role="dialog" aria-modal="true" aria-labelledby="exclusive-apps-dialog-title">
+      <div ref="dialogRef" class="exclusive-dialog" role="dialog" aria-modal="true" aria-labelledby="exclusive-apps-dialog-title">
         <div class="exclusive-header">
           <h3 id="exclusive-apps-dialog-title">{{ $t('exclusiveApps.title') }}</h3>
           <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>

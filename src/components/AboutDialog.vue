@@ -1,12 +1,20 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { nextTick, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { useUpdateCheck, startBackgroundDownload } from "../composables/useUpdateCheck";
+import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+const { activate, deactivate } = useFocusTrap(dialogRef);
+watch(() => props.open, async (isOpen) => {
+  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
+  else { deactivate(); }
+});
 
 const { t } = useI18n();
 const updating = ref(false);
@@ -111,7 +119,7 @@ async function openGitHub() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-dialog-title">
+      <div ref="dialogRef" class="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-dialog-title">
         <div class="about-logo">
           <img src="/icon.png" alt="Fresco" width="64" height="64" />
         </div>
