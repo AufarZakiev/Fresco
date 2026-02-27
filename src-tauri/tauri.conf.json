@@ -68,6 +68,7 @@
       "icons/icon.ico"
     ],
     "macOS": {
+      "bundleVersion": "1",
       "dmg": {
         "background": "icons/dmg-background.png",
         "windowSize": {

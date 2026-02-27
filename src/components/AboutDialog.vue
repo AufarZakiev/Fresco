@@ -11,6 +11,7 @@ const emit = defineEmits<{ close: [] }>();
 const { t } = useI18n();
 const updating = ref(false);
 const updateError = ref("");
+const appVersion = ref("");
 const {
   buildTime,
   updateAvailable,
@@ -22,6 +23,10 @@ const {
   checkForUpdates,
   dismissUpdate,
 } = useUpdateCheck();
+
+import("@tauri-apps/api/app").then(({ getVersion }) => getVersion()).then((v) => {
+  appVersion.value = v;
+}).catch(() => {});
 
 onKeyStroke("Escape", () => {
   if (!props.open) return;
@@ -116,6 +121,7 @@ async function openGitHub() {
           <img src="/icon.png" alt="Fresco" width="64" height="64" />
         </div>
         <h3 id="about-dialog-title">{{ $t('about.title') }}</h3>
+        <p v-if="appVersion" class="app-version">v{{ appVersion }}</p>
         <p class="build-time">{{ $t('about.built', { time: formatBuildTime(buildTime) }) }}</p>
         <p class="description">
           {{ $t('about.description') }}
@@ -198,6 +204,13 @@ async function openGitHub() {
   margin: 0 0 4px;
   font-size: var(--font-size-xl);
   font-weight: 600;
+}
+
+.app-version {
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin: 0 0 2px;
 }
 
 .build-time {
