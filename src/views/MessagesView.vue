@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch, nextTick } from "vue";
-import { onKeyStroke } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
+import { useScroll, onKeyStroke } from "@vueuse/core";
 import { useMessagesStore } from "../stores/messages";
 import { MSG_PRIORITY, SORT_DIR } from "../types/boinc";
 import type { Message, SortDir } from "../types/boinc";
@@ -19,6 +19,7 @@ const showLogFlags = ref(false);
 const selectedSeqnos = ref<Set<number>>(new Set());
 const tableWrapper = ref<HTMLElement | null>(null);
 const isAtBottom = ref(true);
+const { y: scrollY } = useScroll(tableWrapper);
 
 type TypeFilter = "all" | "alerts" | "errors";
 const typeFilter = ref<TypeFilter>("all");
@@ -155,12 +156,6 @@ async function copySelectedToClipboard() {
 }
 
 // Auto-scroll logic
-function onTableScroll(event: Event) {
-  const el = event.target as HTMLElement;
-  const threshold = 30;
-  isAtBottom.value = el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
-}
-
 function scrollToBottom() {
   const el = tableWrapper.value;
   if (el) {
@@ -170,9 +165,36 @@ function scrollToBottom() {
 
 watch(
   () => sortedMessages.value.length,
-  () => {
+  (newLen, oldLen) => {
+    if (newLen <= oldLen) return;
+
+    // If new messages were appended (not prepended) and user is at bottom, auto-scroll
     if (isAtBottom.value && sortKey.value === "time" && sortDir.value === SORT_DIR.ASC) {
       nextTick(scrollToBottom);
+    }
+  },
+);
+
+// Scroll-up detection for loading older messages
+watch(
+  () => scrollY.value,
+  () => {
+    const el = tableWrapper.value;
+    if (!el) return;
+
+    const threshold = 30;
+    isAtBottom.value = el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
+
+    // Load older messages when scrolled near top
+    if (el.scrollTop < 100 && store.hasMore && !store.loadingMore) {
+      const prevHeight = el.scrollHeight;
+      store.fetchOlderMessages().then(() => {
+        // Preserve scroll position after prepending older messages
+        nextTick(() => {
+          const newHeight = el.scrollHeight;
+          el.scrollTop += newHeight - prevHeight;
+        });
+      });
     }
   },
 );
@@ -203,11 +225,9 @@ onKeyStroke("c", (e) => {
 onMounted(() => {
   store.startPolling(1000);
   nextTick(() => {
-    // Find the wrapper element and attach scroll listener
     const wrapper = document.querySelector(".messages-view .data-table-wrapper") as HTMLElement | null;
     if (wrapper) {
       tableWrapper.value = wrapper;
-      wrapper.addEventListener("scroll", onTableScroll);
       scrollToBottom();
     }
   });
@@ -215,9 +235,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   store.stopPolling();
-  if (tableWrapper.value) {
-    tableWrapper.value.removeEventListener("scroll", onTableScroll);
-  }
 });
 </script>
 
@@ -244,21 +261,21 @@ onUnmounted(() => {
         />
       </div>
 
-      <div class="filter-group type-selector">
+      <div class="segmented-control">
         <button
-          :class="['btn', 'type-btn', { active: typeFilter === 'all' }]"
+          :class="['segment', { active: typeFilter === 'all' }]"
           @click="typeFilter = 'all'"
         >
           {{ $t('messages.filterAll') }}
         </button>
         <button
-          :class="['btn', 'type-btn', { active: typeFilter === 'alerts' }]"
+          :class="['segment', { active: typeFilter === 'alerts' }]"
           @click="typeFilter = 'alerts'"
         >
           {{ $t('messages.filterAlerts') }}
         </button>
         <button
-          :class="['btn', 'type-btn', { active: typeFilter === 'errors' }]"
+          :class="['segment', { active: typeFilter === 'errors' }]"
           @click="typeFilter = 'errors'"
         >
           {{ $t('messages.filterErrors') }}
@@ -267,18 +284,22 @@ onUnmounted(() => {
     </div>
 
     <EmptyState
-      v-if="sortedMessages.length === 0"
+      v-if="sortedMessages.length === 0 && !store.loading"
       icon="&#x1f4ac;"
       :message="$t('messages.empty')"
     />
 
-    <DataTable
-      v-else
-      :columns="columns"
-      :sort-key="sortKey"
-      :sort-dir="sortDir"
-      @sort="handleSort"
-    >
+    <template v-else>
+      <div v-if="store.loadingMore" class="loading-more">
+        {{ $t('messages.loadingMore') }}
+      </div>
+
+      <DataTable
+        :columns="columns"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
+        @sort="handleSort"
+      >
       <tr
         v-for="msg in sortedMessages"
         :key="msg.seqno"
@@ -294,7 +315,8 @@ onUnmounted(() => {
         </td>
         <td class="col-message">{{ msg.body }}</td>
       </tr>
-    </DataTable>
+      </DataTable>
+    </template>
 
     <LogFlagsDialog :open="showLogFlags" @close="showLogFlags = false" />
   </div>
@@ -342,31 +364,41 @@ onUnmounted(() => {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.type-selector {
-  gap: 0;
+.segmented-control {
+  display: inline-flex;
+  flex-wrap: wrap;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+  padding: 2px;
 }
 
-.type-btn {
-  border-radius: 0;
-  border-right-width: 0;
+.segment {
+  padding: 5px 12px;
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  font-weight: 500;
 }
 
-.type-btn:first-child {
-  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+.segment.active {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-sm);
 }
 
-.type-btn:last-child {
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  border-right-width: 1px;
+.segment:hover:not(.active) {
+  color: var(--color-text-primary);
 }
 
-.type-btn.active {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-  border-right-width: 1px;
-  z-index: 1;
-  position: relative;
+.loading-more {
+  padding: var(--space-sm) var(--space-md);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
 }
 
 .col-time {

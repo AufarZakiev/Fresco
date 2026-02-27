@@ -186,6 +186,7 @@
     "filterAlerts": "用户警告",
     "filterErrors": "错误",
     "empty": "没有消息可显示。",
+    "loadingMore": "正在加载旧消息\u2026",
     "col": {
       "time": "时间",
       "project": "项目",

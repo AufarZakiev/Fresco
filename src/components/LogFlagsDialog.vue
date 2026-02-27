@@ -90,7 +90,17 @@ async function save() {
                 class="pref-row"
               >
                 <span>{{ flag.label }}</span>
-                <input v-model="config.log_flags[flag.key]" type="checkbox" />
+                <span
+                  class="toggle-switch"
+                  :class="{ on: config.log_flags[flag.key] }"
+                  role="button"
+                  tabindex="0"
+                  @click.prevent="config.log_flags[flag.key] = !config.log_flags[flag.key]"
+                  @keydown.enter.prevent="config.log_flags[flag.key] = !config.log_flags[flag.key]"
+                  @keydown.space.prevent="config.log_flags[flag.key] = !config.log_flags[flag.key]"
+                >
+                  <span class="toggle-knob" />
+                </span>
               </label>
             </div>
 
@@ -117,7 +127,17 @@ async function save() {
               </label>
               <label class="pref-row">
                 <span>{{ $t('logFlags.reportImmediately') }}</span>
-                <input v-model="config.report_results_immediately" type="checkbox" />
+                <span
+                  class="toggle-switch"
+                  :class="{ on: config.report_results_immediately }"
+                  role="button"
+                  tabindex="0"
+                  @click.prevent="config.report_results_immediately = !config.report_results_immediately"
+                  @keydown.enter.prevent="config.report_results_immediately = !config.report_results_immediately"
+                  @keydown.space.prevent="config.report_results_immediately = !config.report_results_immediately"
+                >
+                  <span class="toggle-knob" />
+                </span>
               </label>
             </div>
           </div>
@@ -242,10 +262,39 @@ async function save() {
   background: var(--color-bg);
 }
 
-.pref-row input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--color-accent);
+.toggle-switch {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--color-text-tertiary);
+  opacity: 0.4;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.toggle-switch.on {
+  background: var(--color-accent);
+  opacity: 1;
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  transition: left 0.2s;
+}
+
+.toggle-switch.on .toggle-knob {
+  left: 18px;
 }
 
 .logflags-error {

@@ -186,6 +186,7 @@
     "filterAlerts": "Benutzerhinweise",
     "filterErrors": "Fehler",
     "empty": "Keine Meldungen vorhanden.",
+    "loadingMore": "Ältere Meldungen werden geladen\u2026",
     "col": {
       "time": "Zeit",
       "project": "Projekt",

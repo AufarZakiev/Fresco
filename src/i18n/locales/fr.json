@@ -186,6 +186,7 @@
     "filterAlerts": "Alertes utilisateur",
     "filterErrors": "Erreurs",
     "empty": "Aucun message à afficher.",
+    "loadingMore": "Chargement des anciens messages\u2026",
     "col": {
       "time": "Date",
       "project": "Projet",

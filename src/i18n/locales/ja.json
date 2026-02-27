@@ -186,6 +186,7 @@
     "filterAlerts": "ユーザー警告",
     "filterErrors": "エラー",
     "empty": "表示するメッセージがありません。",
+    "loadingMore": "過去のメッセージを読み込み中\u2026",
     "col": {
       "time": "日時",
       "project": "プロジェクト",
