@@ -74,17 +74,10 @@ function projectStatus(project: Project): string {
   return t("projects.status.active");
 }
 
-function statusVariant(status: string): "default" | "success" | "warning" | "danger" | "info" {
-  switch (status) {
-    case "Active":
-      return "success";
-    case "Suspended":
-      return "warning";
-    case "No new tasks":
-      return "info";
-    default:
-      return "default";
-  }
+function statusVariant(project: Project): "default" | "success" | "warning" | "danger" | "info" {
+  if (project.suspended_via_gui) return "warning";
+  if (project.dont_request_more_work) return "info";
+  return "success";
 }
 
 function getSortValue(project: Project, key: string): number | string {
@@ -442,7 +435,7 @@ function isColVisible(key: string): boolean {
             <td v-if="isColVisible('totalCredit')" class="col-number">{{ formatCredit(project.user_total_credit) }}</td>
             <td v-if="isColVisible('avgCredit')" class="col-number">{{ formatCredit(project.user_expavg_credit) }}</td>
             <td v-if="isColVisible('status')">
-              <StatusBadge :variant="statusVariant(projectStatus(project))">
+              <StatusBadge :variant="statusVariant(project)">
                 {{ projectStatus(project) }}
               </StatusBadge>
             </td>

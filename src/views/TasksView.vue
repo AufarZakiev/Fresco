@@ -116,25 +116,18 @@ function taskStatus(task: {
   return t("tasks.status.waiting");
 }
 
-function statusVariant(status: string): "default" | "success" | "warning" | "danger" | "info" {
-  switch (status) {
-    case "Running":
-      return "success";
-    case "Waiting to run":
-    case "Waiting":
-    case "Downloading":
-    case "Uploading":
-      return "info";
-    case "Suspended":
-      return "warning";
-    case "Computation error":
-    case "Aborted":
-      return "danger";
-    case "Ready to report":
-      return "default";
-    default:
-      return "default";
+function statusVariant(task: TaskResult): "default" | "success" | "warning" | "danger" | "info" {
+  if (task.ready_to_report) return "default";
+  if (task.suspended_via_gui) return "warning";
+  if (task.state === RESULT_STATE.FILES_DOWNLOADING || task.state === RESULT_STATE.FILES_UPLOADING) return "info";
+  if (task.state === RESULT_STATE.COMPUTE_ERROR || task.state === RESULT_STATE.ABORTED) return "danger";
+  if (task.active_task) {
+    if (task.active_task_state === ACTIVE_TASK_STATE.EXECUTING) {
+      return task.scheduler_state === SCHEDULER_STATE.SCHEDULED ? "success" : "info";
+    }
+    if (task.active_task_state === ACTIVE_TASK_STATE.SUSPENDED) return "warning";
   }
+  return "default";
 }
 
 function getSortValue(task: TaskResult, key: string): number | string {
@@ -488,7 +481,7 @@ function isColVisible(key: string): boolean {
           {{ formatTime(task.estimated_cpu_time_remaining) }}
         </td>
         <td v-if="isColVisible('status')">
-          <StatusBadge :variant="statusVariant(taskStatus(task))">
+          <StatusBadge :variant="statusVariant(task)">
             {{ taskStatus(task) }}
           </StatusBadge>
         </td>
