@@ -47,20 +47,27 @@ const mode = ref<ConnectionMode>(CONNECTION_MODE.LOCAL);
 // Initialise with Linux defaults so the Connect button is never blocked by
 // an empty path. onMounted overwrites these with the real platform values.
 let currentOS: OS = "linux";
-const dataDir = ref(defaultDataDir(currentOS));
-const clientDir = ref(defaultClientDir(currentOS));
+const dataDir = ref("");
+const clientDir = ref("");
 const host = ref("localhost");
 const port = ref(31416);
 const password = ref("");
 const connecting = ref(false);
+const osLoading = ref(true);
 const statusMessage = ref<string | null>(null);
 const recentConnections = ref<RecentConnection[]>([]);
 
 onMounted(async () => {
   loadRecent();
-  currentOS = await getOS();
-  dataDir.value = defaultDataDir(currentOS);
-  clientDir.value = defaultClientDir(currentOS);
+  try {
+    currentOS = await getOS();
+  } catch {
+    // currentOS stays "linux" as safe fallback
+  } finally {
+    if (!dataDir.value) dataDir.value = defaultDataDir(currentOS);
+    if (!clientDir.value) clientDir.value = defaultClientDir(currentOS);
+    osLoading.value = false;
+  }
 });
 
 function loadRecent() {
@@ -210,7 +217,7 @@ function formatTimestamp(ts: number): string {
               v-model="dataDir"
               type="text"
               class="field-input"
-              :disabled="connecting"
+              :disabled="connecting || osLoading"
               :placeholder="$t('connect.dataDirPlaceholder')"
             />
           </label>
@@ -220,7 +227,7 @@ function formatTimestamp(ts: number): string {
               v-model="clientDir"
               type="text"
               class="field-input"
-              :disabled="connecting"
+              :disabled="connecting || osLoading"
               :placeholder="$t('connect.clientDirPlaceholder')"
             />
           </label>
@@ -262,7 +269,7 @@ function formatTimestamp(ts: number): string {
 
         <button
           class="btn btn-primary connect-btn"
-          :disabled="connecting"
+          :disabled="connecting || (mode === CONNECTION_MODE.LOCAL && osLoading)"
           @click="handleConnect"
         >
           {{ statusMessage ?? (connecting ? $t('connect.connecting') : $t('connect.connect')) }}
