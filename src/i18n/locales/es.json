@@ -177,6 +177,7 @@
   },
   "messages": {
     "title": "Registro de eventos",
+    "loading": "Cargando mensajes…",
     "logFlags": "Opciones de registro...",
     "selectAll": "Seleccionar todo",
     "copySelected": "Copiar selección ({count})",
@@ -186,6 +187,7 @@
     "filterAlerts": "Alertas de usuario",
     "filterErrors": "Errores",
     "empty": "No hay mensajes para mostrar.",
+    "loadingMore": "Cargando mensajes anteriores\u2026",
     "col": {
       "time": "Hora",
       "project": "Proyecto",

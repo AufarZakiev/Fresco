@@ -177,6 +177,7 @@
   },
   "messages": {
     "title": "Ereignisprotokoll",
+    "loading": "Nachrichten werden geladen…",
     "logFlags": "Protokoll-Flags...",
     "selectAll": "Alle auswählen",
     "copySelected": "Auswahl kopieren ({count})",
@@ -186,6 +187,7 @@
     "filterAlerts": "Benutzerhinweise",
     "filterErrors": "Fehler",
     "empty": "Keine Meldungen vorhanden.",
+    "loadingMore": "Ältere Meldungen werden geladen\u2026",
     "col": {
       "time": "Zeit",
       "project": "Projekt",

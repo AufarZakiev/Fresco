@@ -177,6 +177,7 @@
   },
   "messages": {
     "title": "Journal des événements",
+    "loading": "Chargement des messages…",
     "logFlags": "Indicateurs de journal...",
     "selectAll": "Tout sélectionner",
     "copySelected": "Copier la sélection ({count})",
@@ -186,6 +187,7 @@
     "filterAlerts": "Alertes utilisateur",
     "filterErrors": "Erreurs",
     "empty": "Aucun message à afficher.",
+    "loadingMore": "Chargement des anciens messages\u2026",
     "col": {
       "time": "Date",
       "project": "Projet",
