@@ -102,8 +102,8 @@ function removeRecent(index: number) {
 function applyRecent(entry: RecentConnection) {
   mode.value = entry.mode;
   if (entry.mode === CONNECTION_MODE.LOCAL) {
-    dataDir.value = entry.dataDir ?? defaultDataDir(currentOS);
-    clientDir.value = entry.clientDir ?? defaultClientDir(currentOS);
+    dataDir.value = entry.dataDir ?? (osLoading.value ? "" : defaultDataDir(currentOS));
+    clientDir.value = entry.clientDir ?? (osLoading.value ? "" : defaultClientDir(currentOS));
   } else {
     host.value = entry.host ?? "localhost";
     port.value = entry.port ?? 31416;
