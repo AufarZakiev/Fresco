@@ -122,4 +122,51 @@ describe("MessagesView", () => {
     const wrapper = mount(MessagesView);
     expect(wrapper.text()).toContain("Event Log");
   });
+
+  it("Ctrl+A selects all messages", async () => {
+    const store = useMessagesStore();
+    store.messages = [
+      makeMessage({ seqno: 1, timestamp: 1000, body: "First" }),
+      makeMessage({ seqno: 2, timestamp: 2000, body: "Second" }),
+      makeMessage({ seqno: 3, timestamp: 3000, body: "Third" }),
+    ];
+
+    const wrapper = mount(MessagesView, { attachTo: document.body });
+
+    // No rows selected initially
+    expect(wrapper.findAll(".row-selected")).toHaveLength(0);
+
+    // Dispatch Ctrl+A
+    await wrapper.find(".messages-view").trigger("keydown", {
+      key: "a",
+      ctrlKey: true,
+    });
+
+    // All rows should be selected
+    expect(wrapper.findAll(".row-selected")).toHaveLength(3);
+    wrapper.unmount();
+  });
+
+  it("Escape clears selection", async () => {
+    const store = useMessagesStore();
+    store.messages = [
+      makeMessage({ seqno: 1, timestamp: 1000, body: "First" }),
+      makeMessage({ seqno: 2, timestamp: 2000, body: "Second" }),
+    ];
+
+    const wrapper = mount(MessagesView, { attachTo: document.body });
+
+    // Select a row by clicking
+    await wrapper.find("tbody tr").trigger("click");
+    expect(wrapper.findAll(".row-selected")).toHaveLength(1);
+
+    // Dispatch Escape
+    await wrapper.find(".messages-view").trigger("keydown", {
+      key: "Escape",
+    });
+
+    // Selection should be cleared
+    expect(wrapper.findAll(".row-selected")).toHaveLength(0);
+    wrapper.unmount();
+  });
 });

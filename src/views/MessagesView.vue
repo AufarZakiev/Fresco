@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch, nextTick } from "vue";
+import { onKeyStroke } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { useMessagesStore } from "../stores/messages";
 import { MSG_PRIORITY, SORT_DIR } from "../types/boinc";
@@ -175,6 +176,29 @@ watch(
     }
   },
 );
+
+function isTypingInInput(e: KeyboardEvent): boolean {
+  const tag = (e.target as HTMLElement)?.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+}
+
+onKeyStroke("a", (e) => {
+  if (isTypingInInput(e) || !(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  selectAll();
+});
+
+onKeyStroke("Escape", (e) => {
+  if (isTypingInInput(e)) return;
+  selectedSeqnos.value = new Set();
+});
+
+onKeyStroke("c", (e) => {
+  if (isTypingInInput(e) || !(e.ctrlKey || e.metaKey)) return;
+  if (selectedSeqnos.value.size === 0) return;
+  e.preventDefault();
+  copySelectedToClipboard();
+});
 
 onMounted(() => {
   store.startPolling(1000);
