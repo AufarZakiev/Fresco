@@ -1,5 +1,5 @@
-# Normalize line endings to LF for all text files
-* text=auto eol=lf
+# Normalize line endings to CRLF for all text files
+* text=auto eol=crlf
 
 # Explicitly declare binary files to prevent corruption
 *.png binary
