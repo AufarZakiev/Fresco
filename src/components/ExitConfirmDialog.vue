@@ -1,13 +1,21 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { nextTick, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
 import { useManagerSettingsStore } from "../stores/managerSettings";
+import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{
   close: [];
   confirm: [shutdownClient: boolean];
 }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+const { activate, deactivate } = useFocusTrap(dialogRef);
+watch(() => props.open, async (isOpen) => {
+  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
+  else { deactivate(); }
+});
 
 const store = useManagerSettingsStore();
 
@@ -29,7 +37,7 @@ function confirm() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="exit-dialog" role="dialog" aria-modal="true" aria-labelledby="exit-confirm-dialog-title">
+      <div ref="dialogRef" class="exit-dialog" role="dialog" aria-modal="true" aria-labelledby="exit-confirm-dialog-title">
         <h3 id="exit-confirm-dialog-title">{{ $t('exitConfirm.title') }}</h3>
         <p class="exit-message">
           {{ $t('exitConfirm.message') }}

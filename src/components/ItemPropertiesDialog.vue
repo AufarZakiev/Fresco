@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import type { TaskResult, Project } from "../types/boinc";
 import { RESULT_STATE, ACTIVE_TASK_STATE, SCHEDULER_STATE } from "../types/boinc";
+import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
 const props = defineProps<{
   open: boolean;
@@ -13,6 +14,13 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{ close: [] }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+const { activate, deactivate } = useFocusTrap(dialogRef);
+watch(() => props.open, async (isOpen) => {
+  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
+  else { deactivate(); }
+});
 
 onKeyStroke("Escape", () => {
   if (!props.open) return;
@@ -257,7 +265,7 @@ function copyAll() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="props-dialog" role="dialog" aria-modal="true" aria-labelledby="item-properties-dialog-title">
+      <div ref="dialogRef" class="props-dialog" role="dialog" aria-modal="true" aria-labelledby="item-properties-dialog-title">
         <div class="props-header">
           <h3 id="item-properties-dialog-title">{{ dialogTitle }}</h3>
           <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>

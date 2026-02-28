@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { SUPPORTED_LOCALES, loadLocale, resolveLocale } from "../i18n";
@@ -14,6 +14,7 @@ import ProxySettingsDialog from "./ProxySettingsDialog.vue";
 import ExclusiveAppsDialog from "./ExclusiveAppsDialog.vue";
 import TimeRangeSlider from "./TimeRangeSlider.vue";
 import { decimalHoursToTimeString } from "../utils/timeConversion";
+import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
 type TabName = "computing" | "network" | "storage" | "schedule" | "manager";
 
@@ -21,6 +22,13 @@ const props = withDefaults(defineProps<{ open: boolean; initialTab?: TabName }>(
   initialTab: "computing",
 });
 const emit = defineEmits<{ close: [] }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+const { activate, deactivate } = useFocusTrap(dialogRef);
+watch(() => props.open, async (isOpen) => {
+  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
+  else { deactivate(); }
+});
 
 const { t, locale } = useI18n({ useScope: "global" });
 const store = usePreferencesStore();
@@ -151,7 +159,7 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay">
-      <div class="prefs-dialog" role="dialog" aria-modal="true" aria-labelledby="preferences-dialog-title">
+      <div ref="dialogRef" class="prefs-dialog" role="dialog" aria-modal="true" aria-labelledby="preferences-dialog-title">
         <div class="prefs-header">
           <h3 id="preferences-dialog-title">{{ $t('prefs.title') }}</h3>
           <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>

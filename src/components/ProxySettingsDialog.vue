@@ -1,11 +1,19 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { nextTick, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
 import { getProxySettings, setProxySettings } from "../composables/useRpc";
 import type { ProxyInfo } from "../types/boinc";
+import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+const { activate, deactivate } = useFocusTrap(dialogRef);
+watch(() => props.open, async (isOpen) => {
+  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
+  else { deactivate(); }
+});
 
 const activeTab = ref<"http" | "socks">("http");
 const loading = ref(false);
@@ -54,7 +62,7 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div class="proxy-dialog" role="dialog" aria-modal="true" aria-labelledby="proxy-settings-dialog-title">
+      <div ref="dialogRef" class="proxy-dialog" role="dialog" aria-modal="true" aria-labelledby="proxy-settings-dialog-title">
         <div class="proxy-header">
           <h3 id="proxy-settings-dialog-title">{{ $t('proxy.title') }}</h3>
           <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>

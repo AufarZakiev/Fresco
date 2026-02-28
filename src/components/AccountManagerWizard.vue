@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { nextTick, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { acctMgrInfo, acctMgrRpc, acctMgrRpcPoll } from "../composables/useRpc";
 import type { AcctMgrInfo } from "../types/boinc";
+import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 import {
   BOINC_ERROR_IN_PROGRESS,
   MAX_ATTACH_POLL_ATTEMPTS,
@@ -12,6 +13,13 @@ import {
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+const { activate, deactivate } = useFocusTrap(dialogRef);
+watch(() => props.open, async (isOpen) => {
+  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
+  else { deactivate(); }
+});
 
 const { t } = useI18n();
 const step = ref<"form" | "processing" | "result">("form");
@@ -140,7 +148,7 @@ function close() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="close">
-      <div class="wizard" role="dialog" aria-modal="true" aria-labelledby="account-manager-wizard-title">
+      <div ref="dialogRef" class="wizard" role="dialog" aria-modal="true" aria-labelledby="account-manager-wizard-title">
         <div class="wizard-header">
           <h3 id="account-manager-wizard-title">
             {{
