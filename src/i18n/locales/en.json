@@ -177,6 +177,7 @@
   },
   "messages": {
     "title": "Event Log",
+    "loading": "Loading messages...",
     "logFlags": "Log Flags...",
     "selectAll": "Select All",
     "copySelected": "Copy Selected ({count})",
@@ -186,6 +187,7 @@
     "filterAlerts": "User Alerts",
     "filterErrors": "Errors",
     "empty": "No messages to display.",
+    "loadingMore": "Loading older messages\u2026",
     "col": {
       "time": "Time",
       "project": "Project",
