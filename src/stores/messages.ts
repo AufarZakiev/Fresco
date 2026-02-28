@@ -72,6 +72,9 @@ export const useMessagesStore = defineStore("messages", () => {
         return;
       }
 
+      // BOINC RPC `get_messages(seqno)` returns ALL messages with seqno > given value;
+      // there is no server-side page size parameter. We request from (oldest - PAGE_SIZE)
+      // and filter client-side to keep only the needed slice.
       const startSeqno = Math.max(0, oldestSeqno - PAGE_SIZE - 1);
       const older = await getMessages(startSeqno);
       const filtered = older.filter((m) => m.seqno < oldestSeqno);

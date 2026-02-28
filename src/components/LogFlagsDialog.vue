@@ -88,6 +88,7 @@ async function save() {
                 v-for="flag in flagLabels"
                 :key="flag.key"
                 class="pref-row"
+                @click="config.log_flags[flag.key] = !config.log_flags[flag.key]"
               >
                 <span>{{ flag.label }}</span>
                 <span
@@ -95,7 +96,7 @@ async function save() {
                   :class="{ on: config.log_flags[flag.key] }"
                   role="button"
                   tabindex="0"
-                  @click.prevent="config.log_flags[flag.key] = !config.log_flags[flag.key]"
+                  @click.stop="config.log_flags[flag.key] = !config.log_flags[flag.key]"
                   @keydown.enter.prevent="config.log_flags[flag.key] = !config.log_flags[flag.key]"
                   @keydown.space.prevent="config.log_flags[flag.key] = !config.log_flags[flag.key]"
                 >
@@ -125,14 +126,14 @@ async function save() {
                   step="1"
                 />
               </label>
-              <label class="pref-row">
+              <label class="pref-row" @click="config.report_results_immediately = !config.report_results_immediately">
                 <span>{{ $t('logFlags.reportImmediately') }}</span>
                 <span
                   class="toggle-switch"
                   :class="{ on: config.report_results_immediately }"
                   role="button"
                   tabindex="0"
-                  @click.prevent="config.report_results_immediately = !config.report_results_immediately"
+                  @click.stop="config.report_results_immediately = !config.report_results_immediately"
                   @keydown.enter.prevent="config.report_results_immediately = !config.report_results_immediately"
                   @keydown.space.prevent="config.report_results_immediately = !config.report_results_immediately"
                 >
@@ -238,7 +239,7 @@ async function save() {
   border-bottom: 1px solid var(--color-border-light);
   font-size: var(--font-size-md);
   color: var(--color-text-primary);
-  cursor: default;
+  cursor: pointer;
 }
 
 .pref-row:last-child {

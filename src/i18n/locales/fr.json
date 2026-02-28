@@ -177,6 +177,7 @@
   },
   "messages": {
     "title": "Journal des événements",
+    "loading": "Chargement des messages…",
     "logFlags": "Indicateurs de journal...",
     "selectAll": "Tout sélectionner",
     "copySelected": "Copier la sélection ({count})",

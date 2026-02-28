@@ -177,6 +177,7 @@
   },
   "messages": {
     "title": "Registro de eventos",
+    "loading": "Cargando mensajes…",
     "logFlags": "Opciones de registro...",
     "selectAll": "Seleccionar todo",
     "copySelected": "Copiar selección ({count})",

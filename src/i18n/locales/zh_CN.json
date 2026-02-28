@@ -177,6 +177,7 @@
   },
   "messages": {
     "title": "事件日志",
+    "loading": "正在加载消息…",
     "logFlags": "日志标志...",
     "selectAll": "全选",
     "copySelected": "复制所选 ({count})",

@@ -177,6 +177,7 @@
   },
   "messages": {
     "title": "イベントログ",
+    "loading": "メッセージを読み込み中…",
     "logFlags": "ログフラグ...",
     "selectAll": "すべて選択",
     "copySelected": "選択をコピー ({count})",

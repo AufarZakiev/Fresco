@@ -177,6 +177,7 @@
   },
   "messages": {
     "title": "Ereignisprotokoll",
+    "loading": "Nachrichten werden geladen…",
     "logFlags": "Protokoll-Flags...",
     "selectAll": "Alle auswählen",
     "copySelected": "Auswahl kopieren ({count})",

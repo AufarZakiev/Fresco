@@ -177,6 +177,7 @@
   },
   "messages": {
     "title": "Event Log",
+    "loading": "Loading messages...",
     "logFlags": "Log Flags...",
     "selectAll": "Select All",
     "copySelected": "Copy Selected ({count})",
