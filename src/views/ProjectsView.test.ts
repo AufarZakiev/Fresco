@@ -394,6 +394,21 @@ describe("ProjectsView", () => {
     expect(wrapper.find(".drawer-links").exists()).toBe(false);
   });
 
+  it("opens detach confirm dialog when Backspace is pressed with selection", async () => {
+    const store = useProjectsStore();
+    store.projects = [makeProject()];
+
+    const wrapper = mount(ProjectsView, { attachTo: document.body });
+    await wrapper.find("tbody tr").trigger("click");
+
+    await wrapper.trigger("keydown", { key: "Backspace" });
+    await wrapper.vm.$nextTick();
+
+    const body = document.body.textContent ?? "";
+    expect(body).toContain("Detach Project");
+    wrapper.unmount();
+  });
+
   it("hides web links when multiple projects selected", async () => {
     const store = useProjectsStore();
     store.projects = [

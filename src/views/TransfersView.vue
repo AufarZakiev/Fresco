@@ -234,7 +234,7 @@ onKeyStroke("Escape", (e) => {
   selectedKeys.value = new Set();
 });
 
-onKeyStroke("Delete", (e) => {
+onKeyStroke(["Delete", "Backspace"], (e) => {
   if (isTypingInInput(e)) return;
   if (hasSelection.value) confirmAbort.value = true;
 });

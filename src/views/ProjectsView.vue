@@ -367,6 +367,11 @@ onKeyStroke("Escape", (e) => {
   selectedUrls.value = new Set();
 });
 
+onKeyStroke(["Delete", "Backspace"], (e) => {
+  if (isTypingInInput(e)) return;
+  if (hasSelection.value) handleDetach();
+});
+
 function isColVisible(key: string): boolean {
   return visibleKeys.value.includes(key);
 }
