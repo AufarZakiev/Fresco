@@ -48,7 +48,7 @@ function handleContextMenu(event: MouseEvent, index: number) {
     <table class="data-table">
       <thead>
         <tr>
-          <th v-if="selectable" class="col-checkbox">
+          <th v-if="selectable" scope="col" class="col-checkbox">
             <input
               type="checkbox"
               :checked="allSelected"
@@ -58,10 +58,20 @@ function handleContextMenu(event: MouseEvent, index: number) {
           <th
             v-for="col in visibleColumns"
             :key="col.key"
+            scope="col"
             :class="[
               `align-${col.align ?? 'left'}`,
               { sortable: col.sortable, sorted: sortKey === col.key },
             ]"
+            :aria-sort="
+              col.sortable
+                ? sortKey === col.key
+                  ? sortDir === SORT_DIR.ASC
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+                : undefined
+            "
             @click="handleHeaderClick(col)"
           >
             {{ col.label }}

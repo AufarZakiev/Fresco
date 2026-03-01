@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { mount } from "@vue/test-utils";
 import DataTable from "./DataTable.vue";
+import { SORT_DIR } from "../types/boinc";
 
 const columns = [
   { key: "name", label: "Name", sortable: true },
@@ -44,6 +45,48 @@ describe("DataTable", () => {
     });
     const th = wrapper.find("thead th");
     expect(th.exists()).toBe(true);
+  });
+
+  it("sets aria-sort='ascending' on the actively sorted column", () => {
+    const wrapper = mount(DataTable, {
+      props: { columns, sortKey: "name", sortDir: SORT_DIR.ASC },
+    });
+    const ths = wrapper.findAll("thead th");
+    expect(ths[0].attributes("aria-sort")).toBe("ascending");
+  });
+
+  it("sets aria-sort='descending' when sort direction is DESC", () => {
+    const wrapper = mount(DataTable, {
+      props: { columns, sortKey: "name", sortDir: SORT_DIR.DESC },
+    });
+    const ths = wrapper.findAll("thead th");
+    expect(ths[0].attributes("aria-sort")).toBe("descending");
+  });
+
+  it("sets aria-sort='none' on sortable columns that are not actively sorted", () => {
+    const wrapper = mount(DataTable, {
+      props: { columns, sortKey: "status", sortDir: SORT_DIR.ASC },
+    });
+    const ths = wrapper.findAll("thead th");
+    expect(ths[0].attributes("aria-sort")).toBe("none");
+  });
+
+  it("omits aria-sort on non-sortable columns", () => {
+    const wrapper = mount(DataTable, {
+      props: { columns, sortKey: "name", sortDir: SORT_DIR.ASC },
+    });
+    const ths = wrapper.findAll("thead th");
+    expect(ths[1].attributes("aria-sort")).toBeUndefined();
+  });
+
+  it("adds scope='col' to all header cells", () => {
+    const wrapper = mount(DataTable, {
+      props: { columns },
+    });
+    const ths = wrapper.findAll("thead th");
+    ths.forEach((th) => {
+      expect(th.attributes("scope")).toBe("col");
+    });
   });
 
   it("hides columns with visible: false", () => {
