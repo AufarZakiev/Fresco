@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onUnmounted } from "vue";
+import { ref, nextTick, onMounted, onUnmounted, useId } from "vue";
 
 const props = withDefaults(
   defineProps<{
@@ -13,16 +13,39 @@ const props = withDefaults(
 
 const MARGIN = 8;
 
+const tooltipId = useId();
 const visible = ref(false);
 const bubbleStyle = ref<Record<string, string>>({});
 const wrapperRef = ref<HTMLElement | null>(null);
 const bubbleRef = ref<HTMLElement | null>(null);
 let showTimer: ReturnType<typeof setTimeout> | null = null;
 
-async function onEnter() {
+function getTrigger(): HTMLElement | null {
+  return wrapperRef.value?.firstElementChild as HTMLElement | null;
+}
+
+function bindTriggerAria() {
+  const trigger = getTrigger();
+  if (trigger && props.text) {
+    trigger.setAttribute("aria-describedby", tooltipId);
+  }
+}
+
+function unbindTriggerAria() {
+  const trigger = getTrigger();
+  if (trigger) {
+    trigger.removeAttribute("aria-describedby");
+  }
+}
+
+onMounted(bindTriggerAria);
+onUnmounted(unbindTriggerAria);
+
+async function show() {
   if (props.disabled || !props.text) return;
+  if (showTimer !== null) clearTimeout(showTimer);
   showTimer = setTimeout(async () => {
-    const trigger = wrapperRef.value?.firstElementChild as HTMLElement | null;
+    const trigger = getTrigger();
     if (!trigger) return;
     const rect = trigger.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -47,6 +70,20 @@ async function onEnter() {
     }
 
     const br = bubble.getBoundingClientRect();
+
+    // Vertical flip: if clipped at top → show below, if clipped at bottom → show above
+    let top = props.placement === "top" ? rect.top - 6 : rect.bottom + 6;
+    let transform = props.placement === "top" ? "translateX(-50%) translateY(-100%)" : "translateX(-50%)";
+
+    if (props.placement === "top" && br.top < MARGIN) {
+      top = rect.bottom + 6;
+      transform = "translateX(-50%)";
+    } else if (props.placement === "bottom" && br.bottom > window.innerHeight - MARGIN) {
+      top = rect.top - 6;
+      transform = "translateX(-50%) translateY(-100%)";
+    }
+
+    // Horizontal clamp
     let left = centerX;
     if (br.left < MARGIN) {
       left = centerX + (MARGIN - br.left);
@@ -57,12 +94,14 @@ async function onEnter() {
     bubbleStyle.value = {
       ...bubbleStyle.value,
       left: `${left}px`,
+      top: `${top}px`,
+      transform,
       visibility: "visible",
     };
   }, props.delay);
 }
 
-function onLeave() {
+function hide() {
   if (showTimer !== null) {
     clearTimeout(showTimer);
     showTimer = null;
@@ -76,10 +115,24 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="wrapperRef" class="tooltip-wrapper" @mouseenter="onEnter" @mouseleave="onLeave">
+  <div
+    ref="wrapperRef"
+    class="tooltip-wrapper"
+    @mouseenter="show"
+    @mouseleave="hide"
+    @focusin="show"
+    @focusout="hide"
+  >
     <slot />
     <Teleport to="body">
-      <div v-if="visible && text" ref="bubbleRef" class="tooltip-bubble" :style="bubbleStyle">
+      <div
+        v-if="visible && text"
+        :id="tooltipId"
+        ref="bubbleRef"
+        role="tooltip"
+        class="tooltip-bubble"
+        :style="bubbleStyle"
+      >
         {{ text }}
       </div>
     </Teleport>
