@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { getDiskUsage } from "../composables/useRpc";
 import type { DiskUsage } from "../types/boinc";
+import { useConnectionStore } from "./connection";
 
 const POLL_INTERVAL_MS = 30000;
 
@@ -23,7 +24,9 @@ export const useDiskUsageStore = defineStore("diskUsage", () => {
     try {
       usage.value = await getDiskUsage();
     } catch (e) {
-      error.value = String(e);
+      error.value = e instanceof Error ? e.message : String(e);
+      const connection = useConnectionStore();
+      connection.handleConnectionError();
     } finally {
       loading.value = false;
     }
