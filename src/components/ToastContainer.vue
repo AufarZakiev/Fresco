@@ -54,13 +54,13 @@ const toast = useToastStore();
 }
 
 .toast-success {
-  background: #065f46;
-  color: #d1fae5;
+  background: var(--color-toast-success-bg);
+  color: var(--color-toast-success-text);
 }
 
 .toast-error {
-  background: #991b1b;
-  color: #fee2e2;
+  background: var(--color-toast-error-bg);
+  color: var(--color-toast-error-text);
 }
 
 .toast-info {

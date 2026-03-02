@@ -29,21 +29,21 @@ defineProps<{
 
 .badge-success {
   background: var(--color-success-light);
-  color: #15803d;
+  color: var(--color-success-text);
 }
 
 .badge-warning {
   background: var(--color-warning-light);
-  color: #92400e;
+  color: var(--color-warning-text);
 }
 
 .badge-danger {
   background: var(--color-danger-light);
-  color: #991b1b;
+  color: var(--color-danger-text);
 }
 
 .badge-info {
   background: var(--color-accent-light);
-  color: #1d4ed8;
+  color: var(--color-accent-text);
 }
 </style>

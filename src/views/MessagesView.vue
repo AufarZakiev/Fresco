@@ -432,7 +432,7 @@ onUnmounted(() => {
 }
 
 :deep(.row-error) td {
-  color: #991b1b;
+  color: var(--color-danger-text);
 }
 
 :deep(.row-alert) {
@@ -440,7 +440,7 @@ onUnmounted(() => {
 }
 
 :deep(.row-alert) td {
-  color: #92400e;
+  color: var(--color-warning-text);
 }
 
 :deep(.row-selected) {
