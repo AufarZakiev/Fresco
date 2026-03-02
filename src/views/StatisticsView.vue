@@ -6,6 +6,7 @@ import type { DailyStats } from "../types/boinc";
 import PageHeader from "../components/PageHeader.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatisticsChart from "../components/StatisticsChart.vue";
+import { onKeyStroke } from "@vueuse/core";
 
 const store = useStatisticsStore();
 const projectsStore = useProjectsStore();
@@ -123,6 +124,32 @@ onMounted(() => {
 
 onUnmounted(() => {
   // nothing to clean up
+});
+
+// Keyboard shortcuts
+function isTypingInInput(e: KeyboardEvent): boolean {
+  const tag = (e.target as HTMLElement)?.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+}
+
+const viewModes: ViewMode[] = ["single", "all", "separate"];
+
+onKeyStroke(["1", "2", "3"], (e) => {
+  if (isTypingInInput(e)) return;
+  e.preventDefault();
+  viewMode.value = viewModes[Number(e.key) - 1];
+});
+
+onKeyStroke("u", (e) => {
+  if (isTypingInInput(e)) return;
+  if (e.repeat) return;
+  toggleActor("user");
+});
+
+onKeyStroke("h", (e) => {
+  if (isTypingInInput(e)) return;
+  if (e.repeat) return;
+  toggleActor("host");
 });
 </script>
 
