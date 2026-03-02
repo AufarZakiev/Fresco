@@ -84,6 +84,20 @@ describe("TransfersView", () => {
     expect(body).toContain("Abort 1 selected transfer?");
   });
 
+  it("progress bar has ARIA progressbar attributes", () => {
+    const store = useTransfersStore();
+    store.transfers = [makeTransfer({ bytes_xferred: 524288, nbytes: 1048576 })]; // 50%
+
+    const wrapper = mount(TransfersView);
+    const bar = wrapper.find(".progress-bar");
+    expect(bar.attributes("role")).toBe("progressbar");
+    expect(bar.attributes("aria-valuenow")).toBe("50");
+    expect(bar.attributes("aria-valuemin")).toBe("0");
+    expect(bar.attributes("aria-valuemax")).toBe("100");
+    expect(bar.attributes("aria-label")).toBe("Example Project");
+    expect(bar.attributes("aria-valuetext")).toBe("50.0%");
+  });
+
   it("opens abort confirmation when Backspace is pressed with selection", async () => {
     const store = useTransfersStore();
     store.transfers = [makeTransfer()];
