@@ -3,6 +3,7 @@ import { mount } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import TasksView from "./TasksView.vue";
 import { useTasksStore } from "../stores/tasks";
+import { useProjectsStore } from "../stores/projects";
 import type { TaskResult } from "../types/boinc";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -161,6 +162,24 @@ describe("TasksView", () => {
     const body = document.body.textContent ?? "";
     expect(body).toContain("Abort Tasks");
     expect(body).toContain("cannot be undone");
+  });
+
+  it("progress bar has ARIA progressbar attributes", () => {
+    const store = useTasksStore();
+    const projectsStore = useProjectsStore();
+    projectsStore.projects = [
+      { master_url: "https://example.com/", project_name: "Climate Model" } as never,
+    ];
+    store.tasks = [makeTask({ wu_name: "climate_sim_42", fraction_done: 0.456 })];
+
+    const wrapper = mount(TasksView);
+    const bar = wrapper.find(".progress-bar");
+    expect(bar.attributes("role")).toBe("progressbar");
+    expect(bar.attributes("aria-valuenow")).toBe("46");
+    expect(bar.attributes("aria-valuemin")).toBe("0");
+    expect(bar.attributes("aria-valuemax")).toBe("100");
+    expect(bar.attributes("aria-label")).toBe("Climate Model");
+    expect(bar.attributes("aria-valuetext")).toBe("45.60%");
   });
 
   it("opens abort confirmation when Backspace is pressed with selection", async () => {
