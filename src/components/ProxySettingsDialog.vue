@@ -93,7 +93,7 @@ async function save() {
             <div v-if="activeTab === 'http'" class="proxy-section">
               <label class="pref-row">
                 <span>{{ $t('proxy.useHttp') }}</span>
-                <span class="toggle-switch" :class="{ on: form.use_http_proxy }" role="button" tabindex="0" @click.prevent="form.use_http_proxy = !form.use_http_proxy" @keydown.enter.prevent="form.use_http_proxy = !form.use_http_proxy" @keydown.space.prevent="form.use_http_proxy = !form.use_http_proxy">
+                <span class="toggle-switch" :class="{ on: form.use_http_proxy }" role="switch" :aria-checked="!!(form.use_http_proxy)" tabindex="0" @click.prevent="form.use_http_proxy = !form.use_http_proxy" @keydown.enter.prevent="form.use_http_proxy = !form.use_http_proxy" @keydown.space.prevent="form.use_http_proxy = !form.use_http_proxy">
                   <span class="toggle-knob" />
                 </span>
               </label>
@@ -108,7 +108,7 @@ async function save() {
                 </label>
                 <label class="pref-row">
                   <span>{{ $t('proxy.useHttpAuth') }}</span>
-                  <span class="toggle-switch" :class="{ on: form.use_http_auth }" role="button" tabindex="0" @click.prevent="form.use_http_auth = !form.use_http_auth" @keydown.enter.prevent="form.use_http_auth = !form.use_http_auth" @keydown.space.prevent="form.use_http_auth = !form.use_http_auth">
+                  <span class="toggle-switch" :class="{ on: form.use_http_auth }" role="switch" :aria-checked="!!(form.use_http_auth)" tabindex="0" @click.prevent="form.use_http_auth = !form.use_http_auth" @keydown.enter.prevent="form.use_http_auth = !form.use_http_auth" @keydown.space.prevent="form.use_http_auth = !form.use_http_auth">
                     <span class="toggle-knob" />
                   </span>
                 </label>
@@ -129,7 +129,7 @@ async function save() {
             <div v-if="activeTab === 'socks'" class="proxy-section">
               <label class="pref-row">
                 <span>{{ $t('proxy.useSocks') }}</span>
-                <span class="toggle-switch" :class="{ on: form.use_socks_proxy }" role="button" tabindex="0" @click.prevent="form.use_socks_proxy = !form.use_socks_proxy" @keydown.enter.prevent="form.use_socks_proxy = !form.use_socks_proxy" @keydown.space.prevent="form.use_socks_proxy = !form.use_socks_proxy">
+                <span class="toggle-switch" :class="{ on: form.use_socks_proxy }" role="switch" :aria-checked="!!(form.use_socks_proxy)" tabindex="0" @click.prevent="form.use_socks_proxy = !form.use_socks_proxy" @keydown.enter.prevent="form.use_socks_proxy = !form.use_socks_proxy" @keydown.space.prevent="form.use_socks_proxy = !form.use_socks_proxy">
                   <span class="toggle-knob" />
                 </span>
               </label>
@@ -152,7 +152,7 @@ async function save() {
                 </label>
                 <label class="pref-row">
                   <span>{{ $t('proxy.useSocks5Dns') }}</span>
-                  <span class="toggle-switch" :class="{ on: form.socks5_remote_dns }" role="button" tabindex="0" @click.prevent="form.socks5_remote_dns = !form.socks5_remote_dns" @keydown.enter.prevent="form.socks5_remote_dns = !form.socks5_remote_dns" @keydown.space.prevent="form.socks5_remote_dns = !form.socks5_remote_dns">
+                  <span class="toggle-switch" :class="{ on: form.socks5_remote_dns }" role="switch" :aria-checked="!!(form.socks5_remote_dns)" tabindex="0" @click.prevent="form.socks5_remote_dns = !form.socks5_remote_dns" @keydown.enter.prevent="form.socks5_remote_dns = !form.socks5_remote_dns" @keydown.space.prevent="form.socks5_remote_dns = !form.socks5_remote_dns">
                     <span class="toggle-knob" />
                   </span>
                 </label>

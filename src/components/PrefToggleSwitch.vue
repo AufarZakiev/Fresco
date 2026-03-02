@@ -98,7 +98,8 @@ function onClearOverride() {
       <span
         class="toggle-switch"
         :class="{ on: modelValue }"
-        role="button"
+        role="switch"
+        :aria-checked="modelValue"
         tabindex="0"
         @click.prevent="emit('update:modelValue', !modelValue)"
         @keydown.enter.prevent="emit('update:modelValue', !modelValue)"

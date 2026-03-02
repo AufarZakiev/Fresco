@@ -60,11 +60,17 @@ describe("PrefToggleSwitch", () => {
     expect(wrapper.emitted("update:modelValue")).toEqual([[true]]);
   });
 
-  it("toggle-switch has role=button and tabindex=0", () => {
+  it("toggle-switch has role=switch, aria-checked, and tabindex=0", () => {
     const wrapper = mountToggle(false);
     const toggle = wrapper.find(".toggle-switch");
-    expect(toggle.attributes("role")).toBe("button");
+    expect(toggle.attributes("role")).toBe("switch");
+    expect(toggle.attributes("aria-checked")).toBe("false");
     expect(toggle.attributes("tabindex")).toBe("0");
+  });
+
+  it("aria-checked reflects modelValue=true", () => {
+    const wrapper = mountToggle(true);
+    expect(wrapper.find(".toggle-switch").attributes("aria-checked")).toBe("true");
   });
 
   describe("sourceType", () => {
