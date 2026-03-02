@@ -600,7 +600,7 @@ function isColVisible(key: string): boolean {
 
 .source-manager {
   background: var(--color-accent-light);
-  color: #1d4ed8;
+  color: var(--color-accent-text);
 }
 
 .source-user {

@@ -16,8 +16,18 @@
   --color-danger-light: #fef2f2;
   --color-success: #22c55e;
   --color-success-light: #f0fdf4;
+  --color-success-text: #15803d;
   --color-warning: #f59e0b;
   --color-warning-light: #fffbeb;
+  --color-warning-text: #92400e;
+  --color-danger-text: #991b1b;
+  --color-accent-text: #1d4ed8;
+
+  /* Toast (self-contained floating pills) */
+  --color-toast-success-bg: #065f46;
+  --color-toast-success-text: #d1fae5;
+  --color-toast-error-bg: #991b1b;
+  --color-toast-error-text: #fee2e2;
 
   /* Radius */
   --radius-sm: 6px;
@@ -92,8 +102,17 @@
     --color-danger-light: rgba(248, 113, 113, 0.15);
     --color-success: #4ade80;
     --color-success-light: rgba(74, 222, 128, 0.15);
+    --color-success-text: #86efac;
     --color-warning: #fbbf24;
     --color-warning-light: rgba(251, 191, 36, 0.15);
+    --color-warning-text: #fcd34d;
+    --color-danger-text: #fca5a5;
+    --color-accent-text: #93c5fd;
+
+    --color-toast-success-bg: #064e3b;
+    --color-toast-success-text: #d1fae5;
+    --color-toast-error-bg: #7f1d1d;
+    --color-toast-error-text: #fee2e2;
 
     /* Shadows */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -124,8 +143,17 @@
   --color-danger-light: #fef2f2;
   --color-success: #22c55e;
   --color-success-light: #f0fdf4;
+  --color-success-text: #15803d;
   --color-warning: #f59e0b;
   --color-warning-light: #fffbeb;
+  --color-warning-text: #92400e;
+  --color-danger-text: #991b1b;
+  --color-accent-text: #1d4ed8;
+
+  --color-toast-success-bg: #065f46;
+  --color-toast-success-text: #d1fae5;
+  --color-toast-error-bg: #991b1b;
+  --color-toast-error-text: #fee2e2;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07),
@@ -154,8 +182,17 @@
   --color-danger-light: rgba(248, 113, 113, 0.15);
   --color-success: #4ade80;
   --color-success-light: rgba(74, 222, 128, 0.15);
+  --color-success-text: #86efac;
   --color-warning: #fbbf24;
   --color-warning-light: rgba(251, 191, 36, 0.15);
+  --color-warning-text: #fcd34d;
+  --color-danger-text: #fca5a5;
+  --color-accent-text: #93c5fd;
+
+  --color-toast-success-bg: #064e3b;
+  --color-toast-success-text: #d1fae5;
+  --color-toast-error-bg: #7f1d1d;
+  --color-toast-error-text: #fee2e2;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4),
