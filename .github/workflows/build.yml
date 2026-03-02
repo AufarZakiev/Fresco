@@ -112,7 +112,7 @@ jobs:
         env:
           FRESCO_BUILD_TIME: ${{ needs.lint.outputs.build_time }}
         with:
-          args: --target ${{ matrix.target }}
+          args: --target ${{ matrix.target }} ${{ startsWith(matrix.platform, 'windows') && '--no-bundle' || '' }}
 
       - name: Upload portable (Linux)
         if: startsWith(matrix.platform, 'ubuntu')
