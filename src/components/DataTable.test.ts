@@ -8,15 +8,17 @@ const columns = [
   { key: "status", label: "Status" },
 ];
 
+function findThByLabel(wrapper: ReturnType<typeof mount>, label: string) {
+  return wrapper.findAll("thead th").find((th) => th.text().includes(label));
+}
+
 describe("DataTable", () => {
   it("renders columns in thead", () => {
     const wrapper = mount(DataTable, {
       props: { columns },
     });
-    const ths = wrapper.findAll("thead th");
-    expect(ths.length).toBe(2);
-    expect(ths[0].text()).toContain("Name");
-    expect(ths[1].text()).toContain("Status");
+    expect(findThByLabel(wrapper, "Name")?.exists()).toBe(true);
+    expect(findThByLabel(wrapper, "Status")?.exists()).toBe(true);
   });
 
   it("renders slot content in tbody", () => {
@@ -35,7 +37,6 @@ describe("DataTable", () => {
     });
     const tableWrapper = wrapper.find(".data-table-wrapper");
     expect(tableWrapper.exists()).toBe(true);
-    // The wrapper element should exist with the class that has overflow: auto
     expect(tableWrapper.classes()).toContain("data-table-wrapper");
   });
 
@@ -51,42 +52,53 @@ describe("DataTable", () => {
     const wrapper = mount(DataTable, {
       props: { columns, sortKey: "name", sortDir: SORT_DIR.ASC },
     });
-    const ths = wrapper.findAll("thead th");
-    expect(ths[0].attributes("aria-sort")).toBe("ascending");
+    expect(findThByLabel(wrapper, "Name")?.attributes("aria-sort")).toBe("ascending");
   });
 
   it("sets aria-sort='descending' when sort direction is DESC", () => {
     const wrapper = mount(DataTable, {
       props: { columns, sortKey: "name", sortDir: SORT_DIR.DESC },
     });
-    const ths = wrapper.findAll("thead th");
-    expect(ths[0].attributes("aria-sort")).toBe("descending");
+    expect(findThByLabel(wrapper, "Name")?.attributes("aria-sort")).toBe("descending");
   });
 
   it("sets aria-sort='none' on sortable columns that are not actively sorted", () => {
     const wrapper = mount(DataTable, {
       props: { columns, sortKey: "status", sortDir: SORT_DIR.ASC },
     });
-    const ths = wrapper.findAll("thead th");
-    expect(ths[0].attributes("aria-sort")).toBe("none");
+    expect(findThByLabel(wrapper, "Name")?.attributes("aria-sort")).toBe("none");
   });
 
   it("omits aria-sort on non-sortable columns", () => {
     const wrapper = mount(DataTable, {
       props: { columns, sortKey: "name", sortDir: SORT_DIR.ASC },
     });
-    const ths = wrapper.findAll("thead th");
-    expect(ths[1].attributes("aria-sort")).toBeUndefined();
+    expect(findThByLabel(wrapper, "Status")?.attributes("aria-sort")).toBeUndefined();
+  });
+
+  it("falls back to aria-sort='none' when sortDir is undefined for active column", () => {
+    const wrapper = mount(DataTable, {
+      props: { columns, sortKey: "name" },
+    });
+    expect(findThByLabel(wrapper, "Name")?.attributes("aria-sort")).toBe("none");
   });
 
   it("adds scope='col' to all header cells", () => {
     const wrapper = mount(DataTable, {
       props: { columns },
     });
-    const ths = wrapper.findAll("thead th");
-    ths.forEach((th) => {
+    wrapper.findAll("thead th").forEach((th) => {
       expect(th.attributes("scope")).toBe("col");
     });
+  });
+
+  it("adds scope='col' to selectable checkbox header", () => {
+    const wrapper = mount(DataTable, {
+      props: { columns, selectable: true },
+    });
+    const ths = wrapper.findAll("thead th");
+    expect(ths[0].attributes("scope")).toBe("col");
+    expect(ths[0].find("input[type='checkbox']").exists()).toBe(true);
   });
 
   it("hides columns with visible: false", () => {
@@ -98,9 +110,8 @@ describe("DataTable", () => {
     const wrapper = mount(DataTable, {
       props: { columns: cols },
     });
-    const ths = wrapper.findAll("thead th");
-    expect(ths.length).toBe(2);
-    expect(ths[0].text()).toContain("Name");
-    expect(ths[1].text()).toContain("Status");
+    expect(findThByLabel(wrapper, "Name")?.exists()).toBe(true);
+    expect(findThByLabel(wrapper, "Hidden")).toBeUndefined();
+    expect(findThByLabel(wrapper, "Status")?.exists()).toBe(true);
   });
 });

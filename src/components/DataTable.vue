@@ -68,7 +68,9 @@ function handleContextMenu(event: MouseEvent, index: number) {
                 ? sortKey === col.key
                   ? sortDir === SORT_DIR.ASC
                     ? 'ascending'
-                    : 'descending'
+                    : sortDir === SORT_DIR.DESC
+                      ? 'descending'
+                      : 'none'
                   : 'none'
                 : undefined
             "
