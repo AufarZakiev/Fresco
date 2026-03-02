@@ -203,4 +203,37 @@ describe("App", () => {
     expect(texts).toContain("Select Computer");
     expect(texts).toContain("Preferences");
   });
+
+  it("prevents Backspace on non-editable targets", async () => {
+    const router = createTestRouter();
+    await router.push("/tasks");
+    await router.isReady();
+
+    await mountApp(router);
+
+    const event = new KeyboardEvent("keydown", { key: "Backspace", bubbles: true });
+    const spy = vi.spyOn(event, "preventDefault");
+    document.body.dispatchEvent(event);
+
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it("allows Backspace inside text input", async () => {
+    const router = createTestRouter();
+    await router.push("/tasks");
+    await router.isReady();
+
+    await mountApp(router);
+
+    const input = document.createElement("input");
+    input.type = "text";
+    document.body.appendChild(input);
+
+    const event = new KeyboardEvent("keydown", { key: "Backspace", bubbles: true });
+    const spy = vi.spyOn(event, "preventDefault");
+    input.dispatchEvent(event);
+
+    expect(spy).not.toHaveBeenCalled();
+    input.remove();
+  });
 });

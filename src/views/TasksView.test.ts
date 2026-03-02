@@ -162,4 +162,18 @@ describe("TasksView", () => {
     expect(body).toContain("Abort Tasks");
     expect(body).toContain("cannot be undone");
   });
+
+  it("opens abort confirmation when Backspace is pressed with selection", async () => {
+    const store = useTasksStore();
+    store.tasks = [makeTask()];
+
+    const wrapper = mount(TasksView);
+    await wrapper.find("tbody tr").trigger("click");
+
+    await wrapper.trigger("keydown", { key: "Backspace" });
+    await wrapper.vm.$nextTick();
+
+    const body = document.body.textContent ?? "";
+    expect(body).toContain("Abort Tasks");
+  });
 });
