@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useStatisticsStore } from "./statistics";
+import { useConnectionStore } from "./connection";
 import type { ProjectStatistics } from "../types/boinc";
 
 vi.mock("../composables/useRpc", () => ({
@@ -50,8 +51,19 @@ describe("useStatisticsStore", () => {
     mockGetStatistics.mockRejectedValueOnce(new Error("Timeout"));
     const store = useStatisticsStore();
     await store.fetchStatistics();
-    expect(store.error).toBe("Error: Timeout");
+    expect(store.error).toBe("Timeout");
     expect(store.loading).toBe(false);
+  });
+
+  it("fetchStatistics triggers handleConnectionError on failure", async () => {
+    mockGetStatistics.mockRejectedValueOnce(new Error("Timeout"));
+    const connection = useConnectionStore();
+    const spy = vi.spyOn(connection, "handleConnectionError");
+
+    const store = useStatisticsStore();
+    await store.fetchStatistics();
+
+    expect(spy).toHaveBeenCalledOnce();
   });
 
   it("polls and stops", async () => {

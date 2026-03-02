@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { getStatistics } from "../composables/useRpc";
 import type { ProjectStatistics } from "../types/boinc";
+import { useConnectionStore } from "./connection";
 
 const POLL_INTERVAL_MS = 60000;
 
@@ -17,7 +18,9 @@ export const useStatisticsStore = defineStore("statistics", () => {
     try {
       projectStats.value = await getStatistics();
     } catch (e) {
-      error.value = String(e);
+      error.value = e instanceof Error ? e.message : String(e);
+      const connection = useConnectionStore();
+      connection.handleConnectionError();
     } finally {
       loading.value = false;
     }

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useMessagesStore } from "./messages";
+import { useConnectionStore } from "./connection";
 import type { Message } from "../types/boinc";
 import { MSG_PRIORITY } from "../types/boinc";
 
@@ -185,6 +186,33 @@ describe("useMessagesStore", () => {
 
     expect(store.error).toBe("Connection lost");
     expect(store.messages).toEqual([]);
+  });
+
+  it("fetchMessages triggers handleConnectionError on failure", async () => {
+    mockInvoke.mockRejectedValueOnce("Connection lost");
+    const connection = useConnectionStore();
+    const spy = vi.spyOn(connection, "handleConnectionError");
+
+    const store = useMessagesStore();
+    await store.fetchMessages();
+
+    expect(spy).toHaveBeenCalledOnce();
+  });
+
+  it("fetchOlderMessages triggers handleConnectionError on failure", async () => {
+    const all = Array.from({ length: 100 }, (_, i) => makeMessage(i + 1));
+    stubRpc(100, all);
+
+    const store = useMessagesStore();
+    await store.fetchMessages();
+
+    mockInvoke.mockRejectedValueOnce("Network error");
+    const connection = useConnectionStore();
+    const spy = vi.spyOn(connection, "handleConnectionError");
+
+    await store.fetchOlderMessages();
+
+    expect(spy).toHaveBeenCalledOnce();
   });
 
   it("filteredMessages filters by search text", async () => {

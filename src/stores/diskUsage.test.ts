@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useDiskUsageStore } from "./diskUsage";
+import { useConnectionStore } from "./connection";
 import type { DiskUsage } from "../types/boinc";
 
 vi.mock("../composables/useRpc", () => ({
@@ -49,8 +50,19 @@ describe("useDiskUsageStore", () => {
     mockGetDiskUsage.mockRejectedValueOnce(new Error("Network error"));
     const store = useDiskUsageStore();
     await store.fetchDiskUsage();
-    expect(store.error).toBe("Error: Network error");
+    expect(store.error).toBe("Network error");
     expect(store.loading).toBe(false);
+  });
+
+  it("fetchDiskUsage triggers handleConnectionError on failure", async () => {
+    mockGetDiskUsage.mockRejectedValueOnce(new Error("Network error"));
+    const connection = useConnectionStore();
+    const spy = vi.spyOn(connection, "handleConnectionError");
+
+    const store = useDiskUsageStore();
+    await store.fetchDiskUsage();
+
+    expect(spy).toHaveBeenCalledOnce();
   });
 
   it("polls and stops", async () => {

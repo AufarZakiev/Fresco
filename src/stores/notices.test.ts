@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useNoticesStore } from "./notices";
+import { useConnectionStore } from "./connection";
 import type { Notice } from "../types/boinc";
 
 vi.mock("../composables/useRpc", () => ({
@@ -88,8 +89,19 @@ describe("useNoticesStore", () => {
     const store = useNoticesStore();
     await store.fetchNotices();
 
-    expect(store.error).toBe("Error: Connection lost");
+    expect(store.error).toBe("Connection lost");
     expect(store.loading).toBe(false);
+  });
+
+  it("fetchNotices triggers handleConnectionError on failure", async () => {
+    mockGetNotices.mockRejectedValueOnce(new Error("Connection lost"));
+    const connection = useConnectionStore();
+    const spy = vi.spyOn(connection, "handleConnectionError");
+
+    const store = useNoticesStore();
+    await store.fetchNotices();
+
+    expect(spy).toHaveBeenCalledOnce();
   });
 
   it("polls and stops", async () => {

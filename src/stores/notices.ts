@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { getNotices } from "../composables/useRpc";
 import { notifyNewNotices } from "../composables/useNotifications";
 import type { Notice } from "../types/boinc";
+import { useConnectionStore } from "./connection";
 
 const POLL_INTERVAL_MS = 30000;
 
@@ -24,7 +25,9 @@ export const useNoticesStore = defineStore("notices", () => {
         notifyNewNotices(newNotices.length);
       }
     } catch (e) {
-      error.value = String(e);
+      error.value = e instanceof Error ? e.message : String(e);
+      const connection = useConnectionStore();
+      connection.handleConnectionError();
     } finally {
       loading.value = false;
     }
