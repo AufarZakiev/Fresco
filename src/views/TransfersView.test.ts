@@ -83,4 +83,18 @@ describe("TransfersView", () => {
     expect(body).toContain("Abort Transfer");
     expect(body).toContain("Abort 1 selected transfer?");
   });
+
+  it("opens abort confirmation when Backspace is pressed with selection", async () => {
+    const store = useTransfersStore();
+    store.transfers = [makeTransfer()];
+
+    const wrapper = mount(TransfersView);
+    await wrapper.find("tbody tr").trigger("click");
+
+    await wrapper.trigger("keydown", { key: "Backspace" });
+    await wrapper.vm.$nextTick();
+
+    const body = document.body.textContent ?? "";
+    expect(body).toContain("Abort Transfer");
+  });
 });

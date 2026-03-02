@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { onKeyStroke, useEventListener } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { useRoute, useRouter } from "vue-router";
@@ -134,8 +135,30 @@ function cancelAutoConnect() {
 type UnlistenFn = () => void;
 const unlisteners: UnlistenFn[] = [];
 
+// Disable right-click context menu in the entire app
+useEventListener(document, "contextmenu", (e) => e.preventDefault());
+
+// Prevent Backspace from triggering browser-like back navigation in the WebView.
+// Only allow Backspace in text-editable elements (text inputs, textareas, contenteditable).
+const TEXT_INPUT_TYPES = new Set(["text", "password", "search", "email", "url", "tel", "number"]);
+
+function isTextEditable(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target instanceof HTMLTextAreaElement) return true;
+  if (target.isContentEditable) return true;
+  if (target instanceof HTMLInputElement) {
+    return TEXT_INPUT_TYPES.has(target.type);
+  }
+  return false;
+}
+
+onKeyStroke("Backspace", (e) => {
+  if (!isTextEditable(e.target)) {
+    e.preventDefault();
+  }
+});
+
 onMounted(async () => {
-  document.addEventListener("contextmenu", (e) => e.preventDefault());
   doUpdateCheck();
   autoConnect();
 
