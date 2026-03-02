@@ -140,7 +140,14 @@ onMounted(async () => {
   // Prevent Backspace from triggering browser-like back navigation in the WebView.
   // Individual views handle Delete/Backspace for their own actions (e.g. detach, abort).
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Backspace" && !(e.target as HTMLElement)?.matches('input:not([type="checkbox"]):not([type="radio"]), textarea, select, [contenteditable]')) {
+    const target = e.target;
+    if (
+      e.key === "Backspace" &&
+      (!(
+        target instanceof HTMLElement &&
+        target.matches('input:not([type="checkbox"]):not([type="radio"]), textarea, select, [contenteditable]')
+      ))
+    ) {
       e.preventDefault();
     }
   });
