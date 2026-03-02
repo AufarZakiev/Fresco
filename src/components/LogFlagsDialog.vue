@@ -102,7 +102,8 @@ async function save() {
                 <span
                   class="toggle-switch"
                   :class="{ on: config.log_flags[flag.key] }"
-                  role="button"
+                  role="switch"
+                  :aria-checked="!!(config.log_flags[flag.key])"
                   tabindex="0"
                   @click.stop="config.log_flags[flag.key] = !config.log_flags[flag.key]"
                   @keydown.enter.prevent="config.log_flags[flag.key] = !config.log_flags[flag.key]"
@@ -139,7 +140,8 @@ async function save() {
                 <span
                   class="toggle-switch"
                   :class="{ on: config.report_results_immediately }"
-                  role="button"
+                  role="switch"
+                  :aria-checked="!!(config.report_results_immediately)"
                   tabindex="0"
                   @click.stop="config.report_results_immediately = !config.report_results_immediately"
                   @keydown.enter.prevent="config.report_results_immediately = !config.report_results_immediately"
