@@ -17,6 +17,7 @@ import { decimalHoursToTimeString } from "../utils/timeConversion";
 import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
 type TabName = "computing" | "network" | "storage" | "schedule" | "manager";
+const TAB_NAMES: TabName[] = ["computing", "network", "storage", "schedule", "manager"];
 
 const props = withDefaults(defineProps<{ open: boolean; initialTab?: TabName }>(), {
   initialTab: "computing",
@@ -34,6 +35,43 @@ const { t, locale } = useI18n({ useScope: "global" });
 const store = usePreferencesStore();
 const managerStore = useManagerSettingsStore();
 const activeTab = ref<TabName>("computing");
+
+function switchTab(name: TabName) {
+  activeTab.value = name;
+  nextTick(() => {
+    const el = dialogRef.value?.querySelector(`#tab-${name}`) as HTMLElement | null;
+    el?.focus();
+  });
+}
+
+function onTabKeydown(event: KeyboardEvent) {
+  const currentEl = event.currentTarget as HTMLElement | null;
+  const currentId = currentEl?.id ?? "";
+  const fromName = currentId.startsWith("tab-") ? (currentId.slice(4) as TabName) : undefined;
+  const currentTab = fromName && TAB_NAMES.includes(fromName) ? fromName : activeTab.value;
+  const idx = TAB_NAMES.indexOf(currentTab);
+  let target: TabName | undefined;
+
+  switch (event.key) {
+    case "ArrowRight":
+      target = TAB_NAMES[(idx + 1) % TAB_NAMES.length];
+      break;
+    case "ArrowLeft":
+      target = TAB_NAMES[(idx - 1 + TAB_NAMES.length) % TAB_NAMES.length];
+      break;
+    case "Home":
+      target = TAB_NAMES[0];
+      break;
+    case "End":
+      target = TAB_NAMES[TAB_NAMES.length - 1];
+      break;
+    default:
+      return;
+  }
+
+  event.preventDefault();
+  switchTab(target);
+}
 const managerForm = ref({ ...managerStore.settings });
 const form = ref<GlobalPreferences | null>(null);
 const showProxy = ref(false);
@@ -168,35 +206,27 @@ async function save() {
         <div v-if="store.loading && !form" class="prefs-loading">{{ $t('prefs.loading') }}</div>
 
         <template v-else-if="form">
-          <div class="tabs">
+          <div class="tabs" role="tablist" :aria-label="$t('prefs.title')">
             <button
+              v-for="name in TAB_NAMES"
+              :id="`tab-${name}`"
+              :key="name"
+              role="tab"
               class="tab"
-              :class="{ active: activeTab === 'computing' }"
-              @click="activeTab = 'computing'"
+              :class="{ active: activeTab === name }"
+              :aria-selected="activeTab === name"
+              :aria-controls="`tabpanel-${name}`"
+              :tabindex="activeTab === name ? 0 : -1"
+              @click="activeTab = name"
+              @keydown="onTabKeydown"
             >
-              {{ $t('prefs.tabs.computing') }}
+              {{ $t(`prefs.tabs.${name}`) }}
             </button>
-            <button
-              class="tab"
-              :class="{ active: activeTab === 'network' }"
-              @click="activeTab = 'network'"
-            >
-              {{ $t('prefs.tabs.network') }}
-            </button>
-            <button
-              class="tab"
-              :class="{ active: activeTab === 'storage' }"
-              @click="activeTab = 'storage'"
-            >
-              {{ $t('prefs.tabs.storage') }}
-            </button>
-            <button class="tab" :class="{ active: activeTab === 'schedule' }" @click="activeTab = 'schedule'">{{ $t('prefs.tabs.schedule') }}</button>
-            <button class="tab" :class="{ active: activeTab === 'manager' }" @click="activeTab = 'manager'">{{ $t('prefs.tabs.manager') }}</button>
           </div>
 
           <div class="prefs-body">
             <!-- Computing tab -->
-            <div v-if="activeTab === 'computing'" class="prefs-section">
+            <div v-show="activeTab === 'computing'" id="tabpanel-computing" role="tabpanel" aria-labelledby="tab-computing" class="prefs-section" tabindex="0">
               <PrefToggleSwitch
                 v-model="form.run_on_batteries"
                 :label="$t('prefs.computing.runOnBatteries')"
@@ -303,7 +333,7 @@ async function save() {
             </div>
 
             <!-- Network tab -->
-            <div v-if="activeTab === 'network'" class="prefs-section">
+            <div v-show="activeTab === 'network'" id="tabpanel-network" role="tabpanel" aria-labelledby="tab-network" class="prefs-section" tabindex="0">
               <PrefNumericInput
                 v-model="form.max_bytes_sec_down"
                 :label="$t('prefs.network.maxDownload')"
@@ -344,7 +374,7 @@ async function save() {
             </div>
 
             <!-- Storage tab -->
-            <div v-if="activeTab === 'storage'" class="prefs-section">
+            <div v-show="activeTab === 'storage'" id="tabpanel-storage" role="tabpanel" aria-labelledby="tab-storage" class="prefs-section" tabindex="0">
               <PrefNumericInput
                 v-model="form.disk_max_used_gb"
                 :label="$t('prefs.storage.maxDiskGb')"
@@ -379,7 +409,7 @@ async function save() {
             </div>
 
             <!-- Schedule tab -->
-            <div v-if="activeTab === 'schedule'" class="prefs-section">
+            <div v-show="activeTab === 'schedule'" id="tabpanel-schedule" role="tabpanel" aria-labelledby="tab-schedule" class="prefs-section" tabindex="0">
               <p class="section-desc">{{ $t('prefs.schedule.desc') }}</p>
               <div class="schedule-days">
                 <div v-for="(day, i) in dayNames" :key="i" class="schedule-day">
@@ -413,7 +443,7 @@ async function save() {
             </div>
 
             <!-- Manager tab -->
-            <div v-if="activeTab === 'manager'" class="prefs-section">
+            <div v-show="activeTab === 'manager'" id="tabpanel-manager" role="tabpanel" aria-labelledby="tab-manager" class="prefs-section" tabindex="0">
               <div class="manager-row">
                 <span class="manager-label">{{ $t('prefs.manager.appearance') }}</span>
                 <select v-model="managerForm.theme" class="manager-select">
@@ -568,6 +598,12 @@ async function save() {
 
 .tab:hover {
   color: var(--color-text-primary);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
 }
 
 .tab.active {
