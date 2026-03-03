@@ -782,34 +782,69 @@ fn is_boinc_running() -> bool {
     }
 }
 
+/// Resolve the BOINC client executable path.
+///
+/// When `client_dir` is empty, tries platform-specific candidate paths in order
+/// and returns the first one that exists. On macOS this covers both the app
+/// bundle install and the CLI-only install.
+///
+/// When `client_dir` is provided, normalizes it (file vs directory) and checks
+/// that the resulting path exists.
+fn resolve_boinc_exe(client_dir: &str) -> Result<String, String> {
+    let bin_name = if cfg!(target_os = "windows") { "boinc.exe" } else { "boinc" };
+
+    if client_dir.is_empty() {
+        let candidates: Vec<String> = if cfg!(target_os = "windows") {
+            vec![r"C:\Program Files\BOINC\boinc.exe".to_string()]
+        } else if cfg!(target_os = "macos") {
+            vec![
+                "/Applications/BOINCManager.app/Contents/Resources/boinc".to_string(),
+                "/Library/Application Support/BOINC Data/boinc".to_string(),
+            ]
+        } else {
+            vec!["/usr/bin/boinc".to_string()]
+        };
+
+        for candidate in &candidates {
+            if std::path::Path::new(candidate).exists() {
+                return Ok(candidate.clone());
+            }
+        }
+
+        let tried = candidates.join(", ");
+        return Err(format!("BOINC client not found (tried: {tried})"));
+    }
+
+    let p = std::path::Path::new(client_dir);
+    let exe_path = if p.is_file() {
+        client_dir.to_string()
+    } else {
+        p.join(bin_name).to_string_lossy().to_string()
+    };
+
+    if !std::path::Path::new(&exe_path).exists() {
+        return Err(format!("BOINC client not found at {exe_path}"));
+    }
+
+    Ok(exe_path)
+}
+
+#[tauri::command]
+fn detect_boinc_client_dir() -> Result<String, String> {
+    let exe_path = resolve_boinc_exe("")?;
+    let parent = std::path::Path::new(&exe_path)
+        .parent()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| exe_path.clone());
+    Ok(parent)
+}
+
 #[tauri::command]
 async fn start_boinc_client(data_dir: String, client_dir: String) -> Result<(), String> {
     let already_running = is_boinc_running();
 
     if !already_running {
-        let default_exe = if cfg!(target_os = "windows") {
-            r"C:\Program Files\BOINC\boinc.exe".to_string()
-        } else if cfg!(target_os = "macos") {
-            "/Applications/BOINCManager.app/Contents/Resources/boinc".to_string()
-        } else {
-            "/usr/bin/boinc".to_string()
-        };
-        let exe_path = if client_dir.is_empty() {
-            default_exe
-        } else {
-            let p = std::path::Path::new(&client_dir);
-            if p.is_file() {
-                client_dir.clone()
-            } else {
-                // Treat as directory — append the binary name
-                let name = if cfg!(target_os = "windows") { "boinc.exe" } else { "boinc" };
-                p.join(name).to_string_lossy().to_string()
-            }
-        };
-
-        if !std::path::Path::new(&exe_path).exists() {
-            return Err(format!("BOINC client not found at {exe_path}"));
-        }
+        let exe_path = resolve_boinc_exe(&client_dir)?;
 
         let mut cmd = std::process::Command::new(&exe_path);
         cmd.arg("--dir")
@@ -1062,6 +1097,7 @@ pub fn run() {
             set_cc_config,
             get_newer_version,
             start_boinc_client,
+            detect_boinc_client_dir,
             launch_graphics,
             launch_remote_desktop,
             exchange_versions,

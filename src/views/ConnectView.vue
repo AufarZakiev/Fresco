@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import Tooltip from "../components/Tooltip.vue";
-import { getOS, defaultDataDir, defaultClientDir, type OS } from "../composables/usePlatform";
+import { getOS, defaultDataDir, defaultClientDir, detectClientDir, type OS } from "../composables/usePlatform";
 import { useConnectionStore } from "../stores/connection";
 import { useTasksStore } from "../stores/tasks";
 import { useProjectsStore } from "../stores/projects";
@@ -69,7 +69,13 @@ onMounted(async () => {
     // currentOS stays "linux" as safe fallback
   } finally {
     if (!dataDir.value) dataDir.value = defaultDataDir(currentOS);
-    if (!clientDir.value) clientDir.value = defaultClientDir(currentOS);
+    if (!clientDir.value) {
+      try {
+        clientDir.value = await detectClientDir();
+      } catch {
+        clientDir.value = defaultClientDir(currentOS);
+      }
+    }
     osLoading.value = false;
   }
 });

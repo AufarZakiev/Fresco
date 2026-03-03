@@ -23,6 +23,10 @@ export function defaultClientDir(os: OS): string {
   return "/usr/bin";
 }
 
+export function detectClientDir(): Promise<string> {
+  return invoke("detect_boinc_client_dir");
+}
+
 export function platformAssetPattern(os: OS, arch: Arch): string {
   const osLabel = { windows: "Windows", macos: "macOS", linux: "Linux" }[os];
   const archLabel = { arm64: "ARM64", x86_64: "x86_64" }[arch];

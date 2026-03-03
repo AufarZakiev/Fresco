@@ -93,6 +93,8 @@ export function handleIpc(cmd: string, payload?: InvokeArgs): unknown {
       return "macos";
     case "get_arch":
       return "arm64";
+    case "detect_boinc_client_dir":
+      return "/Applications/BOINCManager.app/Contents/Resources";
     case "download_update":
       return undefined;
 

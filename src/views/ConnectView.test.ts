@@ -6,6 +6,7 @@ import ConnectView from "./ConnectView.vue";
 import { CONNECTION_MODE } from "../types/boinc";
 
 const mockGetOS = vi.fn();
+const mockDetectClientDir = vi.fn();
 const mockPush = vi.fn();
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -16,6 +17,7 @@ vi.mock("../composables/usePlatform", () => ({
   getOS: () => mockGetOS(),
   defaultDataDir: (os: string) => `/data/${os}`,
   defaultClientDir: (os: string) => `/client/${os}`,
+  detectClientDir: () => mockDetectClientDir(),
 }));
 
 vi.mock("vue-router", () => ({
@@ -37,6 +39,7 @@ describe("ConnectView — OS probe loading state", () => {
     setActivePinia(createPinia());
     localStorage.clear();
     mockPush.mockReset();
+    mockDetectClientDir.mockRejectedValue(new Error("not available"));
   });
 
   it("disables Connect button in LOCAL mode while OS probe is pending", () => {
@@ -137,5 +140,29 @@ describe("ConnectView — OS probe loading state", () => {
     const inputs = wrapper.findAll(".field-input");
     expect((inputs[0].element as HTMLInputElement).value).toBe("/custom/data");
     expect((inputs[1].element as HTMLInputElement).value).toBe("/custom/client");
+  });
+
+  it("uses detected client dir when detectClientDir succeeds", async () => {
+    mockGetOS.mockResolvedValue("macos");
+    mockDetectClientDir.mockResolvedValue("/Library/Application Support/BOINC Data");
+    const wrapper = mountView();
+
+    await flushPromises();
+
+    const inputs = wrapper.findAll(".field-input");
+    expect((inputs[1].element as HTMLInputElement).value).toBe(
+      "/Library/Application Support/BOINC Data",
+    );
+  });
+
+  it("falls back to defaultClientDir when detectClientDir fails", async () => {
+    mockGetOS.mockResolvedValue("macos");
+    mockDetectClientDir.mockRejectedValue(new Error("BOINC client not found"));
+    const wrapper = mountView();
+
+    await flushPromises();
+
+    const inputs = wrapper.findAll(".field-input");
+    expect((inputs[1].element as HTMLInputElement).value).toBe("/client/macos");
   });
 });
