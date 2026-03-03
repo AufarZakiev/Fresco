@@ -999,11 +999,15 @@ pub fn run() {
 
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            tauri::WindowEvent::ThemeChanged(theme) => {
+                tray::update_icons_for_theme(window.app_handle(), *theme);
+            }
+            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             connect,

@@ -56,6 +56,10 @@ const connecting = ref(false);
 const osLoading = ref(true);
 const statusMessage = ref<string | null>(null);
 const recentConnections = ref<RecentConnection[]>([]);
+const isDarkTheme = ref(window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false);
+window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  isDarkTheme.value = e.matches;
+});
 
 onMounted(async () => {
   loadRecent();
@@ -189,6 +193,7 @@ function formatTimestamp(ts: number): string {
 <template>
   <div class="connect-view">
     <div class="connect-card">
+      <img class="connect-logo" :src="isDarkTheme ? '/icon-dark.png' : '/icon.png'" alt="Fresco" width="96" height="96" />
       <h2 class="connect-title">{{ $t('connect.title') }}</h2>
 
       <div class="mode-toggle">
@@ -320,6 +325,13 @@ function formatTimestamp(ts: number): string {
 .connect-card {
   width: 100%;
   max-width: 480px;
+}
+
+.connect-logo {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto var(--space-lg);
 }
 
 .connect-title {

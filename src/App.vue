@@ -59,6 +59,10 @@ const prefsInitialTab = ref<"computing" | "manager">("computing");
 const showExitConfirm = ref(false);
 const initializing = ref(true);
 const loadingStatus = ref(t("app.loading.connectingLocal"));
+const isDarkTheme = ref(window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false);
+window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  isDarkTheme.value = e.matches;
+});
 const sidebarOpen = ref(false);
 const collapsedGroups = ref<string[]>(["advanced"]);
 
@@ -306,7 +310,8 @@ watch(
 <template>
   <div v-if="initializing" class="loading-screen">
     <div class="loading-content">
-      <span class="loading-logo">{{ $t('app.loading.logo') }}</span>
+      <img class="loading-logo" :src="isDarkTheme ? '/icon-dark.png' : '/icon.png'" alt="Fresco" width="96" height="96" />
+      <span class="loading-app-title">Fresco</span>
       <div class="loading-spinner"></div>
       <span class="loading-text">{{ loadingStatus }}</span>
       <button class="btn loading-cancel" @click="cancelAutoConnect">{{ $t('app.loading.cancel') }}</button>
@@ -663,6 +668,11 @@ input, textarea, select {
 }
 
 .loading-logo {
+  width: 96px;
+  height: 96px;
+}
+
+.loading-app-title {
   font-weight: 700;
   font-size: 24px;
   color: var(--color-text-primary);

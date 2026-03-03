@@ -8,15 +8,27 @@ use tauri::{
 
 use crate::AppState;
 
+const TRAY_ID: &str = "main-tray";
+
 pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    // On macOS, use a dedicated monochrome icon so the system can render it
-    // as a proper template image (black in light mode, white in dark mode).
-    // On other platforms, fall back to the default window icon.
+    // On macOS, use a monochrome template image — the OS handles dark/light automatically.
+    // On other platforms, detect the current theme and pick the matching tray icon.
     #[cfg(target_os = "macos")]
     let icon = tauri::include_image!("icons/tray-icon.png");
 
     #[cfg(not(target_os = "macos"))]
-    let icon = app.default_window_icon().cloned().expect("no default icon");
+    let icon = {
+        let is_dark = app
+            .get_webview_window("main")
+            .and_then(|w| w.theme().ok())
+            .map(|t| t == tauri::Theme::Dark)
+            .unwrap_or(true);
+        if is_dark {
+            tauri::include_image!("icons/tray-icon-dark.png")
+        } else {
+            tauri::include_image!("icons/tray-icon-light.png")
+        }
+    };
 
     let open = MenuItemBuilder::with_id("tray_open", "Open Manager").build(app)?;
     let sep1 = PredefinedMenuItem::separator(app)?;
@@ -44,7 +56,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let cpu_snoozed_ref = cpu_snoozed.clone();
     let gpu_snoozed_ref = gpu_snoozed.clone();
 
-    TrayIconBuilder::new()
+    TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
         .icon_as_template(cfg!(target_os = "macos"))
         .tooltip("BOINC Manager")
@@ -114,4 +126,28 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         .build(app)?;
 
     Ok(())
+}
+
+/// Switch tray and window icons to match the system theme.
+/// On macOS this is a no-op — the tray uses a template image and the Dock icon is fixed.
+#[cfg(target_os = "macos")]
+pub fn update_icons_for_theme(_app: &AppHandle, _theme: tauri::Theme) {}
+
+#[cfg(not(target_os = "macos"))]
+pub fn update_icons_for_theme(app: &AppHandle, theme: tauri::Theme) {
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        let icon = match theme {
+            tauri::Theme::Dark => tauri::include_image!("icons/tray-icon-dark.png"),
+            _ => tauri::include_image!("icons/tray-icon-light.png"),
+        };
+        let _ = tray.set_icon(Some(icon));
+    }
+
+    if let Some(window) = app.get_webview_window("main") {
+        let icon = match theme {
+            tauri::Theme::Dark => tauri::include_image!("icons/icon-dark.png"),
+            _ => tauri::include_image!("icons/icon.png"),
+        };
+        let _ = window.set_icon(icon);
+    }
 }
