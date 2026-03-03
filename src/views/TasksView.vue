@@ -391,12 +391,21 @@ function isColVisible(key: string): boolean {
 <template>
   <div class="tasks-view">
     <PageHeader :title="$t('tasks.title')">
-      <button
-        :class="['btn', { 'btn-toggle-active': activeTasksOnly }]"
-        @click="activeTasksOnly = !activeTasksOnly"
-      >
-        {{ $t('tasks.activeOnly') }}
-      </button>
+      <label class="active-filter-toggle" @click.prevent="activeTasksOnly = !activeTasksOnly">
+        <span
+          class="toggle-switch"
+          :class="{ on: activeTasksOnly }"
+          role="switch"
+          :aria-checked="!!activeTasksOnly"
+          aria-labelledby="active-tasks-only-label"
+          tabindex="0"
+          @keydown.enter.prevent="activeTasksOnly = !activeTasksOnly"
+          @keydown.space.prevent="activeTasksOnly = !activeTasksOnly"
+        >
+          <span class="toggle-knob" />
+        </span>
+        <span id="active-tasks-only-label" class="toggle-label">{{ $t('tasks.activeOnly') }}</span>
+      </label>
       <template v-if="hasSelection">
         <button class="btn" :disabled="actionBusy" @click="handleSuspendResume">
           {{ suspendResumeLabel }}
@@ -602,10 +611,49 @@ function isColVisible(key: string): boolean {
   color: var(--color-text-primary);
 }
 
-.btn-toggle-active {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
-  border-color: var(--color-accent);
+.active-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: pointer;
+}
+
+.toggle-switch {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--color-text-tertiary);
+  opacity: 0.4;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.toggle-switch.on {
+  background: var(--color-accent);
+  opacity: 1;
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  transition: left 0.2s;
+}
+
+.toggle-switch.on .toggle-knob {
+  left: 18px;
+}
+
+.toggle-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  user-select: none;
 }
 
 .btn-columns {
