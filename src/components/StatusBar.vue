@@ -25,7 +25,10 @@ const statusDotClass = computed(() => {
   const state = connection.state;
   if (state === CONNECTION_STATE.CONNECTED) return "status-dot-connected";
   if (state === CONNECTION_STATE.RECONNECTING) return "status-dot-reconnecting";
-  if (state === CONNECTION_STATE.AUTH_ERROR || (typeof state === "object" && "Error" in state))
+  if (
+    state === CONNECTION_STATE.AUTH_ERROR ||
+    (typeof state === "object" && "Error" in state)
+  )
     return "status-dot-error";
   return "status-dot-disconnected";
 });
@@ -34,11 +37,16 @@ const statusText = computed(() => {
   const state = connection.state;
   if (state === CONNECTION_STATE.CONNECTED) return t("statusBar.connected");
   if (state === CONNECTION_STATE.RECONNECTING)
-    return t("statusBar.reconnecting", { attempt: connection.reconnectAttempt, max: connection.maxReconnectAttempts });
+    return t("statusBar.reconnecting", {
+      attempt: connection.reconnectAttempt,
+      max: connection.maxReconnectAttempts,
+    });
   if (state === CONNECTION_STATE.CONNECTING) return t("statusBar.connecting");
   if (state === CONNECTION_STATE.AUTH_ERROR) return t("statusBar.authError");
-  if (state === CONNECTION_STATE.DISCONNECTED) return t("statusBar.disconnected");
-  if (typeof state === "object" && "Error" in state) return t("statusBar.error");
+  if (state === CONNECTION_STATE.DISCONNECTED)
+    return t("statusBar.disconnected");
+  if (typeof state === "object" && "Error" in state)
+    return t("statusBar.error");
   return t("statusBar.disconnected");
 });
 </script>
@@ -52,17 +60,21 @@ const statusText = computed(() => {
 
     <div class="status-section">
       <span v-if="taskSuspendText" class="suspend-text">
-        {{ $t('statusBar.tasksSuspended', { reason: taskSuspendText }) }}
+        {{ $t("statusBar.tasksSuspended", { reason: taskSuspendText }) }}
       </span>
       <span v-if="gpuSuspendText" class="suspend-text">
-        {{ $t('statusBar.gpuSuspended', { reason: gpuSuspendText }) }}
+        {{ $t("statusBar.gpuSuspended", { reason: gpuSuspendText }) }}
       </span>
     </div>
 
     <Tooltip :text="$t('statusBar.about')" placement="top">
       <button class="about-btn" :aria-label="$t('statusBar.about')" @click="emit('show-about')">
         <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          <path
+            fill-rule="evenodd"
+            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+            clip-rule="evenodd"
+          />
         </svg>
       </button>
     </Tooltip>
@@ -110,8 +122,13 @@ const statusText = computed(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .status-dot-error {

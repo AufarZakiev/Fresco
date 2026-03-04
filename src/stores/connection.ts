@@ -51,11 +51,7 @@ export const useConnectionStore = defineStore("connection", () => {
     }
   }
 
-  async function connectToRemote(
-    host: string,
-    port: number,
-    password: string,
-  ) {
+  async function connectToRemote(host: string, port: number, password: string) {
     state.value = CONNECTION_STATE.CONNECTING;
     error.value = null;
     lastParams.value = { mode: CONNECTION_MODE.REMOTE, host, port, password };
@@ -89,7 +85,12 @@ export const useConnectionStore = defineStore("connection", () => {
   }
 
   function handleConnectionError() {
-    if (reconnecting || state.value !== CONNECTION_STATE.CONNECTED || !lastParams.value) return;
+    if (
+      reconnecting ||
+      state.value !== CONNECTION_STATE.CONNECTED ||
+      !lastParams.value
+    )
+      return;
     reconnecting = true;
     reconnectAttempt.value = 1;
     state.value = CONNECTION_STATE.RECONNECTING;
@@ -106,7 +107,10 @@ export const useConnectionStore = defineStore("connection", () => {
     }
 
     // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s, 30s...
-    const delay = Math.min(RECONNECT_BASE_DELAY_MS * Math.pow(2, reconnectAttempt.value - 1), RECONNECT_MAX_DELAY_MS);
+    const delay = Math.min(
+      RECONNECT_BASE_DELAY_MS * Math.pow(2, reconnectAttempt.value - 1),
+      RECONNECT_MAX_DELAY_MS,
+    );
     reconnectTimer = setTimeout(attemptReconnect, delay);
   }
 

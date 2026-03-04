@@ -13,6 +13,7 @@ export interface DataTableColumn {
 
 const props = defineProps<{
   columns: DataTableColumn[];
+  columnOrder?: string[];
   emptyMessage?: string;
   sortKey?: string;
   sortDir?: SortDir;
@@ -26,14 +27,30 @@ const emit = defineEmits<{
   "select-all": [selected: boolean];
 }>();
 
-const visibleColumns = computed(() =>
-  props.columns.filter((c) => c.visible !== false),
-);
+const visibleColumns = computed(() => {
+  const visible = props.columns.filter((c) => c.visible !== false);
+  if (!props.columnOrder || props.columnOrder.length === 0) return visible;
+
+  const colMap = new Map(visible.map((c) => [c.key, c]));
+  const ordered = props.columnOrder
+    .filter((key) => colMap.has(key))
+    .map((key) => colMap.get(key)!);
+
+  // Append any visible columns not in the order array (safety net)
+  for (const col of visible) {
+    if (!props.columnOrder.includes(col.key)) {
+      ordered.push(col);
+    }
+  }
+  return ordered;
+});
 
 function handleHeaderClick(col: DataTableColumn) {
   if (!col.sortable) return;
   const newDir =
-    props.sortKey === col.key && props.sortDir === SORT_DIR.ASC ? SORT_DIR.DESC : SORT_DIR.ASC;
+    props.sortKey === col.key && props.sortDir === SORT_DIR.ASC
+      ? SORT_DIR.DESC
+      : SORT_DIR.ASC;
   emit("sort", col.key, newDir);
 }
 
@@ -52,7 +69,9 @@ function handleContextMenu(event: MouseEvent, index: number) {
             <input
               type="checkbox"
               :checked="allSelected"
-              @change="emit('select-all', ($event.target as HTMLInputElement).checked)"
+              @change="
+                emit('select-all', ($event.target as HTMLInputElement).checked)
+              "
             />
           </th>
           <th
@@ -77,7 +96,10 @@ function handleContextMenu(event: MouseEvent, index: number) {
             @click="handleHeaderClick(col)"
           >
             {{ col.label }}
-            <span v-if="col.sortable && sortKey === col.key" class="sort-indicator">
+            <span
+              v-if="col.sortable && sortKey === col.key"
+              class="sort-indicator"
+            >
               {{ sortDir === SORT_DIR.ASC ? "\u25B2" : "\u25BC" }}
             </span>
           </th>
@@ -92,10 +114,9 @@ function handleContextMenu(event: MouseEvent, index: number) {
 
 <style scoped>
 .data-table-wrapper {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
   overflow: auto;
-  max-height: calc(100vh - 200px);
+  flex: 1;
+  min-height: 0;
 }
 
 .data-table {

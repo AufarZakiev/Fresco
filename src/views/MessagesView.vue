@@ -54,7 +54,8 @@ function priorityClass(priority: number): string {
 }
 
 function priorityLabel(priority: number): string {
-  if (priority === MSG_PRIORITY.INTERNAL_ERROR) return t("messages.priority.error");
+  if (priority === MSG_PRIORITY.INTERNAL_ERROR)
+    return t("messages.priority.error");
   if (priority === MSG_PRIORITY.USER_ALERT) return t("messages.priority.alert");
   return t("messages.priority.info");
 }
@@ -67,11 +68,16 @@ function priorityVariant(priority: number): "default" | "warning" | "danger" {
 
 function getSortValue(msg: Message, key: string): number | string {
   switch (key) {
-    case "time": return msg.timestamp;
-    case "project": return msg.project;
-    case "type": return msg.priority;
-    case "message": return msg.body;
-    default: return 0;
+    case "time":
+      return msg.timestamp;
+    case "project":
+      return msg.project;
+    case "type":
+      return msg.priority;
+    case "message":
+      return msg.body;
+    default:
+      return 0;
   }
 }
 
@@ -117,7 +123,8 @@ function toggleSelect(seqno: number, event: MouseEvent) {
     const startIdx = seqnos.indexOf(lastSelected);
     const endIdx = seqnos.indexOf(seqno);
     if (startIdx >= 0 && endIdx >= 0) {
-      const [from, to] = startIdx < endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+      const [from, to] =
+        startIdx < endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
       for (let i = from; i <= to; i++) {
         next.add(seqnos[i]);
       }
@@ -139,14 +146,19 @@ function selectAll() {
   selectedSeqnos.value = new Set(sortedMessages.value.map((m) => m.seqno));
 }
 
-function formatMessage(m: { timestamp: number; project: string; body: string }): string {
+function formatMessage(m: {
+  timestamp: number;
+  project: string;
+  body: string;
+}): string {
   return `[${formatTimestamp(m.timestamp)}] ${m.project ? m.project + ": " : ""}${m.body}`;
 }
 
 async function copySelectedToClipboard() {
-  const msgs = selectedSeqnos.value.size > 0
-    ? store.filteredMessages.filter((m) => selectedSeqnos.value.has(m.seqno))
-    : store.filteredMessages;
+  const msgs =
+    selectedSeqnos.value.size > 0
+      ? store.filteredMessages.filter((m) => selectedSeqnos.value.has(m.seqno))
+      : store.filteredMessages;
   const text = msgs.map(formatMessage).join("\n");
   try {
     await navigator.clipboard.writeText(text);
@@ -169,7 +181,11 @@ watch(
     if (newLen <= oldLen) return;
 
     // If new messages were appended (not prepended) and user is at bottom, auto-scroll
-    if (isAtBottom.value && sortKey.value === "time" && sortDir.value === SORT_DIR.ASC) {
+    if (
+      isAtBottom.value &&
+      sortKey.value === "time" &&
+      sortDir.value === SORT_DIR.ASC
+    ) {
       nextTick(scrollToBottom);
     }
   },
@@ -183,7 +199,8 @@ watch(
     if (!el) return;
 
     const threshold = 30;
-    isAtBottom.value = el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
+    isAtBottom.value =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
 
     // Load older messages when scrolled near top
     if (el.scrollTop < 100 && store.hasMore && !store.loadingMore) {
@@ -225,7 +242,9 @@ onKeyStroke("c", (e) => {
 onMounted(() => {
   store.startPolling(1000);
   nextTick(() => {
-    const wrapper = document.querySelector(".messages-view .data-table-wrapper") as HTMLElement | null;
+    const wrapper = document.querySelector(
+      ".messages-view .data-table-wrapper",
+    ) as HTMLElement | null;
     if (wrapper) {
       tableWrapper.value = wrapper;
       scrollToBottom();
@@ -240,11 +259,19 @@ onUnmounted(() => {
 
 <template>
   <div class="messages-view">
-    <PageHeader :title="$t('messages.title')">
-      <button class="btn" @click="showLogFlags = true">{{ $t('messages.logFlags') }}</button>
-      <button class="btn" @click="selectAll">{{ $t('messages.selectAll') }}</button>
+    <PageHeader>
+      <button class="btn" @click="showLogFlags = true">
+        {{ $t("messages.logFlags") }}
+      </button>
+      <button class="btn" @click="selectAll">
+        {{ $t("messages.selectAll") }}
+      </button>
       <button class="btn" @click="copySelectedToClipboard">
-        {{ selectedSeqnos.size > 0 ? $t('messages.copySelected', selectedSeqnos.size) : $t('messages.copyAll') }}
+        {{
+          selectedSeqnos.size > 0
+            ? $t("messages.copySelected", selectedSeqnos.size)
+            : $t("messages.copyAll")
+        }}
       </button>
     </PageHeader>
 
@@ -266,19 +293,19 @@ onUnmounted(() => {
           :class="['segment', { active: typeFilter === 'all' }]"
           @click="typeFilter = 'all'"
         >
-          {{ $t('messages.filterAll') }}
+          {{ $t("messages.filterAll") }}
         </button>
         <button
           :class="['segment', { active: typeFilter === 'alerts' }]"
           @click="typeFilter = 'alerts'"
         >
-          {{ $t('messages.filterAlerts') }}
+          {{ $t("messages.filterAlerts") }}
         </button>
         <button
           :class="['segment', { active: typeFilter === 'errors' }]"
           @click="typeFilter = 'errors'"
         >
-          {{ $t('messages.filterErrors') }}
+          {{ $t("messages.filterErrors") }}
         </button>
       </div>
     </div>
@@ -291,7 +318,7 @@ onUnmounted(() => {
 
     <template v-else>
       <div v-if="store.loadingMore" class="loading-more">
-        {{ $t('messages.loadingMore') }}
+        {{ $t("messages.loadingMore") }}
       </div>
 
       <DataTable
@@ -300,21 +327,24 @@ onUnmounted(() => {
         :sort-dir="sortDir"
         @sort="handleSort"
       >
-      <tr
-        v-for="msg in sortedMessages"
-        :key="msg.seqno"
-        :class="[priorityClass(msg.priority), { 'row-selected': isSelected(msg.seqno) }]"
-        @click="toggleSelect(msg.seqno, $event)"
-      >
-        <td class="col-time">{{ formatTimestamp(msg.timestamp) }}</td>
-        <td class="col-project">{{ msg.project || "---" }}</td>
-        <td class="col-type">
-          <StatusBadge :variant="priorityVariant(msg.priority)">
-            {{ priorityLabel(msg.priority) }}
-          </StatusBadge>
-        </td>
-        <td class="col-message">{{ msg.body }}</td>
-      </tr>
+        <tr
+          v-for="msg in sortedMessages"
+          :key="msg.seqno"
+          :class="[
+            priorityClass(msg.priority),
+            { 'row-selected': isSelected(msg.seqno) },
+          ]"
+          @click="toggleSelect(msg.seqno, $event)"
+        >
+          <td class="col-time">{{ formatTimestamp(msg.timestamp) }}</td>
+          <td class="col-project">{{ msg.project || "---" }}</td>
+          <td class="col-type">
+            <StatusBadge :variant="priorityVariant(msg.priority)">
+              {{ priorityLabel(msg.priority) }}
+            </StatusBadge>
+          </td>
+          <td class="col-message">{{ msg.body }}</td>
+        </tr>
       </DataTable>
     </template>
 
@@ -324,7 +354,10 @@ onUnmounted(() => {
 
 <style scoped>
 .messages-view {
-  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
 .error-text {
@@ -337,8 +370,10 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  margin-bottom: var(--space-lg);
+  padding: 0 var(--space-lg);
+  margin-bottom: var(--space-sm);
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .filter-group {

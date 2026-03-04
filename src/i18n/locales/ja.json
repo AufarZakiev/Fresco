@@ -22,7 +22,9 @@
     "eventLog": "イベントログ",
     "selectComputer": "コンピュータの選択",
     "preferences": "設定",
-    "toggleSidebar": "サイドバーの切り替え"
+    "toggleSidebar": "サイドバーの切り替え",
+    "addProject": "プロジェクトを追加",
+    "accountManager": "アカウントマネージャ"
   },
   "tasks": {
     "title": "タスク",

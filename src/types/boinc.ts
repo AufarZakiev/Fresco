@@ -148,7 +148,8 @@ export const CONNECTION_MODE = {
   REMOTE: "remote",
 } as const;
 
-export type ConnectionMode = (typeof CONNECTION_MODE)[keyof typeof CONNECTION_MODE];
+export type ConnectionMode =
+  (typeof CONNECTION_MODE)[keyof typeof CONNECTION_MODE];
 
 /** BOINC result state codes (from common_defs.h). */
 export const RESULT_STATE = {

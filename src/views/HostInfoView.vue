@@ -90,65 +90,71 @@ onMounted(async () => {
 
 <template>
   <div class="host-info-view">
-    <PageHeader :title="$t('host.title')" />
+    <PageHeader />
 
     <p v-if="error" class="error-text">{{ error }}</p>
 
     <div v-if="loading" class="loading-text">
-      {{ $t('host.loading') }}
+      {{ $t("host.loading") }}
     </div>
 
     <template v-else-if="hostInfo">
       <div class="cards-grid">
         <!-- System -->
         <div class="info-card">
-          <h3 class="card-title">{{ $t('host.system') }}</h3>
+          <h3 class="card-title">{{ $t("host.system") }}</h3>
           <div class="info-rows">
             <div class="info-row">
-              <span class="info-label">{{ $t('host.hostname') }}</span>
-              <span class="info-value">{{ hostInfo.domain_name || "---" }}</span>
+              <span class="info-label">{{ $t("host.hostname") }}</span>
+              <span class="info-value">{{
+                hostInfo.domain_name || "---"
+              }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">{{ $t('host.ipAddress') }}</span>
+              <span class="info-label">{{ $t("host.ipAddress") }}</span>
               <span class="info-value">{{ hostInfo.ip_addr || "---" }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">{{ $t('host.operatingSystem') }}</span>
+              <span class="info-label">{{ $t("host.operatingSystem") }}</span>
               <span class="info-value">{{ hostInfo.os_name || "---" }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">{{ $t('host.osVersion') }}</span>
+              <span class="info-label">{{ $t("host.osVersion") }}</span>
               <span class="info-value">{{ hostInfo.os_version || "---" }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">{{ $t('host.product') }}</span>
-              <span class="info-value">{{ hostInfo.product_name || "---" }}</span>
+              <span class="info-label">{{ $t("host.product") }}</span>
+              <span class="info-value">{{
+                hostInfo.product_name || "---"
+              }}</span>
             </div>
           </div>
         </div>
 
         <!-- Processor -->
         <div class="info-card">
-          <h3 class="card-title">{{ $t('host.processor') }}</h3>
+          <h3 class="card-title">{{ $t("host.processor") }}</h3>
           <div class="info-rows">
             <div class="info-row">
-              <span class="info-label">{{ $t('host.cpuCores') }}</span>
+              <span class="info-label">{{ $t("host.cpuCores") }}</span>
               <span class="info-value">{{ hostInfo.p_ncpus }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">{{ $t('host.vendor') }}</span>
+              <span class="info-label">{{ $t("host.vendor") }}</span>
               <span class="info-value">{{ hostInfo.p_vendor || "---" }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">{{ $t('host.model') }}</span>
+              <span class="info-label">{{ $t("host.model") }}</span>
               <span class="info-value">{{ hostInfo.p_model || "---" }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">{{ $t('host.floatingPoint') }}</span>
-              <span class="info-value">{{ formatGFLOPS(hostInfo.p_fpops) }}</span>
+              <span class="info-label">{{ $t("host.floatingPoint") }}</span>
+              <span class="info-value">{{
+                formatGFLOPS(hostInfo.p_fpops)
+              }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">{{ $t('host.integerOps') }}</span>
+              <span class="info-label">{{ $t("host.integerOps") }}</span>
               <span class="info-value">{{ formatGIOPS(hostInfo.p_iops) }}</span>
             </div>
           </div>
@@ -156,34 +162,40 @@ onMounted(async () => {
 
         <!-- GPU (one card per merged GPU) -->
         <div v-for="(gpu, i) in mergedGpus" :key="i" class="info-card">
-          <h3 class="card-title">{{ $t('host.gpu') }}{{ mergedGpus.length > 1 ? ` ${i + 1}` : "" }}</h3>
+          <h3 class="card-title">
+            {{ $t("host.gpu") }}{{ mergedGpus.length > 1 ? ` ${i + 1}` : "" }}
+          </h3>
           <div class="info-rows">
             <div class="info-row">
-              <span class="info-label">{{ $t('host.gpuName') }}</span>
+              <span class="info-label">{{ $t("host.gpuName") }}</span>
               <span class="info-value">{{ gpu.name || "---" }}</span>
             </div>
             <div v-if="gpu.vendor" class="info-row">
-              <span class="info-label">{{ $t('host.gpuVendor') }}</span>
+              <span class="info-label">{{ $t("host.gpuVendor") }}</span>
               <span class="info-value">{{ gpu.vendor }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">{{ $t('host.vram') }}</span>
+              <span class="info-label">{{ $t("host.vram") }}</span>
               <span class="info-value">{{ formatGB(gpu.available_ram) }}</span>
             </div>
             <div v-if="gpu.driver_version" class="info-row">
-              <span class="info-label">{{ $t('host.driverVersion') }}</span>
+              <span class="info-label">{{ $t("host.driverVersion") }}</span>
               <span class="info-value">{{ gpu.driver_version }}</span>
             </div>
             <div v-if="gpu.cuda_version > 0" class="info-row">
-              <span class="info-label">{{ $t('host.cudaVersion') }}</span>
-              <span class="info-value">{{ formatCudaVersion(gpu.cuda_version) }}</span>
+              <span class="info-label">{{ $t("host.cudaVersion") }}</span>
+              <span class="info-value">{{
+                formatCudaVersion(gpu.cuda_version)
+              }}</span>
             </div>
             <div v-if="gpu.compute_cap_major > 0" class="info-row">
-              <span class="info-label">{{ $t('host.computeCapability') }}</span>
-              <span class="info-value">{{ gpu.compute_cap_major }}.{{ gpu.compute_cap_minor }}</span>
+              <span class="info-label">{{ $t("host.computeCapability") }}</span>
+              <span class="info-value"
+                >{{ gpu.compute_cap_major }}.{{ gpu.compute_cap_minor }}</span
+              >
             </div>
             <div v-if="gpu.opencl_device_version" class="info-row">
-              <span class="info-label">{{ $t('host.openclVersion') }}</span>
+              <span class="info-label">{{ $t("host.openclVersion") }}</span>
               <span class="info-value">{{ gpu.opencl_device_version }}</span>
             </div>
           </div>
@@ -191,18 +203,18 @@ onMounted(async () => {
 
         <!-- Memory -->
         <div class="info-card">
-          <h3 class="card-title">{{ $t('host.memory') }}</h3>
+          <h3 class="card-title">{{ $t("host.memory") }}</h3>
           <div class="info-rows">
             <div class="info-row">
-              <span class="info-label">{{ $t('host.physicalMemory') }}</span>
+              <span class="info-label">{{ $t("host.physicalMemory") }}</span>
               <span class="info-value">{{ formatGB(hostInfo.m_nbytes) }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">{{ $t('host.cache') }}</span>
+              <span class="info-label">{{ $t("host.cache") }}</span>
               <span class="info-value">{{ formatMB(hostInfo.m_cache) }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">{{ $t('host.swapSpace') }}</span>
+              <span class="info-label">{{ $t("host.swapSpace") }}</span>
               <span class="info-value">{{ formatGB(hostInfo.m_swap) }}</span>
             </div>
           </div>
@@ -210,14 +222,14 @@ onMounted(async () => {
 
         <!-- Disk -->
         <div class="info-card">
-          <h3 class="card-title">{{ $t('host.disk') }}</h3>
+          <h3 class="card-title">{{ $t("host.disk") }}</h3>
           <div class="info-rows">
             <div class="info-row">
-              <span class="info-label">{{ $t('host.totalDisk') }}</span>
+              <span class="info-label">{{ $t("host.totalDisk") }}</span>
               <span class="info-value">{{ formatGB(hostInfo.d_total) }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">{{ $t('host.freeDisk') }}</span>
+              <span class="info-label">{{ $t("host.freeDisk") }}</span>
               <span class="info-value">{{ formatGB(hostInfo.d_free) }}</span>
             </div>
           </div>
@@ -225,18 +237,22 @@ onMounted(async () => {
 
         <!-- Virtualization -->
         <div class="info-card">
-          <h3 class="card-title">{{ $t('host.virtualization') }}</h3>
+          <h3 class="card-title">{{ $t("host.virtualization") }}</h3>
           <div class="info-rows">
             <div class="info-row">
-              <span class="info-label">{{ $t('host.virtualbox') }}</span>
+              <span class="info-label">{{ $t("host.virtualbox") }}</span>
               <span class="info-value">
-                {{ hostInfo.virtualbox_version || $t('host.notInstalled') }}
+                {{ hostInfo.virtualbox_version || $t("host.notInstalled") }}
               </span>
             </div>
             <div class="info-row">
-              <span class="info-label">{{ $t('host.vmExtensions') }}</span>
+              <span class="info-label">{{ $t("host.vmExtensions") }}</span>
               <span class="info-value">
-                {{ hostInfo.p_vm_extensions_disabled ? $t('host.vmDisabled') : $t('host.vmEnabled') }}
+                {{
+                  hostInfo.p_vm_extensions_disabled
+                    ? $t("host.vmDisabled")
+                    : $t("host.vmEnabled")
+                }}
               </span>
             </div>
             <div
@@ -245,10 +261,14 @@ onMounted(async () => {
               @click="budaRunner && (wslExpanded = !wslExpanded)"
             >
               <span class="info-label">
-                <span v-if="budaRunner" class="expand-icon">{{ wslExpanded ? "\u25BE" : "\u25B8" }}</span>
-                {{ $t('host.wslBuda') }}
+                <span v-if="budaRunner" class="expand-icon">{{
+                  wslExpanded ? "\u25BE" : "\u25B8"
+                }}</span>
+                {{ $t("host.wslBuda") }}
               </span>
-              <span v-if="budaRunner" class="info-value">{{ $t('host.installed') }}</span>
+              <span v-if="budaRunner" class="info-value">{{
+                $t("host.installed")
+              }}</span>
               <a
                 v-else
                 class="install-btn"
@@ -256,20 +276,23 @@ onMounted(async () => {
                 target="_blank"
                 rel="noopener"
                 @click.stop
-              >{{ $t('host.install') }}</a>
+                >{{ $t("host.install") }}</a
+              >
             </div>
             <template v-if="budaRunner && wslExpanded">
               <div class="info-row sub-row">
-                <span class="info-label">{{ $t('host.distro') }}</span>
+                <span class="info-label">{{ $t("host.distro") }}</span>
                 <span class="info-value">{{ budaRunner.distro_name }}</span>
               </div>
               <div v-if="budaRunner.os_version" class="info-row sub-row">
-                <span class="info-label">{{ $t('host.os') }}</span>
+                <span class="info-label">{{ $t("host.os") }}</span>
                 <span class="info-value">{{ budaRunner.os_version }}</span>
               </div>
               <div class="info-row sub-row">
-                <span class="info-label">{{ $t('host.docker') }}</span>
-                <span class="info-value">{{ budaRunner.docker_version || $t('host.notInstalled') }}</span>
+                <span class="info-label">{{ $t("host.docker") }}</span>
+                <span class="info-value">{{
+                  budaRunner.docker_version || $t("host.notInstalled")
+                }}</span>
               </div>
             </template>
           </div>
@@ -281,7 +304,11 @@ onMounted(async () => {
 
 <style scoped>
 .host-info-view {
-  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: auto;
+  padding: 0 var(--space-lg) var(--space-lg);
 }
 
 .error-text {
@@ -371,7 +398,9 @@ onMounted(async () => {
   border-radius: var(--radius-md, 6px);
   text-decoration: none;
   cursor: pointer;
-  transition: background var(--transition-normal), color var(--transition-normal);
+  transition:
+    background var(--transition-normal),
+    color var(--transition-normal);
 }
 
 .install-btn:hover {

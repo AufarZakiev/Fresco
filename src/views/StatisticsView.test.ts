@@ -12,8 +12,20 @@ vi.mock("../composables/useRpc", () => ({
     {
       master_url: "https://example.com/",
       daily_statistics: [
-        { day: 1700000000, user_total_credit: 100, user_expavg_credit: 10, host_total_credit: 50, host_expavg_credit: 5 },
-        { day: 1700100000, user_total_credit: 200, user_expavg_credit: 20, host_total_credit: 100, host_expavg_credit: 10 },
+        {
+          day: 1700000000,
+          user_total_credit: 100,
+          user_expavg_credit: 10,
+          host_total_credit: 50,
+          host_expavg_credit: 5,
+        },
+        {
+          day: 1700100000,
+          user_total_credit: 200,
+          user_expavg_credit: 20,
+          host_total_credit: 100,
+          host_expavg_credit: 10,
+        },
       ],
     },
   ]),
@@ -29,7 +41,10 @@ vi.mock("../components/EmptyState.vue", () => ({
 }));
 
 vi.mock("../components/StatisticsChart.vue", () => ({
-  default: { template: '<div class="statistics-chart"></div>', props: ["data", "title", "enabledSeries"] },
+  default: {
+    template: '<div class="statistics-chart"></div>',
+    props: ["data", "title", "enabledSeries"],
+  },
 }));
 
 function pressKey(key: string, target?: EventTarget) {
@@ -81,7 +96,8 @@ describe("StatisticsView keyboard shortcuts", () => {
   it("key u toggles user actor off then on", async () => {
     pressKey("u");
     await wrapper.vm.$nextTick();
-    const userCheckbox = wrapper.findAll(".series-toggle input")[0].element as HTMLInputElement;
+    const userCheckbox = wrapper.findAll(".series-toggle input")[0]
+      .element as HTMLInputElement;
     expect(userCheckbox.checked).toBe(false);
 
     pressKey("u");
@@ -92,7 +108,8 @@ describe("StatisticsView keyboard shortcuts", () => {
   it("key h toggles host actor off then on", async () => {
     pressKey("h");
     await wrapper.vm.$nextTick();
-    const hostCheckbox = wrapper.findAll(".series-toggle input")[1].element as HTMLInputElement;
+    const hostCheckbox = wrapper.findAll(".series-toggle input")[1]
+      .element as HTMLInputElement;
     expect(hostCheckbox.checked).toBe(false);
 
     pressKey("h");
@@ -105,7 +122,8 @@ describe("StatisticsView keyboard shortcuts", () => {
     await wrapper.vm.$nextTick();
     pressKey("u");
     await wrapper.vm.$nextTick();
-    const userCheckbox = wrapper.findAll(".series-toggle input")[0].element as HTMLInputElement;
+    const userCheckbox = wrapper.findAll(".series-toggle input")[0]
+      .element as HTMLInputElement;
     expect(userCheckbox.checked).toBe(true);
   });
 
@@ -117,12 +135,14 @@ describe("StatisticsView keyboard shortcuts", () => {
 
     pressKey("u", select);
     await wrapper.vm.$nextTick();
-    const userCheckbox = wrapper.findAll(".series-toggle input")[0].element as HTMLInputElement;
+    const userCheckbox = wrapper.findAll(".series-toggle input")[0]
+      .element as HTMLInputElement;
     expect(userCheckbox.checked).toBe(true);
 
     pressKey("h", select);
     await wrapper.vm.$nextTick();
-    const hostCheckbox = wrapper.findAll(".series-toggle input")[1].element as HTMLInputElement;
+    const hostCheckbox = wrapper.findAll(".series-toggle input")[1]
+      .element as HTMLInputElement;
     expect(hostCheckbox.checked).toBe(true);
   });
 
@@ -136,7 +156,8 @@ describe("StatisticsView keyboard shortcuts", () => {
 
     pressKey("u", input);
     await wrapper.vm.$nextTick();
-    const userCheckbox = wrapper.findAll(".series-toggle input")[0].element as HTMLInputElement;
+    const userCheckbox = wrapper.findAll(".series-toggle input")[0]
+      .element as HTMLInputElement;
     expect(userCheckbox.checked).toBe(true);
   });
 });

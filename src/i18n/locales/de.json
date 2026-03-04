@@ -22,7 +22,9 @@
     "eventLog": "Ereignisprotokoll",
     "selectComputer": "Rechner auswählen",
     "preferences": "Einstellungen",
-    "toggleSidebar": "Seitenleiste ein-/ausblenden"
+    "toggleSidebar": "Seitenleiste ein-/ausblenden",
+    "addProject": "Projekt hinzufügen",
+    "accountManager": "Kontomanager"
   },
   "tasks": {
     "title": "Aufgaben",

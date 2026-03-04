@@ -5,13 +5,20 @@ const LAST_REMINDER_KEY = "boinc-last-reminder";
 
 function getFrequencyMs(freq: string): number {
   switch (freq) {
-    case "always": return 0;
-    case "1h": return 3600_000;
-    case "6h": return 21600_000;
-    case "1d": return 86400_000;
-    case "1w": return 604800_000;
-    case "never": return Infinity;
-    default: return 86400_000;
+    case "always":
+      return 0;
+    case "1h":
+      return 3600_000;
+    case "6h":
+      return 21600_000;
+    case "1d":
+      return 86400_000;
+    case "1w":
+      return 604800_000;
+    case "never":
+      return Infinity;
+    default:
+      return 86400_000;
   }
 }
 
@@ -31,11 +38,8 @@ function markNotified() {
 
 async function sendNotification(title: string, body: string) {
   try {
-    const {
-      isPermissionGranted,
-      requestPermission,
-      sendNotification,
-    } = await import("@tauri-apps/plugin-notification");
+    const { isPermissionGranted, requestPermission, sendNotification } =
+      await import("@tauri-apps/plugin-notification");
 
     let granted = await isPermissionGranted();
     if (!granted) {

@@ -73,7 +73,9 @@ describe("useProjectsStore", () => {
 
   it("suspendProject calls RPC and refreshes", async () => {
     mockInvoke.mockResolvedValueOnce(undefined);
-    mockInvoke.mockResolvedValueOnce([makeProject({ suspended_via_gui: true })]);
+    mockInvoke.mockResolvedValueOnce([
+      makeProject({ suspended_via_gui: true }),
+    ]);
 
     const store = useProjectsStore();
     await store.suspendProject("https://example.com/project/");

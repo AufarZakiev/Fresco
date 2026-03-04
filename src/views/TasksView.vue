@@ -37,12 +37,23 @@ const selectedNames = ref<Set<string>>(new Set());
 const lastClickedIndex = ref<number | null>(null);
 const confirmAbort = ref(false);
 const activeTasksOnly = ref(false);
-const { sortKey, sortDir, visibleKeys } = useColumnState(
-  "tasks",
-  ["task", "project", "progress", "elapsed", "remaining", "status"],
+const allColumnKeys = [
+  "project",
   "progress",
-  SORT_DIR.DESC,
-);
+  "elapsed",
+  "remaining",
+  "status",
+  "resources",
+  "task",
+];
+const { sortKey, sortDir, visibleKeys, columnOrder, orderedVisibleKeys } =
+  useColumnState(
+    "tasks",
+    ["task", "project", "progress", "elapsed", "remaining", "status"],
+    "progress",
+    SORT_DIR.DESC,
+    allColumnKeys,
+  );
 const showColumns = ref(false);
 const showProperties = ref(false);
 const propertiesTask = ref<TaskResult | null>(null);
@@ -67,16 +78,33 @@ function projectName(url: string): string {
 const allColumns = computed<DataTableColumn[]>(() => [
   { key: "project", label: t("tasks.col.project"), sortable: true },
   { key: "progress", label: t("tasks.col.progress"), sortable: true },
-  { key: "elapsed", label: t("tasks.col.elapsed"), sortable: true, align: "right" },
-  { key: "remaining", label: t("tasks.col.remaining"), sortable: true, align: "right" },
+  {
+    key: "elapsed",
+    label: t("tasks.col.elapsed"),
+    sortable: true,
+    align: "right",
+  },
+  {
+    key: "remaining",
+    label: t("tasks.col.remaining"),
+    sortable: true,
+    align: "right",
+  },
   { key: "status", label: t("tasks.col.status"), sortable: true },
   { key: "resources", label: t("tasks.col.resources"), sortable: true },
   { key: "task", label: t("tasks.col.task"), sortable: true },
 ]);
 
 const columns = computed(() =>
-  allColumns.value.map((c) => ({ ...c, visible: visibleKeys.value.includes(c.key) })),
+  allColumns.value.map((c) => ({
+    ...c,
+    visible: visibleKeys.value.includes(c.key),
+  })),
 );
+
+function handleUpdateOrder(order: string[]) {
+  columnOrder.value = order;
+}
 
 function formatTime(seconds: number): string {
   if (seconds <= 0) return "---";
@@ -100,9 +128,12 @@ function taskStatus(task: {
 }): string {
   if (task.ready_to_report) return t("tasks.status.readyToReport");
   if (task.suspended_via_gui) return t("tasks.status.suspended");
-  if (task.state === RESULT_STATE.FILES_DOWNLOADING) return t("tasks.status.downloading");
-  if (task.state === RESULT_STATE.FILES_UPLOADING) return t("tasks.status.uploading");
-  if (task.state === RESULT_STATE.COMPUTE_ERROR) return t("tasks.status.computeError");
+  if (task.state === RESULT_STATE.FILES_DOWNLOADING)
+    return t("tasks.status.downloading");
+  if (task.state === RESULT_STATE.FILES_UPLOADING)
+    return t("tasks.status.uploading");
+  if (task.state === RESULT_STATE.COMPUTE_ERROR)
+    return t("tasks.status.computeError");
   if (task.state === RESULT_STATE.ABORTED) return t("tasks.status.aborted");
   if (task.active_task) {
     if (task.active_task_state === ACTIVE_TASK_STATE.EXECUTING) {
@@ -116,30 +147,51 @@ function taskStatus(task: {
   return t("tasks.status.waiting");
 }
 
-function statusVariant(task: TaskResult): "default" | "success" | "warning" | "danger" | "info" {
+function statusVariant(
+  task: TaskResult,
+): "default" | "success" | "warning" | "danger" | "info" {
   if (task.ready_to_report) return "default";
   if (task.suspended_via_gui) return "warning";
-  if (task.state === RESULT_STATE.FILES_DOWNLOADING || task.state === RESULT_STATE.FILES_UPLOADING) return "info";
-  if (task.state === RESULT_STATE.COMPUTE_ERROR || task.state === RESULT_STATE.ABORTED) return "danger";
+  if (
+    task.state === RESULT_STATE.FILES_DOWNLOADING ||
+    task.state === RESULT_STATE.FILES_UPLOADING
+  )
+    return "info";
+  if (
+    task.state === RESULT_STATE.COMPUTE_ERROR ||
+    task.state === RESULT_STATE.ABORTED
+  )
+    return "danger";
   if (task.active_task) {
     if (task.active_task_state === ACTIVE_TASK_STATE.EXECUTING) {
-      return task.scheduler_state === SCHEDULER_STATE.SCHEDULED ? "success" : "info";
+      return task.scheduler_state === SCHEDULER_STATE.SCHEDULED
+        ? "success"
+        : "info";
     }
-    if (task.active_task_state === ACTIVE_TASK_STATE.SUSPENDED) return "warning";
+    if (task.active_task_state === ACTIVE_TASK_STATE.SUSPENDED)
+      return "warning";
   }
   return "default";
 }
 
 function getSortValue(task: TaskResult, key: string): number | string {
   switch (key) {
-    case "task": return task.wu_name;
-    case "project": return projectName(task.project_url);
-    case "progress": return task.fraction_done;
-    case "elapsed": return task.elapsed_time;
-    case "remaining": return task.estimated_cpu_time_remaining;
-    case "status": return taskStatus(task);
-    case "resources": return task.resources;
-    default: return 0;
+    case "task":
+      return task.wu_name;
+    case "project":
+      return projectName(task.project_url);
+    case "progress":
+      return task.fraction_done;
+    case "elapsed":
+      return task.elapsed_time;
+    case "remaining":
+      return task.estimated_cpu_time_remaining;
+    case "status":
+      return taskStatus(task);
+    case "resources":
+      return task.resources;
+    default:
+      return 0;
   }
 }
 
@@ -171,18 +223,24 @@ const selectedTasks = computed(() =>
 
 const hasSelection = computed(() => selectedNames.value.size > 0);
 
-const allSelectedSuspended = computed(() =>
-  selectedTasks.value.length > 0 &&
-  selectedTasks.value.every((t) => t.suspended_via_gui),
+const singleSelectedTask = computed(() =>
+  selectedTasks.value.length === 1 ? selectedTasks.value[0] : null,
+);
+
+const allSelectedSuspended = computed(
+  () =>
+    selectedTasks.value.length > 0 &&
+    selectedTasks.value.every((t) => t.suspended_via_gui),
 );
 
 const suspendResumeLabel = computed(() =>
   allSelectedSuspended.value ? t("tasks.resume") : t("tasks.suspend"),
 );
 
-const allSelected = computed(() =>
-  sortedTasks.value.length > 0 &&
-  sortedTasks.value.every((t) => selectedNames.value.has(t.name)),
+const allSelected = computed(
+  () =>
+    sortedTasks.value.length > 0 &&
+    sortedTasks.value.every((t) => selectedNames.value.has(t.name)),
 );
 
 function handleRowClick(task: TaskResult, index: number, event: MouseEvent) {
@@ -337,7 +395,12 @@ async function handleSuspendResume() {
         await store.suspendTask(task.project_url, task.name);
       }
     }
-    toast.show(allSelectedSuspended.value ? t("tasks.toast.resumed") : t("tasks.toast.suspended"), "success");
+    toast.show(
+      allSelectedSuspended.value
+        ? t("tasks.toast.resumed")
+        : t("tasks.toast.suspended"),
+      "success",
+    );
   } catch (e) {
     toast.show(t("tasks.toast.actionFailed", { error: String(e) }), "error");
   } finally {
@@ -382,16 +445,15 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   if (isTypingInInput(e)) return;
   if (hasSelection.value) confirmAbort.value = true;
 });
-
-function isColVisible(key: string): boolean {
-  return visibleKeys.value.includes(key);
-}
 </script>
 
 <template>
   <div class="tasks-view">
-    <PageHeader :title="$t('tasks.title')">
-      <label class="active-filter-toggle" @click.prevent="activeTasksOnly = !activeTasksOnly">
+    <PageHeader>
+      <label
+        class="active-filter-toggle"
+        @click.prevent="activeTasksOnly = !activeTasksOnly"
+      >
         <span
           class="toggle-switch"
           :class="{ on: activeTasksOnly }"
@@ -404,22 +466,10 @@ function isColVisible(key: string): boolean {
         >
           <span class="toggle-knob" />
         </span>
-        <span id="active-tasks-only-label" class="toggle-label">{{ $t('tasks.activeOnly') }}</span>
+        <span id="active-tasks-only-label" class="toggle-label">{{
+          $t("tasks.activeOnly")
+        }}</span>
       </label>
-      <template v-if="hasSelection">
-        <button class="btn" :disabled="actionBusy" @click="handleSuspendResume">
-          {{ suspendResumeLabel }}
-        </button>
-        <button v-if="hasGraphics" class="btn" :disabled="actionBusy" @click="handleShowGraphics">
-          {{ $t('tasks.graphics') }}
-        </button>
-        <button class="btn btn-danger" :disabled="actionBusy" @click="confirmAbort = true">
-          {{ $t('tasks.abort') }}
-        </button>
-        <button v-if="selectedNames.size === 1" class="btn" @click="openProperties">
-          {{ $t('tasks.properties') }}
-        </button>
-      </template>
       <Tooltip :text="$t('tasks.columns')">
         <button class="btn-columns" @click="showColumns = true">
           <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
@@ -442,70 +492,162 @@ function isColVisible(key: string): boolean {
     <EmptyState
       v-else-if="filteredTasks.length === 0"
       icon="&#128203;"
-      :message="activeTasksOnly
-        ? $t('tasks.emptyActive')
-        : $t('tasks.emptyAll')"
+      :message="
+        activeTasksOnly ? $t('tasks.emptyActive') : $t('tasks.emptyAll')
+      "
     />
 
-    <DataTable
-      v-else
-      :columns="columns"
-      :sort-key="sortKey"
-      :sort-dir="sortDir"
-      selectable
-      :all-selected="allSelected"
-      @sort="handleSort"
-      @select-all="handleSelectAll"
-    >
-      <tr
-        v-for="(task, index) in sortedTasks"
-        :key="task.name"
-        :class="{ 'row-selected': isSelected(task) }"
-        @click="handleRowClick(task, index, $event)"
-        @dblclick="handleRowDblClick(task)"
-        @contextmenu="handleRowContext($event, task, index)"
-      >
-        <td class="col-checkbox">
-          <input
-            type="checkbox"
-            :checked="isSelected(task)"
-            @click.stop
-            @change="handleRowClick(task, index, { ctrlKey: true } as MouseEvent)"
-          />
-        </td>
-        <td v-if="isColVisible('project')" class="col-project" :title="task.project_url">{{ projectName(task.project_url) }}</td>
-        <td v-if="isColVisible('progress')" class="col-progress">
-          <div
-            class="progress-bar"
-            role="progressbar"
-            :aria-valuenow="Math.min(100, Math.max(0, Math.round(task.fraction_done * 100)))"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            :aria-label="projectName(task.project_url)"
-            :aria-valuetext="formatPercent(task.fraction_done)"
+    <div v-else class="content-row">
+      <div class="content-main">
+        <DataTable
+          :columns="columns"
+          :column-order="columnOrder"
+          :sort-key="sortKey"
+          :sort-dir="sortDir"
+          selectable
+          :all-selected="allSelected"
+          @sort="handleSort"
+          @select-all="handleSelectAll"
+        >
+          <tr
+            v-for="(task, index) in sortedTasks"
+            :key="task.name"
+            :class="{ 'row-selected': isSelected(task) }"
+            @click="handleRowClick(task, index, $event)"
+            @dblclick="handleRowDblClick(task)"
+            @contextmenu="handleRowContext($event, task, index)"
           >
-            <div
-              class="progress-fill"
-              :style="{ width: formatPercent(task.fraction_done) }"
-            ></div>
-            <span class="progress-text">{{
-              formatPercent(task.fraction_done)
-            }}</span>
+            <td class="col-checkbox">
+              <input
+                type="checkbox"
+                :checked="isSelected(task)"
+                @click.stop
+                @change="
+                  handleRowClick(task, index, { ctrlKey: true } as MouseEvent)
+                "
+              />
+            </td>
+            <template v-for="colKey in orderedVisibleKeys" :key="colKey">
+              <td
+                v-if="colKey === 'project'"
+                class="col-project"
+                :title="task.project_url"
+              >
+                {{ projectName(task.project_url) }}
+              </td>
+              <td v-else-if="colKey === 'progress'" class="col-progress">
+                <div
+                  class="progress-bar"
+                  role="progressbar"
+                  :aria-valuenow="
+                    Math.min(
+                      100,
+                      Math.max(0, Math.round(task.fraction_done * 100)),
+                    )
+                  "
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  :aria-label="projectName(task.project_url)"
+                  :aria-valuetext="formatPercent(task.fraction_done)"
+                >
+                  <div
+                    class="progress-fill"
+                    :style="{ width: formatPercent(task.fraction_done) }"
+                  ></div>
+                  <span class="progress-text">{{
+                    formatPercent(task.fraction_done)
+                  }}</span>
+                </div>
+              </td>
+              <td v-else-if="colKey === 'elapsed'" class="col-time">
+                {{ formatTime(task.elapsed_time) }}
+              </td>
+              <td v-else-if="colKey === 'remaining'" class="col-time">
+                {{ formatTime(task.estimated_cpu_time_remaining) }}
+              </td>
+              <td v-else-if="colKey === 'status'">
+                <StatusBadge :variant="statusVariant(task)">
+                  {{ taskStatus(task) }}
+                </StatusBadge>
+              </td>
+              <td v-else-if="colKey === 'resources'">
+                {{ task.resources || $t("tasks.defaultResources") }}
+              </td>
+              <td
+                v-else-if="colKey === 'task'"
+                class="col-name"
+                :title="task.name"
+              >
+                {{ task.wu_name }}
+              </td>
+            </template>
+          </tr>
+        </DataTable>
+      </div>
+
+      <Transition name="drawer">
+        <div v-if="hasSelection" class="drawer-panel">
+          <div class="drawer-header">
+            <h3>
+              {{
+                singleSelectedTask?.wu_name ??
+                $t("tasks.nTasks", selectedNames.size)
+              }}
+            </h3>
           </div>
-        </td>
-        <td v-if="isColVisible('elapsed')" class="col-time">{{ formatTime(task.elapsed_time) }}</td>
-        <td v-if="isColVisible('remaining')" class="col-time">
-          {{ formatTime(task.estimated_cpu_time_remaining) }}
-        </td>
-        <td v-if="isColVisible('status')">
-          <StatusBadge :variant="statusVariant(task)">
-            {{ taskStatus(task) }}
-          </StatusBadge>
-        </td>
-        <td v-if="isColVisible('resources')">{{ task.resources || $t('tasks.defaultResources') }}</td>
-        <td v-if="isColVisible('task')" class="col-name" :title="task.name">{{ task.wu_name }}</td>
-      </tr>
-    </DataTable>
+
+          <div class="drawer-section">
+            <Tooltip
+              :text="
+                allSelectedSuspended
+                  ? $t('tasks.tooltip.resume')
+                  : $t('tasks.tooltip.suspend')
+              "
+            >
+              <button
+                class="btn"
+                :disabled="actionBusy"
+                @click="handleSuspendResume"
+              >
+                {{ suspendResumeLabel }}
+              </button>
+            </Tooltip>
+            <Tooltip
+              v-if="hasGraphics"
+              :text="$t('tasks.context.showGraphics')"
+            >
+              <button
+                class="btn"
+                :disabled="actionBusy"
+                @click="handleShowGraphics"
+              >
+                {{ $t("tasks.graphics") }}
+              </button>
+            </Tooltip>
+            <Tooltip
+              v-if="selectedNames.size === 1"
+              :text="$t('tasks.tooltip.properties')"
+            >
+              <button class="btn" @click="openProperties">
+                {{ $t("tasks.properties") }}
+              </button>
+            </Tooltip>
+          </div>
+
+          <div class="drawer-section drawer-danger">
+            <Tooltip :text="$t('tasks.tooltip.abort')">
+              <button
+                class="btn btn-danger"
+                :disabled="actionBusy"
+                @click="confirmAbort = true"
+              >
+                {{ $t("tasks.abort") }}
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+      </Transition>
+    </div>
 
     <ContextMenu
       :open="ctxOpen"
@@ -529,7 +671,9 @@ function isColVisible(key: string): boolean {
       :open="showColumns"
       :columns="allColumns"
       :visible-keys="visibleKeys"
+      :column-order="columnOrder"
       @update="visibleKeys = $event"
+      @update-order="handleUpdateOrder"
       @close="showColumns = false"
     />
 
@@ -544,7 +688,10 @@ function isColVisible(key: string): boolean {
 
 <style scoped>
 .tasks-view {
-  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
 .error {
@@ -627,7 +774,9 @@ function isColVisible(key: string): boolean {
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
-  transition: background 0.2s, opacity 0.2s;
+  transition:
+    background 0.2s,
+    opacity 0.2s;
 }
 
 .toggle-switch.on {
@@ -671,5 +820,76 @@ function isColVisible(key: string): boolean {
 
 .btn-columns:hover {
   color: var(--color-text-primary);
+}
+
+/* Content layout */
+.content-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+}
+
+.content-main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  margin-right: var(--space-md);
+}
+
+/* Side drawer */
+.drawer-panel {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--color-bg);
+  border-left: 1px solid var(--color-border);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  overflow-y: auto;
+  overflow-x: visible;
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawer-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.drawer-section .btn {
+  width: 100%;
+  text-align: left;
+}
+
+.drawer-danger {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--space-md);
+}
+
+/* Drawer transition */
+.drawer-enter-active,
+.drawer-leave-active {
+  transition:
+    width 0.2s ease,
+    opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.drawer-enter-from,
+.drawer-leave-to {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
 }
 </style>

@@ -22,7 +22,9 @@
     "eventLog": "Journal des événements",
     "selectComputer": "Choisir un ordinateur",
     "preferences": "Préférences",
-    "toggleSidebar": "Afficher/masquer la barre latérale"
+    "toggleSidebar": "Afficher/masquer la barre latérale",
+    "addProject": "Ajouter un projet",
+    "accountManager": "Gestionnaire de comptes"
   },
   "tasks": {
     "title": "Tâches",

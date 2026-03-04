@@ -54,7 +54,10 @@ describe("PrefNumericInput", () => {
   });
 
   it("shows zeroLabel as placeholder when value is 0 and BOINC default is 0", () => {
-    const wrapper = mountNumeric(0, { field: FIELD_ZERO_DEFAULT, zeroLabel: "Unlimited" });
+    const wrapper = mountNumeric(0, {
+      field: FIELD_ZERO_DEFAULT,
+      zeroLabel: "Unlimited",
+    });
     const input = wrapper.find("input");
     expect(input.element.placeholder).toBe("Unlimited");
   });

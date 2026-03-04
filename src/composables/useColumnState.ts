@@ -1,4 +1,4 @@
-import { ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { SORT_DIR } from "../types/boinc";
 import type { SortDir } from "../types/boinc";
 
@@ -6,6 +6,7 @@ interface ColumnState {
   visibleKeys: string[];
   sortKey: string;
   sortDir: SortDir;
+  columnOrder: string[];
 }
 
 /**
@@ -21,18 +22,28 @@ export function useColumnState(
   defaultVisibleKeys: string[],
   defaultSortKey: string,
   defaultSortDir: SortDir = SORT_DIR.ASC,
+  defaultColumnOrder?: string[],
 ) {
   const storageKey = `boinc-columns-${viewId}`;
+  const defaultOrder = defaultColumnOrder ?? [...defaultVisibleKeys];
 
   function loadState(): ColumnState {
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
         const parsed = JSON.parse(raw);
+        const storedOrder: string[] = parsed.columnOrder ?? defaultOrder;
+        const allowedKeys = new Set(defaultOrder);
+        // Prune stale keys, then append any new columns from defaults
+        const merged = [
+          ...storedOrder.filter((key) => allowedKeys.has(key)),
+          ...defaultOrder.filter((key) => !storedOrder.includes(key)),
+        ];
         return {
           visibleKeys: parsed.visibleKeys ?? [...defaultVisibleKeys],
           sortKey: parsed.sortKey ?? defaultSortKey,
           sortDir: parsed.sortDir ?? defaultSortDir,
+          columnOrder: merged,
         };
       }
     } catch {
@@ -42,6 +53,7 @@ export function useColumnState(
       visibleKeys: [...defaultVisibleKeys],
       sortKey: defaultSortKey,
       sortDir: defaultSortDir,
+      columnOrder: [...defaultOrder],
     };
   }
 
@@ -49,9 +61,14 @@ export function useColumnState(
   const visibleKeys = ref<string[]>(initial.visibleKeys);
   const sortKey = ref(initial.sortKey);
   const sortDir = ref<SortDir>(initial.sortDir);
+  const columnOrder = ref<string[]>(initial.columnOrder);
+
+  const orderedVisibleKeys = computed(() =>
+    columnOrder.value.filter((key) => visibleKeys.value.includes(key)),
+  );
 
   watch(
-    [visibleKeys, sortKey, sortDir],
+    [visibleKeys, sortKey, sortDir, columnOrder],
     () => {
       localStorage.setItem(
         storageKey,
@@ -59,11 +76,12 @@ export function useColumnState(
           visibleKeys: visibleKeys.value,
           sortKey: sortKey.value,
           sortDir: sortDir.value,
+          columnOrder: columnOrder.value,
         }),
       );
     },
     { deep: true },
   );
 
-  return { visibleKeys, sortKey, sortDir };
+  return { visibleKeys, sortKey, sortDir, columnOrder, orderedVisibleKeys };
 }

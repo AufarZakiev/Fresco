@@ -111,7 +111,8 @@ export const mockAllProjectsList: ProjectListEntry[] = [
     url: ROSETTA_URL,
     general_area: "Biology and Medicine",
     specific_area: "Protein structure prediction",
-    description: "Determines the 3-dimensional shapes of proteins in research that may ultimately lead to finding cures for some major human diseases.",
+    description:
+      "Determines the 3-dimensional shapes of proteins in research that may ultimately lead to finding cures for some major human diseases.",
     home: "University of Washington",
     platforms: ["x86_64-pc-linux-gnu", "windows_x86_64", "x86_64-apple-darwin"],
   },
@@ -120,7 +121,8 @@ export const mockAllProjectsList: ProjectListEntry[] = [
     url: EINSTEIN_URL,
     general_area: "Physical Science",
     specific_area: "Astrophysics",
-    description: "Search for gravitational waves from spinning neutron stars using data from the LIGO gravitational-wave detectors.",
+    description:
+      "Search for gravitational waves from spinning neutron stars using data from the LIGO gravitational-wave detectors.",
     home: "University of Wisconsin-Milwaukee",
     platforms: ["x86_64-pc-linux-gnu", "windows_x86_64", "x86_64-apple-darwin"],
   },
@@ -129,7 +131,8 @@ export const mockAllProjectsList: ProjectListEntry[] = [
     url: CLIMATE_URL,
     general_area: "Earth Science",
     specific_area: "Climate study",
-    description: "Study climate change by running climate models on volunteers' computers.",
+    description:
+      "Study climate change by running climate models on volunteers' computers.",
     home: "University of Oxford",
     platforms: ["x86_64-pc-linux-gnu", "windows_x86_64"],
   },

@@ -9,10 +9,18 @@ const emit = defineEmits<{ close: [] }>();
 
 const dialogRef = ref<HTMLElement | null>(null);
 const { activate, deactivate } = useFocusTrap(dialogRef);
-watch(() => props.open, async (isOpen) => {
-  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
-  else { deactivate(); }
-});
+watch(
+  () => props.open,
+  async (isOpen) => {
+    if (isOpen) {
+      await nextTick();
+      if (!props.open) return;
+      activate();
+    } else {
+      deactivate();
+    }
+  },
+);
 
 onKeyStroke("Escape", () => {
   if (!props.open) return;
@@ -55,17 +63,27 @@ async function doConnectLocal() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div ref="dialogRef" class="dialog" role="dialog" aria-modal="true" aria-labelledby="select-computer-dialog-title">
+      <div
+        ref="dialogRef"
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="select-computer-dialog-title"
+      >
         <div class="dialog-header">
-          <h3 id="select-computer-dialog-title">{{ $t('selectComputer.title') }}</h3>
-          <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
+          <h3 id="select-computer-dialog-title">
+            {{ $t("selectComputer.title") }}
+          </h3>
+          <button class="close-btn" aria-label="Close" @click="emit('close')">
+            &times;
+          </button>
         </div>
 
         <div class="dialog-body">
           <div v-if="error" class="dialog-error">{{ error }}</div>
 
           <label class="field">
-            <span>{{ $t('selectComputer.hostname') }}</span>
+            <span>{{ $t("selectComputer.hostname") }}</span>
             <input
               v-model="hostname"
               type="text"
@@ -75,7 +93,7 @@ async function doConnectLocal() {
           </label>
 
           <label class="field">
-            <span>{{ $t('selectComputer.port') }}</span>
+            <span>{{ $t("selectComputer.port") }}</span>
             <input
               v-model.number="port"
               type="number"
@@ -85,7 +103,7 @@ async function doConnectLocal() {
           </label>
 
           <label class="field">
-            <span>{{ $t('selectComputer.password') }}</span>
+            <span>{{ $t("selectComputer.password") }}</span>
             <input
               v-model="password"
               type="password"
@@ -96,31 +114,39 @@ async function doConnectLocal() {
 
           <div class="dialog-actions">
             <button class="btn" :disabled="connecting" @click="emit('close')">
-              {{ $t('selectComputer.cancel') }}
+              {{ $t("selectComputer.cancel") }}
             </button>
             <button
               class="btn btn-primary"
               :disabled="connecting || !hostname.trim()"
               @click="doConnect"
             >
-              {{ connecting ? $t('selectComputer.connecting') : $t('selectComputer.connect') }}
+              {{
+                connecting
+                  ? $t("selectComputer.connecting")
+                  : $t("selectComputer.connect")
+              }}
             </button>
           </div>
 
           <div class="divider">
-            <span>{{ $t('selectComputer.or') }}</span>
+            <span>{{ $t("selectComputer.or") }}</span>
           </div>
 
           <div class="local-section">
             <p class="local-info">
-              {{ $t('selectComputer.localInfo') }}
+              {{ $t("selectComputer.localInfo") }}
             </p>
             <button
               class="btn btn-primary local-btn"
               :disabled="connecting"
               @click="doConnectLocal"
             >
-              {{ connecting ? $t('selectComputer.connecting') : $t('selectComputer.connectLocal') }}
+              {{
+                connecting
+                  ? $t("selectComputer.connecting")
+                  : $t("selectComputer.connectLocal")
+              }}
             </button>
           </div>
         </div>

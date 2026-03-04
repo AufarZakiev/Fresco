@@ -19,7 +19,8 @@ export function defaultDataDir(os: OS): string {
 
 export function defaultClientDir(os: OS): string {
   if (os === "windows") return "C:\\Program Files\\BOINC";
-  if (os === "macos") return "/Applications/BOINCManager.app/Contents/Resources";
+  if (os === "macos")
+    return "/Applications/BOINCManager.app/Contents/Resources";
   return "/usr/bin";
 }
 

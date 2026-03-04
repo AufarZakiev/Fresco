@@ -22,7 +22,9 @@
     "eventLog": "事件日志",
     "selectComputer": "选择计算机",
     "preferences": "设置",
-    "toggleSidebar": "切换侧边栏"
+    "toggleSidebar": "切换侧边栏",
+    "addProject": "添加项目",
+    "accountManager": "账户管理器"
   },
   "tasks": {
     "title": "任务",

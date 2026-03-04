@@ -16,7 +16,8 @@ vi.mock("./PrefSourcePopover.vue", () => ({
 vi.mock("./TimeClockPicker.vue", () => ({
   default: {
     props: ["modelValue", "placeholder", "dark", "accentColor"],
-    template: '<input class="time-input" :value="modelValue" :placeholder="placeholder" />',
+    template:
+      '<input class="time-input" :value="modelValue" :placeholder="placeholder" />',
     emits: ["update:modelValue"],
   },
 }));
@@ -24,7 +25,8 @@ vi.mock("./TimeClockPicker.vue", () => ({
 // start_hour: BOINC default = 0 (sentinel for "no restriction")
 const FIELD = "start_hour" as keyof GlobalPreferences;
 // cpu_scheduling_period_minutes: BOINC default = 60 (non-zero)
-const FIELD_NONZERO = "cpu_scheduling_period_minutes" as keyof GlobalPreferences;
+const FIELD_NONZERO =
+  "cpu_scheduling_period_minutes" as keyof GlobalPreferences;
 
 function mountTimeInput(
   modelValue: number,

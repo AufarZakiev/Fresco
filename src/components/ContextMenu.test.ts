@@ -7,9 +7,7 @@ const baseItems = [
   { label: "Delete", action: "delete", danger: true },
 ];
 
-function mountMenu(
-  propsOverride?: Record<string, unknown>,
-) {
+function mountMenu(propsOverride?: Record<string, unknown>) {
   return mount(ContextMenu, {
     props: {
       open: true,

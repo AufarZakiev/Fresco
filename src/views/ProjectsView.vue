@@ -5,7 +5,6 @@ import { useProjectsStore } from "../stores/projects";
 import type { Project, SortDir } from "../types/boinc";
 import { SORT_DIR } from "../types/boinc";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
-import ProjectAttachWizard from "../components/ProjectAttachWizard.vue";
 import PageHeader from "../components/PageHeader.vue";
 import DataTable from "../components/DataTable.vue";
 import type { DataTableColumn } from "../components/DataTable.vue";
@@ -15,7 +14,6 @@ import ContextMenu from "../components/ContextMenu.vue";
 import type { ContextMenuItem } from "../components/ContextMenu.vue";
 import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import ItemPropertiesDialog from "../components/ItemPropertiesDialog.vue";
-import AccountManagerWizard from "../components/AccountManagerWizard.vue";
 import Tooltip from "../components/Tooltip.vue";
 import { onKeyStroke } from "@vueuse/core";
 import { useColumnState } from "../composables/useColumnState";
@@ -28,16 +26,33 @@ const actionBusy = ref(false);
 
 const selectedUrls = ref<Set<string>>(new Set());
 const lastClickedIndex = ref<number | null>(null);
-const showAttachWizard = ref(false);
-const { sortKey, sortDir, visibleKeys } = useColumnState(
-  "projects",
-  ["project", "account", "team", "totalCredit", "avgCredit", "source", "status"],
+const allColumnKeys = [
   "project",
-  SORT_DIR.ASC,
-);
+  "account",
+  "team",
+  "totalCredit",
+  "avgCredit",
+  "status",
+  "source",
+];
+const { sortKey, sortDir, visibleKeys, columnOrder, orderedVisibleKeys } =
+  useColumnState(
+    "projects",
+    [
+      "project",
+      "account",
+      "team",
+      "totalCredit",
+      "avgCredit",
+      "source",
+      "status",
+    ],
+    "project",
+    SORT_DIR.ASC,
+    allColumnKeys,
+  );
 const showColumns = ref(false);
 const showProperties = ref(false);
-const showAcctMgr = ref(false);
 const propertiesProject = ref<Project | null>(null);
 const confirmAction = ref<{
   title: string;
@@ -54,15 +69,32 @@ const allColumns = computed<DataTableColumn[]>(() => [
   { key: "project", label: t("projects.col.project"), sortable: true },
   { key: "account", label: t("projects.col.account"), sortable: true },
   { key: "team", label: t("projects.col.team"), sortable: true },
-  { key: "totalCredit", label: t("projects.col.totalCredit"), sortable: true, align: "right" },
-  { key: "avgCredit", label: t("projects.col.avgCredit"), sortable: true, align: "right" },
+  {
+    key: "totalCredit",
+    label: t("projects.col.totalCredit"),
+    sortable: true,
+    align: "right",
+  },
+  {
+    key: "avgCredit",
+    label: t("projects.col.avgCredit"),
+    sortable: true,
+    align: "right",
+  },
   { key: "status", label: t("projects.col.status"), sortable: true },
   { key: "source", label: t("projects.col.source"), sortable: true },
 ]);
 
 const columns = computed(() =>
-  allColumns.value.map((c) => ({ ...c, visible: visibleKeys.value.includes(c.key) })),
+  allColumns.value.map((c) => ({
+    ...c,
+    visible: visibleKeys.value.includes(c.key),
+  })),
 );
+
+function handleUpdateOrder(order: string[]) {
+  columnOrder.value = order;
+}
 
 function formatCredit(credit: number): string {
   return credit.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -74,7 +106,9 @@ function projectStatus(project: Project): string {
   return t("projects.status.active");
 }
 
-function statusVariant(project: Project): "default" | "success" | "warning" | "danger" | "info" {
+function statusVariant(
+  project: Project,
+): "default" | "success" | "warning" | "danger" | "info" {
   if (project.suspended_via_gui) return "warning";
   if (project.dont_request_more_work) return "info";
   return "success";
@@ -82,14 +116,24 @@ function statusVariant(project: Project): "default" | "success" | "warning" | "d
 
 function getSortValue(project: Project, key: string): number | string {
   switch (key) {
-    case "project": return project.project_name;
-    case "account": return project.user_name;
-    case "team": return project.team_name;
-    case "totalCredit": return project.user_total_credit;
-    case "avgCredit": return project.user_expavg_credit;
-    case "source": return project.attached_via_acct_mgr ? t("projects.source.manager") : t("projects.source.user");
-    case "status": return projectStatus(project);
-    default: return 0;
+    case "project":
+      return project.project_name;
+    case "account":
+      return project.user_name;
+    case "team":
+      return project.team_name;
+    case "totalCredit":
+      return project.user_total_credit;
+    case "avgCredit":
+      return project.user_expavg_credit;
+    case "source":
+      return project.attached_via_acct_mgr
+        ? t("projects.source.manager")
+        : t("projects.source.user");
+    case "status":
+      return projectStatus(project);
+    default:
+      return 0;
   }
 }
 
@@ -116,9 +160,10 @@ const singleSelected = computed(() =>
   selectedProjects.value.length === 1 ? selectedProjects.value[0] : null,
 );
 
-const allSelected = computed(() =>
-  sortedProjects.value.length > 0 &&
-  sortedProjects.value.every((p) => selectedUrls.value.has(p.master_url)),
+const allSelected = computed(
+  () =>
+    sortedProjects.value.length > 0 &&
+    sortedProjects.value.every((p) => selectedUrls.value.has(p.master_url)),
 );
 
 function handleRowClick(project: Project, index: number, event: MouseEvent) {
@@ -161,7 +206,11 @@ function handleSort(key: string, dir: SortDir) {
   sortDir.value = dir;
 }
 
-function handleRowContext(event: MouseEvent, _project: Project, _index: number) {
+function handleRowContext(
+  event: MouseEvent,
+  _project: Project,
+  _index: number,
+) {
   event.preventDefault();
   ctxX.value = event.clientX;
   ctxY.value = event.clientY;
@@ -173,11 +222,15 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
   const p = singleSelected.value;
   items.push({ label: t("projects.context.update"), action: "update" });
   items.push({
-    label: p?.suspended_via_gui ? t("projects.drawer.resume") : t("projects.drawer.suspend"),
+    label: p?.suspended_via_gui
+      ? t("projects.drawer.resume")
+      : t("projects.drawer.suspend"),
     action: "suspend-resume",
   });
   items.push({
-    label: p?.dont_request_more_work ? t("projects.drawer.allowNewTasks") : t("projects.drawer.noNewTasks"),
+    label: p?.dont_request_more_work
+      ? t("projects.drawer.allowNewTasks")
+      : t("projects.drawer.noNewTasks"),
     action: "no-new-allow",
   });
   if (p && p.gui_urls && p.gui_urls.length > 1) {
@@ -195,8 +248,16 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
     });
   }
   items.push({ label: "", action: "", divider: true });
-  items.push({ label: t("projects.context.reset"), action: "reset", danger: true });
-  items.push({ label: t("projects.context.detach"), action: "detach", danger: true });
+  items.push({
+    label: t("projects.context.reset"),
+    action: "reset",
+    danger: true,
+  });
+  items.push({
+    label: t("projects.context.detach"),
+    action: "detach",
+    danger: true,
+  });
   items.push({ label: "", action: "", divider: true });
   items.push({
     label: t("projects.context.properties"),
@@ -371,17 +432,11 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   if (isTypingInInput(e)) return;
   if (hasSelection.value) handleDetach();
 });
-
-function isColVisible(key: string): boolean {
-  return visibleKeys.value.includes(key);
-}
 </script>
 
 <template>
   <div class="projects-view">
-    <PageHeader :title="$t('projects.title')">
-      <button class="btn btn-primary" @click="showAttachWizard = true">{{ $t('projects.addProject') }}</button>
-      <button class="btn" @click="showAcctMgr = true">{{ $t('projects.accountManager') }}</button>
+    <PageHeader>
       <Tooltip :text="$t('projects.columns')">
         <button class="btn-columns" @click="showColumns = true">
           <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
@@ -412,6 +467,7 @@ function isColVisible(key: string): boolean {
         <DataTable
           v-if="store.projects.length > 0"
           :columns="columns"
+          :column-order="columnOrder"
           :sort-key="sortKey"
           :sort-dir="sortDir"
           selectable
@@ -424,35 +480,61 @@ function isColVisible(key: string): boolean {
             :key="project.master_url"
             :class="{ 'row-selected': isSelected(project) }"
             @click="handleRowClick(project, index, $event)"
-                @contextmenu="handleRowContext($event, project, index)"
+            @contextmenu="handleRowContext($event, project, index)"
           >
             <td class="col-checkbox">
               <input
                 type="checkbox"
                 :checked="isSelected(project)"
                 @click.stop
-                @change="handleRowClick(project, index, { ctrlKey: true } as MouseEvent)"
+                @change="
+                  handleRowClick(project, index, {
+                    ctrlKey: true,
+                  } as MouseEvent)
+                "
               />
             </td>
-            <td v-if="isColVisible('project')" class="col-name">{{ project.project_name }}</td>
-            <td v-if="isColVisible('account')">{{ project.user_name }}</td>
-            <td v-if="isColVisible('team')">{{ project.team_name || "---" }}</td>
-            <td v-if="isColVisible('totalCredit')" class="col-number">{{ formatCredit(project.user_total_credit) }}</td>
-            <td v-if="isColVisible('avgCredit')" class="col-number">{{ formatCredit(project.user_expavg_credit) }}</td>
-            <td v-if="isColVisible('status')">
-              <StatusBadge :variant="statusVariant(project)">
-                {{ projectStatus(project) }}
-              </StatusBadge>
-            </td>
-            <td v-if="isColVisible('source')" class="col-source">
-              <span
-                class="source-badge"
-                :class="project.attached_via_acct_mgr ? 'source-manager' : 'source-user'"
-                :title="project.attached_via_acct_mgr ? $t('projects.source.manager') : $t('projects.source.user')"
-              >
-                <span class="source-label">{{ project.attached_via_acct_mgr ? $t('projects.source.manager') : $t('projects.source.user') }}</span>
-              </span>
-            </td>
+            <template v-for="colKey in orderedVisibleKeys" :key="colKey">
+              <td v-if="colKey === 'project'" class="col-name">
+                {{ project.project_name }}
+              </td>
+              <td v-else-if="colKey === 'account'">{{ project.user_name }}</td>
+              <td v-else-if="colKey === 'team'">
+                {{ project.team_name || "---" }}
+              </td>
+              <td v-else-if="colKey === 'totalCredit'" class="col-number">
+                {{ formatCredit(project.user_total_credit) }}
+              </td>
+              <td v-else-if="colKey === 'avgCredit'" class="col-number">
+                {{ formatCredit(project.user_expavg_credit) }}
+              </td>
+              <td v-else-if="colKey === 'status'">
+                <StatusBadge :variant="statusVariant(project)">
+                  {{ projectStatus(project) }}
+                </StatusBadge>
+              </td>
+              <td v-else-if="colKey === 'source'" class="col-source">
+                <span
+                  class="source-badge"
+                  :class="
+                    project.attached_via_acct_mgr
+                      ? 'source-manager'
+                      : 'source-user'
+                  "
+                  :title="
+                    project.attached_via_acct_mgr
+                      ? $t('projects.source.manager')
+                      : $t('projects.source.user')
+                  "
+                >
+                  <span class="source-label">{{
+                    project.attached_via_acct_mgr
+                      ? $t("projects.source.manager")
+                      : $t("projects.source.user")
+                  }}</span>
+                </span>
+              </td>
+            </template>
           </tr>
         </DataTable>
       </div>
@@ -460,39 +542,88 @@ function isColVisible(key: string): boolean {
       <Transition name="drawer">
         <div v-if="hasSelection" class="drawer-panel">
           <div class="drawer-header">
-            <h3>{{ singleSelected?.project_name ?? $t('projects.nProjects', selectedUrls.size) }}</h3>
+            <h3>
+              {{
+                singleSelected?.project_name ??
+                $t("projects.nProjects", selectedUrls.size)
+              }}
+            </h3>
           </div>
 
           <div class="drawer-section">
             <Tooltip :text="$t('projects.tooltip.update')">
-              <button class="btn" :disabled="actionBusy" @click="handleUpdate">{{ $t('projects.drawer.update') }}</button>
-            </Tooltip>
-            <Tooltip :text="singleSelected?.suspended_via_gui ? $t('projects.tooltip.resume') : $t('projects.tooltip.suspend')">
-              <button class="btn" :disabled="actionBusy" @click="handleSuspendResume">
-                {{ singleSelected?.suspended_via_gui ? $t('projects.drawer.resume') : $t('projects.drawer.suspend') }}
+              <button class="btn" :disabled="actionBusy" @click="handleUpdate">
+                {{ $t("projects.drawer.update") }}
               </button>
             </Tooltip>
-            <Tooltip :text="singleSelected?.dont_request_more_work ? $t('projects.tooltip.allowNewTasks') : $t('projects.tooltip.noNewTasks')">
-              <button class="btn" :disabled="actionBusy" @click="handleNoNewAllowTasks">
-                {{ singleSelected?.dont_request_more_work ? $t('projects.drawer.allowNewTasks') : $t('projects.drawer.noNewTasks') }}
+            <Tooltip
+              :text="
+                singleSelected?.suspended_via_gui
+                  ? $t('projects.tooltip.resume')
+                  : $t('projects.tooltip.suspend')
+              "
+            >
+              <button
+                class="btn"
+                :disabled="actionBusy"
+                @click="handleSuspendResume"
+              >
+                {{
+                  singleSelected?.suspended_via_gui
+                    ? $t("projects.drawer.resume")
+                    : $t("projects.drawer.suspend")
+                }}
               </button>
             </Tooltip>
-            <Tooltip v-if="selectedUrls.size === 1" :text="$t('projects.tooltip.properties')">
-              <button class="btn" @click="openProperties">{{ $t('projects.drawer.properties') }}</button>
+            <Tooltip
+              :text="
+                singleSelected?.dont_request_more_work
+                  ? $t('projects.tooltip.allowNewTasks')
+                  : $t('projects.tooltip.noNewTasks')
+              "
+            >
+              <button
+                class="btn"
+                :disabled="actionBusy"
+                @click="handleNoNewAllowTasks"
+              >
+                {{
+                  singleSelected?.dont_request_more_work
+                    ? $t("projects.drawer.allowNewTasks")
+                    : $t("projects.drawer.noNewTasks")
+                }}
+              </button>
+            </Tooltip>
+            <Tooltip
+              v-if="selectedUrls.size === 1"
+              :text="$t('projects.tooltip.properties')"
+            >
+              <button class="btn" @click="openProperties">
+                {{ $t("projects.drawer.properties") }}
+              </button>
             </Tooltip>
           </div>
 
           <div class="drawer-section drawer-danger">
             <Tooltip :text="$t('projects.tooltip.reset')">
-              <button class="btn btn-danger" @click="handleReset">{{ $t('projects.drawer.reset') }}</button>
+              <button class="btn btn-danger" @click="handleReset">
+                {{ $t("projects.drawer.reset") }}
+              </button>
             </Tooltip>
             <Tooltip :text="$t('projects.tooltip.detach')">
-              <button class="btn btn-danger" @click="handleDetach">{{ $t('projects.drawer.detach') }}</button>
+              <button class="btn btn-danger" @click="handleDetach">
+                {{ $t("projects.drawer.detach") }}
+              </button>
             </Tooltip>
           </div>
 
-          <div v-if="singleSelected?.gui_urls?.length" class="drawer-section drawer-links">
-            <div class="drawer-section-label">{{ $t('projects.drawer.webLinks') }}</div>
+          <div
+            v-if="singleSelected?.gui_urls?.length"
+            class="drawer-section drawer-links"
+          >
+            <div class="drawer-section-label">
+              {{ $t("projects.drawer.webLinks") }}
+            </div>
             <a
               v-for="(gu, i) in singleSelected.gui_urls"
               :key="gu.url"
@@ -500,7 +631,7 @@ function isColVisible(key: string): boolean {
               href="#"
               @click.prevent="openWebPage(i)"
             >
-              {{ gu.name || $t('projects.drawer.webPage') }}
+              {{ gu.name || $t("projects.drawer.webPage") }}
             </a>
           </div>
         </div>
@@ -524,21 +655,13 @@ function isColVisible(key: string): boolean {
       @cancel="confirmAction = null"
     />
 
-    <ProjectAttachWizard
-      :open="showAttachWizard"
-      @close="showAttachWizard = false"
-    />
-
-    <AccountManagerWizard
-      :open="showAcctMgr"
-      @close="showAcctMgr = false"
-    />
-
     <ColumnCustomizationDialog
       :open="showColumns"
       :columns="allColumns"
       :visible-keys="visibleKeys"
+      :column-order="columnOrder"
       @update="visibleKeys = $event"
+      @update-order="handleUpdateOrder"
       @close="showColumns = false"
     />
 
@@ -553,11 +676,10 @@ function isColVisible(key: string): boolean {
 
 <style scoped>
 .projects-view {
-  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   flex: 1;
+  overflow: hidden;
 }
 
 .error {
@@ -610,7 +732,9 @@ function isColVisible(key: string): boolean {
 
 /* Collapse to dot when column is narrow */
 @container (max-width: 0px) {
-  .source-label { display: none; }
+  .source-label {
+    display: none;
+  }
 }
 
 /* Use a resize-aware approach: hide label when table is tight */
@@ -743,7 +867,9 @@ function isColVisible(key: string): boolean {
 /* Drawer transition */
 .drawer-enter-active,
 .drawer-leave-active {
-  transition: width 0.2s ease, opacity 0.2s ease;
+  transition:
+    width 0.2s ease,
+    opacity 0.2s ease;
   overflow: hidden;
 }
 

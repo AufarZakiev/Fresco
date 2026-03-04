@@ -35,10 +35,22 @@ function makeRelease(
 }
 
 const windowsAssets = [
-  { name: "Fresco_Windows_x86_64.exe", browser_download_url: "https://example.com/win64.exe" },
-  { name: "Fresco_Windows_ARM64.exe", browser_download_url: "https://example.com/winarm.exe" },
-  { name: "Fresco_macOS_ARM64.app.zip", browser_download_url: "https://example.com/macarm.zip" },
-  { name: "Fresco_Linux_x86_64.AppImage", browser_download_url: "https://example.com/linux.appimage" },
+  {
+    name: "Fresco_Windows_x86_64.exe",
+    browser_download_url: "https://example.com/win64.exe",
+  },
+  {
+    name: "Fresco_Windows_ARM64.exe",
+    browser_download_url: "https://example.com/winarm.exe",
+  },
+  {
+    name: "Fresco_macOS_ARM64.app.zip",
+    browser_download_url: "https://example.com/macarm.zip",
+  },
+  {
+    name: "Fresco_Linux_x86_64.AppImage",
+    browser_download_url: "https://example.com/linux.appimage",
+  },
 ];
 
 describe("useUpdateCheck", () => {
@@ -63,10 +75,15 @@ describe("useUpdateCheck", () => {
   it("detects update when release build time differs from app build time", async () => {
     mockInvoke.mockResolvedValue(appBuildTime);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(makeRelease("2025-06-15T12:00:00Z", newerBuildTime, windowsAssets)), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+      new Response(
+        JSON.stringify(
+          makeRelease("2025-06-15T12:00:00Z", newerBuildTime, windowsAssets),
+        ),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
     );
 
     await checkForUpdates(true);
@@ -79,10 +96,15 @@ describe("useUpdateCheck", () => {
   it("reports no update when build times match", async () => {
     mockInvoke.mockResolvedValue(appBuildTime);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(makeRelease("2025-06-15T12:00:00Z", appBuildTime, windowsAssets)), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+      new Response(
+        JSON.stringify(
+          makeRelease("2025-06-15T12:00:00Z", appBuildTime, windowsAssets),
+        ),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
     );
 
     await checkForUpdates(true);
@@ -94,15 +116,18 @@ describe("useUpdateCheck", () => {
   it("reports no update when release body has no build_time", async () => {
     mockInvoke.mockResolvedValue(appBuildTime);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({
-        published_at: "2025-06-15T12:00:00Z",
-        html_url: "https://github.com/AufarZakiev/Fresco/releases/latest",
-        body: "",
-        assets: windowsAssets,
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+      new Response(
+        JSON.stringify({
+          published_at: "2025-06-15T12:00:00Z",
+          html_url: "https://github.com/AufarZakiev/Fresco/releases/latest",
+          body: "",
+          assets: windowsAssets,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
     );
 
     await checkForUpdates(true);
@@ -127,10 +152,15 @@ describe("useUpdateCheck", () => {
 
     mockInvoke.mockResolvedValue(appBuildTime);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(makeRelease("2025-06-15T12:00:00Z", newerBuildTime, windowsAssets)), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+      new Response(
+        JSON.stringify(
+          makeRelease("2025-06-15T12:00:00Z", newerBuildTime, windowsAssets),
+        ),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
     );
 
     await checkForUpdates(false);
@@ -142,10 +172,15 @@ describe("useUpdateCheck", () => {
   it("matches platform asset URL", async () => {
     mockInvoke.mockResolvedValue(appBuildTime);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(makeRelease("2025-06-15T12:00:00Z", newerBuildTime, windowsAssets)), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+      new Response(
+        JSON.stringify(
+          makeRelease("2025-06-15T12:00:00Z", newerBuildTime, windowsAssets),
+        ),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
     );
 
     await checkForUpdates(true);

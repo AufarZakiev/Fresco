@@ -17,10 +17,15 @@ const store = usePreferencesStore();
 
 const initialVal = computed(() => BOINC_BOOL_DEFAULTS[props.field] ?? false);
 const fileVal = computed(() => store.getBoolFileValue(props.field));
-const hasFileVal = computed(() => fileVal.value != null && fileVal.value !== initialVal.value);
+const hasFileVal = computed(
+  () => fileVal.value != null && fileVal.value !== initialVal.value,
+);
 
 const sourceType = computed(() => {
-  if (props.modelValue !== initialVal.value && (!hasFileVal.value || props.modelValue !== fileVal.value)) {
+  if (
+    props.modelValue !== initialVal.value &&
+    (!hasFileVal.value || props.modelValue !== fileVal.value)
+  ) {
     return "override";
   }
   if (hasFileVal.value && props.modelValue === fileVal.value) return "file";
@@ -35,8 +40,14 @@ let openTimeout: ReturnType<typeof setTimeout> | null = null;
 let closeTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function cancelTimers() {
-  if (openTimeout) { clearTimeout(openTimeout); openTimeout = null; }
-  if (closeTimeout) { clearTimeout(closeTimeout); closeTimeout = null; }
+  if (openTimeout) {
+    clearTimeout(openTimeout);
+    openTimeout = null;
+  }
+  if (closeTimeout) {
+    clearTimeout(closeTimeout);
+    closeTimeout = null;
+  }
 }
 
 function onDotEnter() {
@@ -189,7 +200,9 @@ function onClearOverride() {
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
-  transition: background 0.2s, opacity 0.2s;
+  transition:
+    background 0.2s,
+    opacity 0.2s;
 }
 
 .toggle-switch.on {

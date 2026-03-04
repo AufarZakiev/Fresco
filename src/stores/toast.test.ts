@@ -21,7 +21,10 @@ describe("useToastStore", () => {
     const store = useToastStore();
     store.show("Hello", "success");
     expect(store.toasts).toHaveLength(1);
-    expect(store.toasts[0]).toMatchObject({ message: "Hello", type: "success" });
+    expect(store.toasts[0]).toMatchObject({
+      message: "Hello",
+      type: "success",
+    });
   });
 
   it("show() defaults to info type", () => {

@@ -69,8 +69,16 @@ describe("MessagesView", () => {
     const store = useMessagesStore();
     store.messages = [
       makeMessage({ seqno: 1, priority: MSG_PRIORITY.INFO, body: "Info msg" }),
-      makeMessage({ seqno: 2, priority: MSG_PRIORITY.USER_ALERT, body: "Alert msg" }),
-      makeMessage({ seqno: 3, priority: MSG_PRIORITY.INTERNAL_ERROR, body: "Error msg" }),
+      makeMessage({
+        seqno: 2,
+        priority: MSG_PRIORITY.USER_ALERT,
+        body: "Alert msg",
+      }),
+      makeMessage({
+        seqno: 3,
+        priority: MSG_PRIORITY.INTERNAL_ERROR,
+        body: "Error msg",
+      }),
     ];
 
     const wrapper = mount(MessagesView);
@@ -116,10 +124,5 @@ describe("MessagesView", () => {
     expect(labels).toContain("Info");
     expect(labels).toContain("Alert");
     expect(labels).toContain("Error");
-  });
-
-  it("shows page title as Event Log", () => {
-    const wrapper = mount(MessagesView);
-    expect(wrapper.text()).toContain("Event Log");
   });
 });

@@ -29,10 +29,18 @@ const emit = defineEmits<{ close: [] }>();
 
 const dialogRef = ref<HTMLElement | null>(null);
 const { activate, deactivate } = useFocusTrap(dialogRef);
-watch(() => props.open, async (isOpen) => {
-  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
-  else { deactivate(); }
-});
+watch(
+  () => props.open,
+  async (isOpen) => {
+    if (isOpen) {
+      await nextTick();
+      if (!props.open) return;
+      activate();
+    } else {
+      deactivate();
+    }
+  },
+);
 
 const { t } = useI18n();
 const projects = useProjectsStore();
@@ -159,7 +167,13 @@ async function doAttach() {
 
     if (authMode.value === "create") {
       // Create account flow
-      await createAccount(url, email.value, passwdHash, userName.value, teamName.value);
+      await createAccount(
+        url,
+        email.value,
+        passwdHash,
+        userName.value,
+        teamName.value,
+      );
 
       let attempts = 0;
       let accountResult;
@@ -171,13 +185,15 @@ async function doAttach() {
       }
 
       if (!accountResult || accountResult.error_num !== 0) {
-        error.value = accountResult?.error_msg || t("projectAttach.accountCreationFailed");
+        error.value =
+          accountResult?.error_msg || t("projectAttach.accountCreationFailed");
         step.value = 4;
         loading.value = false;
         return;
       }
 
-      const name = selectedProject.value?.name || projectConfig.value?.name || "";
+      const name =
+        selectedProject.value?.name || projectConfig.value?.name || "";
       await projectAttach(url, accountResult.authenticator, name);
     } else {
       // Login flow
@@ -193,13 +209,15 @@ async function doAttach() {
       }
 
       if (!accountResult || accountResult.error_num !== 0) {
-        error.value = accountResult?.error_msg || t("projectAttach.accountLookupFailed");
+        error.value =
+          accountResult?.error_msg || t("projectAttach.accountLookupFailed");
         step.value = 4;
         loading.value = false;
         return;
       }
 
-      const name = selectedProject.value?.name || projectConfig.value?.name || "";
+      const name =
+        selectedProject.value?.name || projectConfig.value?.name || "";
       await projectAttach(url, accountResult.authenticator, name);
     }
 
@@ -218,7 +236,8 @@ async function doAttach() {
       step.value = 6;
       projects.fetchProjects();
     } else {
-      error.value = attachResult?.messages?.join(", ") || t("projectAttach.attachFailed");
+      error.value =
+        attachResult?.messages?.join(", ") || t("projectAttach.attachFailed");
       step.value = 4;
     }
   } catch (e) {
@@ -260,17 +279,32 @@ onKeyStroke("Escape", () => {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="close">
-      <div ref="dialogRef" class="wizard" role="dialog" aria-modal="true" aria-labelledby="project-attach-wizard-title">
+      <div
+        ref="dialogRef"
+        class="wizard"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="project-attach-wizard-title"
+      >
         <div class="wizard-header">
           <h3 id="project-attach-wizard-title">
-            {{ step === 1 ? $t('projectAttach.title')
-             : step === 2 ? $t('projectAttach.loading')
-             : step === 3 ? $t('projectAttach.termsOfUse')
-             : step === 4 ? $t('projectAttach.account')
-             : step === 5 ? $t('projectAttach.attaching')
-             : $t('projectAttach.done') }}
+            {{
+              step === 1
+                ? $t("projectAttach.title")
+                : step === 2
+                  ? $t("projectAttach.loading")
+                  : step === 3
+                    ? $t("projectAttach.termsOfUse")
+                    : step === 4
+                      ? $t("projectAttach.account")
+                      : step === 5
+                        ? $t("projectAttach.attaching")
+                        : $t("projectAttach.done")
+            }}
           </h3>
-          <button class="close-btn" aria-label="Close" @click="close">&times;</button>
+          <button class="close-btn" aria-label="Close" @click="close">
+            &times;
+          </button>
         </div>
 
         <!-- Step 1: Choose project -->
@@ -283,7 +317,9 @@ onKeyStroke("Escape", () => {
             @focus="loadProjects"
           />
 
-          <div v-if="loading" class="wizard-loading">{{ $t('projectAttach.loadingList') }}</div>
+          <div v-if="loading" class="wizard-loading">
+            {{ $t("projectAttach.loadingList") }}
+          </div>
 
           <div v-else class="project-list">
             <div
@@ -293,24 +329,35 @@ onKeyStroke("Escape", () => {
               @click="selectProject(p)"
             >
               <div class="project-name">{{ p.name }}</div>
-              <div class="project-area">{{ p.general_area }} — {{ p.specific_area }}</div>
+              <div class="project-area">
+                {{ p.general_area }} — {{ p.specific_area }}
+              </div>
               <div class="project-desc">{{ p.description }}</div>
             </div>
-            <div v-if="!loading && filteredProjects.length === 0" class="no-results">
-              {{ $t('projectAttach.noResults') }}
+            <div
+              v-if="!loading && filteredProjects.length === 0"
+              class="no-results"
+            >
+              {{ $t("projectAttach.noResults") }}
             </div>
           </div>
 
           <div class="manual-url">
-            <span class="manual-label">{{ $t('projectAttach.orEnterUrl') }}</span>
+            <span class="manual-label">{{
+              $t("projectAttach.orEnterUrl")
+            }}</span>
             <div class="manual-row">
               <input
                 v-model="manualUrl"
                 type="text"
                 placeholder="https://..."
               />
-              <button class="btn btn-primary" :disabled="!manualUrl.trim()" @click="goToStep2Manual">
-                {{ $t('projectAttach.next') }}
+              <button
+                class="btn btn-primary"
+                :disabled="!manualUrl.trim()"
+                @click="goToStep2Manual"
+              >
+                {{ $t("projectAttach.next") }}
               </button>
             </div>
           </div>
@@ -319,20 +366,34 @@ onKeyStroke("Escape", () => {
         <!-- Step 2: Loading project config -->
         <div v-if="step === 2" class="wizard-body wizard-center">
           <div class="spinner"></div>
-          <p>{{ $t('projectAttach.fetchingConfig') }}</p>
+          <p>{{ $t("projectAttach.fetchingConfig") }}</p>
         </div>
 
         <!-- Step 3: Terms of use -->
         <div v-if="step === 3" class="wizard-body">
-          <div class="terms-box" v-if="projectConfig?.terms_of_use_is_html" v-html="DOMPurify.sanitize(projectConfig.terms_of_use)"></div>
-          <pre v-else class="terms-box terms-text">{{ projectConfig?.terms_of_use }}</pre>
+          <div
+            class="terms-box"
+            v-if="projectConfig?.terms_of_use_is_html"
+            v-html="DOMPurify.sanitize(projectConfig.terms_of_use)"
+          ></div>
+          <pre v-else class="terms-box terms-text">{{
+            projectConfig?.terms_of_use
+          }}</pre>
           <label class="terms-accept">
             <input v-model="termsAccepted" type="checkbox" />
-            <span>{{ $t('projectAttach.acceptTerms') }}</span>
+            <span>{{ $t("projectAttach.acceptTerms") }}</span>
           </label>
           <div class="wizard-actions">
-            <button class="btn" @click="step = 1">{{ $t('projectAttach.back') }}</button>
-            <button class="btn btn-primary" :disabled="!termsAccepted" @click="step = 4">{{ $t('projectAttach.continue') }}</button>
+            <button class="btn" @click="step = 1">
+              {{ $t("projectAttach.back") }}
+            </button>
+            <button
+              class="btn btn-primary"
+              :disabled="!termsAccepted"
+              @click="step = 4"
+            >
+              {{ $t("projectAttach.continue") }}
+            </button>
           </div>
         </div>
 
@@ -342,36 +403,64 @@ onKeyStroke("Escape", () => {
             {{ selectedProject?.name || projectConfig?.name || manualUrl }}
           </div>
 
-          <div v-if="!projectConfig?.account_creation_disabled" class="auth-tabs">
-            <button class="auth-tab" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">{{ $t('projectAttach.login') }}</button>
-            <button class="auth-tab" :class="{ active: authMode === 'create' }" @click="authMode = 'create'">{{ $t('projectAttach.createAccount') }}</button>
+          <div
+            v-if="!projectConfig?.account_creation_disabled"
+            class="auth-tabs"
+          >
+            <button
+              class="auth-tab"
+              :class="{ active: authMode === 'login' }"
+              @click="authMode = 'login'"
+            >
+              {{ $t("projectAttach.login") }}
+            </button>
+            <button
+              class="auth-tab"
+              :class="{ active: authMode === 'create' }"
+              @click="authMode = 'create'"
+            >
+              {{ $t("projectAttach.createAccount") }}
+            </button>
           </div>
 
           <div v-if="error" class="wizard-error">{{ error }}</div>
 
           <label class="field">
-            <span>{{ $t('projectAttach.email') }}</span>
+            <span>{{ $t("projectAttach.email") }}</span>
             <input v-model="email" type="email" placeholder="you@example.com" />
           </label>
           <label class="field">
-            <span>{{ $t('projectAttach.password') }}</span>
+            <span>{{ $t("projectAttach.password") }}</span>
             <input v-model="password" type="password" />
           </label>
           <template v-if="authMode === 'create'">
             <label class="field">
-              <span>{{ projectConfig?.uses_username ? $t('projectAttach.username') : $t('projectAttach.name') }}</span>
+              <span>{{
+                projectConfig?.uses_username
+                  ? $t("projectAttach.username")
+                  : $t("projectAttach.name")
+              }}</span>
               <input v-model="userName" type="text" />
             </label>
             <label class="field">
-              <span>{{ $t('projectAttach.teamOptional') }}</span>
+              <span>{{ $t("projectAttach.teamOptional") }}</span>
               <input v-model="teamName" type="text" />
             </label>
           </template>
 
           <div class="wizard-actions">
-            <button class="btn" @click="step = projectConfig?.terms_of_use ? 3 : 1">{{ $t('projectAttach.back') }}</button>
+            <button
+              class="btn"
+              @click="step = projectConfig?.terms_of_use ? 3 : 1"
+            >
+              {{ $t("projectAttach.back") }}
+            </button>
             <button class="btn btn-primary" @click="doAttach">
-              {{ authMode === 'create' ? $t('projectAttach.createAndAttach') : $t('projectAttach.attach') }}
+              {{
+                authMode === "create"
+                  ? $t("projectAttach.createAndAttach")
+                  : $t("projectAttach.attach")
+              }}
             </button>
           </div>
         </div>
@@ -379,14 +468,16 @@ onKeyStroke("Escape", () => {
         <!-- Step 5: Progress -->
         <div v-if="step === 5" class="wizard-body wizard-center">
           <div class="spinner"></div>
-          <p>{{ $t('projectAttach.attachingToProject') }}</p>
+          <p>{{ $t("projectAttach.attachingToProject") }}</p>
         </div>
 
         <!-- Step 6: Success -->
         <div v-if="step === 6" class="wizard-body wizard-center">
           <div class="success-icon">&#10003;</div>
           <p>{{ resultMessage }}</p>
-          <button class="btn btn-primary" @click="close">{{ $t('projectAttach.done') }}</button>
+          <button class="btn btn-primary" @click="close">
+            {{ $t("projectAttach.done") }}
+          </button>
         </div>
       </div>
     </div>

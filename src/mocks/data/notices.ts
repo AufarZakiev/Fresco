@@ -5,7 +5,8 @@ export const mockNotices: Notice[] = [
   {
     seqno: 1,
     title: "Welcome to Rosetta@home",
-    description: "Thank you for joining Rosetta@home! Your computer will help design proteins that could lead to new medicines.",
+    description:
+      "Thank you for joining Rosetta@home! Your computer will help design proteins that could lead to new medicines.",
     create_time: NOW - 10 * DAY,
     category: "server",
     project_name: "Rosetta@home",
@@ -15,7 +16,8 @@ export const mockNotices: Notice[] = [
   {
     seqno: 2,
     title: "New application version available",
-    description: "Rosetta 4.25 is now available with improved protein folding algorithms and better GPU utilization.",
+    description:
+      "Rosetta 4.25 is now available with improved protein folding algorithms and better GPU utilization.",
     create_time: NOW - 5 * DAY,
     category: "server",
     project_name: "Rosetta@home",
@@ -25,7 +27,8 @@ export const mockNotices: Notice[] = [
   {
     seqno: 3,
     title: "Einstein@Home newsletter",
-    description: "This month's highlights: New search for continuous gravitational waves from unknown neutron stars in binary systems.",
+    description:
+      "This month's highlights: New search for continuous gravitational waves from unknown neutron stars in binary systems.",
     create_time: NOW - 3 * DAY,
     category: "server",
     project_name: "Einstein@Home",
@@ -35,7 +38,8 @@ export const mockNotices: Notice[] = [
   {
     seqno: 4,
     title: "Computation error",
-    description: "Task climate_hadcm3_run42_0 failed with exit code -1073741819. Please report if this happens repeatedly.",
+    description:
+      "Task climate_hadcm3_run42_0 failed with exit code -1073741819. Please report if this happens repeatedly.",
     create_time: NOW - 5 * DAY,
     category: "client",
     project_name: "Climateprediction.net",
@@ -45,7 +49,8 @@ export const mockNotices: Notice[] = [
   {
     seqno: 5,
     title: "BOINC update available",
-    description: "A new version of BOINC (8.2.0) is available. Visit the BOINC website to download the latest version.",
+    description:
+      "A new version of BOINC (8.2.0) is available. Visit the BOINC website to download the latest version.",
     create_time: NOW - DAY,
     category: "client",
     project_name: "",

@@ -38,7 +38,9 @@ const enabledIndices = computed(() =>
 
 function getMenuItemButtons(): HTMLElement[] {
   if (!menuRef.value) return [];
-  return Array.from(menuRef.value.querySelectorAll<HTMLElement>("[role='menuitem']"));
+  return Array.from(
+    menuRef.value.querySelectorAll<HTMLElement>("[role='menuitem']"),
+  );
 }
 
 function focusActionableAt(actionablePos: number) {
@@ -75,7 +77,9 @@ function focusNextEnabled() {
 function focusPrevEnabled() {
   const currentItemIdx = actionableIndices.value[focusedIndex.value];
   const currentEnabledPos = enabledIndices.value.indexOf(currentItemIdx);
-  const prevPos = (currentEnabledPos - 1 + enabledIndices.value.length) % enabledIndices.value.length;
+  const prevPos =
+    (currentEnabledPos - 1 + enabledIndices.value.length) %
+    enabledIndices.value.length;
   focusActionableAt(findActionablePos(enabledIndices.value[prevPos]));
 }
 

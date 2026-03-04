@@ -3,7 +3,11 @@ import { computed, nextTick, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import type { TaskResult, Project } from "../types/boinc";
-import { RESULT_STATE, ACTIVE_TASK_STATE, SCHEDULER_STATE } from "../types/boinc";
+import {
+  RESULT_STATE,
+  ACTIVE_TASK_STATE,
+  SCHEDULER_STATE,
+} from "../types/boinc";
 import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
 const props = defineProps<{
@@ -17,10 +21,18 @@ const emit = defineEmits<{ close: [] }>();
 
 const dialogRef = ref<HTMLElement | null>(null);
 const { activate, deactivate } = useFocusTrap(dialogRef);
-watch(() => props.open, async (isOpen) => {
-  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
-  else { deactivate(); }
-});
+watch(
+  () => props.open,
+  async (isOpen) => {
+    if (isOpen) {
+      await nextTick();
+      if (!props.open) return;
+      activate();
+    } else {
+      deactivate();
+    }
+  },
+);
 
 onKeyStroke("Escape", () => {
   if (!props.open) return;
@@ -75,7 +87,9 @@ function resultStateName(state: number): string {
 
 function schedulerStateName(state: number): string {
   const map: Record<number, string> = {
-    [SCHEDULER_STATE.UNINITIALIZED]: t("properties.task.schedulerUninitialized"),
+    [SCHEDULER_STATE.UNINITIALIZED]: t(
+      "properties.task.schedulerUninitialized",
+    ),
     [SCHEDULER_STATE.PREEMPTED]: t("properties.task.schedulerPreempted"),
     [SCHEDULER_STATE.SCHEDULED]: t("properties.task.schedulerScheduled"),
   };
@@ -116,52 +130,115 @@ const taskSections = computed<Section[]>(() => {
         { label: t("properties.task.name"), value: task.name },
         { label: t("properties.task.workUnit"), value: task.wu_name },
         { label: t("properties.task.projectUrl"), value: task.project_url },
-        { label: t("properties.task.planClass"), value: task.plan_class || t("properties.none") },
-        { label: t("properties.task.resources"), value: task.resources || t("properties.standard") },
-        { label: t("properties.task.state"), value: resultStateName(task.state) },
-        { label: t("properties.task.schedulerState"), value: schedulerStateName(task.scheduler_state) },
-        { label: t("properties.task.activeTaskState"), value: activeTaskStateName(task.active_task_state) },
+        {
+          label: t("properties.task.planClass"),
+          value: task.plan_class || t("properties.none"),
+        },
+        {
+          label: t("properties.task.resources"),
+          value: task.resources || t("properties.standard"),
+        },
+        {
+          label: t("properties.task.state"),
+          value: resultStateName(task.state),
+        },
+        {
+          label: t("properties.task.schedulerState"),
+          value: schedulerStateName(task.scheduler_state),
+        },
+        {
+          label: t("properties.task.activeTaskState"),
+          value: activeTaskStateName(task.active_task_state),
+        },
       ],
     },
     {
       title: t("properties.timing"),
       rows: [
-        { label: t("properties.task.received"), value: formatDate(task.received_time) },
-        { label: t("properties.task.reportDeadline"), value: formatDate(task.report_deadline) },
-        { label: t("properties.task.elapsedTime"), value: formatDuration(task.elapsed_time) },
-        { label: t("properties.task.remainingEst"), value: formatDuration(task.estimated_cpu_time_remaining) },
-        { label: t("properties.task.currentCpuTime"), value: formatDuration(task.current_cpu_time) },
-        { label: t("properties.task.checkpointCpuTime"), value: formatDuration(task.checkpoint_cpu_time) },
+        {
+          label: t("properties.task.received"),
+          value: formatDate(task.received_time),
+        },
+        {
+          label: t("properties.task.reportDeadline"),
+          value: formatDate(task.report_deadline),
+        },
+        {
+          label: t("properties.task.elapsedTime"),
+          value: formatDuration(task.elapsed_time),
+        },
+        {
+          label: t("properties.task.remainingEst"),
+          value: formatDuration(task.estimated_cpu_time_remaining),
+        },
+        {
+          label: t("properties.task.currentCpuTime"),
+          value: formatDuration(task.current_cpu_time),
+        },
+        {
+          label: t("properties.task.checkpointCpuTime"),
+          value: formatDuration(task.checkpoint_cpu_time),
+        },
       ],
     },
     {
       title: t("properties.progress"),
       rows: [
-        { label: t("properties.task.done"), value: formatPercent(task.fraction_done) },
-        { label: t("properties.task.progressRate"), value: String(task.progress_rate) },
+        {
+          label: t("properties.task.done"),
+          value: formatPercent(task.fraction_done),
+        },
+        {
+          label: t("properties.task.progressRate"),
+          value: String(task.progress_rate),
+        },
       ],
     },
     {
       title: t("properties.resources"),
       rows: [
-        { label: t("properties.task.workingSet"), value: formatMegabytes(task.working_set_size_smoothed) },
-        { label: t("properties.task.swapSize"), value: formatMegabytes(task.swap_size) },
+        {
+          label: t("properties.task.workingSet"),
+          value: formatMegabytes(task.working_set_size_smoothed),
+        },
+        {
+          label: t("properties.task.swapSize"),
+          value: formatMegabytes(task.swap_size),
+        },
         { label: t("properties.task.slot"), value: String(task.slot ?? "---") },
         { label: t("properties.task.pid"), value: String(task.pid ?? "---") },
-        { label: t("properties.task.slotPath"), value: task.slot_path || "---" },
+        {
+          label: t("properties.task.slotPath"),
+          value: task.slot_path || "---",
+        },
       ],
     },
     {
       title: t("properties.graphics"),
       rows: [
         ...(task.graphics_exec_path
-          ? [{ label: t("properties.task.graphicsApp"), value: task.graphics_exec_path }]
+          ? [
+              {
+                label: t("properties.task.graphicsApp"),
+                value: task.graphics_exec_path,
+              },
+            ]
           : []),
         ...(task.web_graphics_url
-          ? [{ label: t("properties.task.webGraphics"), value: task.web_graphics_url }]
+          ? [
+              {
+                label: t("properties.task.webGraphics"),
+                value: task.web_graphics_url,
+              },
+            ]
           : []),
         ...(task.remote_desktop_addr
-          ? [{ label: t("properties.task.remoteDesktop"), value: task.remote_desktop_addr }]
+          ? [
+              {
+                label: t("properties.task.remoteDesktop"),
+                value: task.remote_desktop_addr,
+              },
+            ]
           : []),
       ],
     },
@@ -177,47 +254,116 @@ const projectSections = computed<Section[]>(() => {
       rows: [
         { label: t("properties.project.project"), value: project.project_name },
         { label: t("properties.project.masterUrl"), value: project.master_url },
-        { label: t("properties.project.user"), value: project.user_name || "---" },
-        { label: t("properties.project.team"), value: project.team_name || "---" },
-        { label: t("properties.project.venue"), value: project.venue || t("properties.default") },
+        {
+          label: t("properties.project.user"),
+          value: project.user_name || "---",
+        },
+        {
+          label: t("properties.project.team"),
+          value: project.team_name || "---",
+        },
+        {
+          label: t("properties.project.venue"),
+          value: project.venue || t("properties.default"),
+        },
       ],
     },
     {
       title: t("properties.credits"),
       rows: [
-        { label: t("properties.project.userTotalCredit"), value: formatCredit(project.user_total_credit) },
-        { label: t("properties.project.userAvgCredit"), value: formatCredit(project.user_expavg_credit) },
-        { label: t("properties.project.hostTotalCredit"), value: formatCredit(project.host_total_credit) },
-        { label: t("properties.project.hostAvgCredit"), value: formatCredit(project.host_expavg_credit) },
+        {
+          label: t("properties.project.userTotalCredit"),
+          value: formatCredit(project.user_total_credit),
+        },
+        {
+          label: t("properties.project.userAvgCredit"),
+          value: formatCredit(project.user_expavg_credit),
+        },
+        {
+          label: t("properties.project.hostTotalCredit"),
+          value: formatCredit(project.host_total_credit),
+        },
+        {
+          label: t("properties.project.hostAvgCredit"),
+          value: formatCredit(project.host_expavg_credit),
+        },
       ],
     },
     {
       title: t("properties.scheduling"),
       rows: [
-        { label: t("properties.project.resourceShare"), value: String(project.resource_share) },
-        { label: t("properties.project.priority"), value: String(project.sched_priority) },
-        { label: t("properties.project.durationCorrection"), value: String(project.duration_correction_factor) },
+        {
+          label: t("properties.project.resourceShare"),
+          value: String(project.resource_share),
+        },
+        {
+          label: t("properties.project.priority"),
+          value: String(project.sched_priority),
+        },
+        {
+          label: t("properties.project.durationCorrection"),
+          value: String(project.duration_correction_factor),
+        },
       ],
     },
     {
       title: t("properties.network"),
       rows: [
-        { label: t("properties.project.rpcFailures"), value: String(project.nrpc_failures) },
-        { label: t("properties.project.minRpcTime"), value: formatDate(project.min_rpc_time) },
-        { label: t("properties.project.lastRpcTime"), value: formatDate(project.last_rpc_time) },
-        { label: t("properties.project.downloadBackoff"), value: `${project.download_backoff}s` },
-        { label: t("properties.project.uploadBackoff"), value: `${project.upload_backoff}s` },
+        {
+          label: t("properties.project.rpcFailures"),
+          value: String(project.nrpc_failures),
+        },
+        {
+          label: t("properties.project.minRpcTime"),
+          value: formatDate(project.min_rpc_time),
+        },
+        {
+          label: t("properties.project.lastRpcTime"),
+          value: formatDate(project.last_rpc_time),
+        },
+        {
+          label: t("properties.project.downloadBackoff"),
+          value: `${project.download_backoff}s`,
+        },
+        {
+          label: t("properties.project.uploadBackoff"),
+          value: `${project.upload_backoff}s`,
+        },
       ],
     },
     {
       title: t("properties.status"),
       rows: [
-        { label: t("properties.project.suspended"), value: project.suspended_via_gui ? t("properties.yes") : t("properties.no") },
-        { label: t("properties.project.noNewTasks"), value: project.dont_request_more_work ? t("properties.yes") : t("properties.no") },
-        { label: t("properties.project.attachedViaMgr"), value: project.attached_via_acct_mgr ? t("properties.yes") : t("properties.no") },
-        { label: t("properties.project.jobsSucceeded"), value: String(project.njobs_success) },
-        { label: t("properties.project.jobsFailed"), value: String(project.njobs_error) },
-        { label: t("properties.project.diskUsage"), value: formatMegabytes(project.disk_usage) },
+        {
+          label: t("properties.project.suspended"),
+          value: project.suspended_via_gui
+            ? t("properties.yes")
+            : t("properties.no"),
+        },
+        {
+          label: t("properties.project.noNewTasks"),
+          value: project.dont_request_more_work
+            ? t("properties.yes")
+            : t("properties.no"),
+        },
+        {
+          label: t("properties.project.attachedViaMgr"),
+          value: project.attached_via_acct_mgr
+            ? t("properties.yes")
+            : t("properties.no"),
+        },
+        {
+          label: t("properties.project.jobsSucceeded"),
+          value: String(project.njobs_success),
+        },
+        {
+          label: t("properties.project.jobsFailed"),
+          value: String(project.njobs_error),
+        },
+        {
+          label: t("properties.project.diskUsage"),
+          value: formatMegabytes(project.disk_usage),
+        },
       ],
     },
   ];
@@ -229,12 +375,12 @@ const sections = computed(() =>
 
 const dialogTitle = computed(() =>
   props.type === "task"
-    ? props.task?.name ?? t("properties.taskProperties")
-    : props.project?.project_name ?? t("properties.projectProperties"),
+    ? (props.task?.name ?? t("properties.taskProperties"))
+    : (props.project?.project_name ?? t("properties.projectProperties")),
 );
 
 const guiUrls = computed(() =>
-  props.type === "project" ? props.project?.gui_urls ?? [] : [],
+  props.type === "project" ? (props.project?.gui_urls ?? []) : [],
 );
 
 // ── Copy all ────────────────────────────────────────────────────
@@ -265,17 +411,33 @@ function copyAll() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div ref="dialogRef" class="props-dialog" role="dialog" aria-modal="true" aria-labelledby="item-properties-dialog-title">
+      <div
+        ref="dialogRef"
+        class="props-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="item-properties-dialog-title"
+      >
         <div class="props-header">
           <h3 id="item-properties-dialog-title">{{ dialogTitle }}</h3>
-          <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
+          <button class="close-btn" aria-label="Close" @click="emit('close')">
+            &times;
+          </button>
         </div>
 
         <div class="props-body">
-          <div v-for="section in sections" :key="section.title" class="props-section">
+          <div
+            v-for="section in sections"
+            :key="section.title"
+            class="props-section"
+          >
             <div class="section-title">{{ section.title }}</div>
             <div class="section-rows">
-              <div v-for="row in section.rows" :key="row.label" class="prop-row">
+              <div
+                v-for="row in section.rows"
+                :key="row.label"
+                class="prop-row"
+              >
                 <span class="prop-label">{{ row.label }}</span>
                 <span class="prop-value">{{ row.value }}</span>
               </div>
@@ -284,12 +446,19 @@ function copyAll() {
 
           <!-- GUI URLs (project only) -->
           <div v-if="guiUrls.length > 0" class="props-section">
-            <div class="section-title">{{ $t('properties.webLinks') }}</div>
+            <div class="section-title">{{ $t("properties.webLinks") }}</div>
             <div class="section-rows">
               <div v-for="gu in guiUrls" :key="gu.url" class="gui-url-row">
                 <div class="gui-url-name">{{ gu.name }}</div>
-                <div v-if="gu.description" class="gui-url-desc">{{ gu.description }}</div>
-                <a :href="gu.url" target="_blank" rel="noopener" class="gui-url-link">
+                <div v-if="gu.description" class="gui-url-desc">
+                  {{ gu.description }}
+                </div>
+                <a
+                  :href="gu.url"
+                  target="_blank"
+                  rel="noopener"
+                  class="gui-url-link"
+                >
                   {{ gu.url }}
                 </a>
               </div>
@@ -298,8 +467,12 @@ function copyAll() {
         </div>
 
         <div class="props-footer">
-          <button class="btn" @click="copyAll">{{ $t('properties.copyAll') }}</button>
-          <button class="btn btn-primary" @click="emit('close')">{{ $t('properties.close') }}</button>
+          <button class="btn" @click="copyAll">
+            {{ $t("properties.copyAll") }}
+          </button>
+          <button class="btn btn-primary" @click="emit('close')">
+            {{ $t("properties.close") }}
+          </button>
         </div>
       </div>
     </div>

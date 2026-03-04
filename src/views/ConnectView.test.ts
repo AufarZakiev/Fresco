@@ -116,17 +116,23 @@ describe("ConnectView — OS probe loading state", () => {
   });
 
   it("does not overwrite paths applied via recent connection when OS probe resolves", async () => {
-    const recent = [{
-      mode: CONNECTION_MODE.LOCAL,
-      label: "/custom/data",
-      dataDir: "/custom/data",
-      clientDir: "/custom/client",
-      timestamp: Date.now(),
-    }];
+    const recent = [
+      {
+        mode: CONNECTION_MODE.LOCAL,
+        label: "/custom/data",
+        dataDir: "/custom/data",
+        clientDir: "/custom/client",
+        timestamp: Date.now(),
+      },
+    ];
     localStorage.setItem("boinc-recent-connections", JSON.stringify(recent));
 
     let resolve: (os: string) => void;
-    mockGetOS.mockReturnValue(new Promise((r) => { resolve = r as (os: string) => void; }));
+    mockGetOS.mockReturnValue(
+      new Promise((r) => {
+        resolve = r as (os: string) => void;
+      }),
+    );
 
     const wrapper = mountView();
     await nextTick(); // let onMounted's loadRecent() render the recent list
@@ -139,12 +145,16 @@ describe("ConnectView — OS probe loading state", () => {
 
     const inputs = wrapper.findAll(".field-input");
     expect((inputs[0].element as HTMLInputElement).value).toBe("/custom/data");
-    expect((inputs[1].element as HTMLInputElement).value).toBe("/custom/client");
+    expect((inputs[1].element as HTMLInputElement).value).toBe(
+      "/custom/client",
+    );
   });
 
   it("uses detected client dir when detectClientDir succeeds", async () => {
     mockGetOS.mockResolvedValue("macos");
-    mockDetectClientDir.mockResolvedValue("/Library/Application Support/BOINC Data");
+    mockDetectClientDir.mockResolvedValue(
+      "/Library/Application Support/BOINC Data",
+    );
     const wrapper = mountView();
 
     await flushPromises();

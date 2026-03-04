@@ -165,7 +165,10 @@ export async function abortTransfer(
 
 // ── BOINC client launcher ────────────────────────────────────────
 
-export async function startBoincClient(dataDir: string, clientDir: string = ""): Promise<void> {
+export async function startBoincClient(
+  dataDir: string,
+  clientDir: string = "",
+): Promise<void> {
   return invoke("start_boinc_client", { dataDir, clientDir });
 }
 
@@ -213,9 +216,7 @@ export async function getPreferences(): Promise<GlobalPreferences> {
   return invoke("get_preferences");
 }
 
-export async function setPreferences(
-  prefs: GlobalPreferences,
-): Promise<void> {
+export async function setPreferences(prefs: GlobalPreferences): Promise<void> {
   return invoke("set_preferences", { prefs });
 }
 
@@ -272,7 +273,13 @@ export async function createAccount(
   userName: string,
   teamName: string,
 ): Promise<void> {
-  return invoke("create_account", { url, email, passwdHash, userName, teamName });
+  return invoke("create_account", {
+    url,
+    email,
+    passwdHash,
+    userName,
+    teamName,
+  });
 }
 
 export async function createAccountPoll(): Promise<AccountOut> {

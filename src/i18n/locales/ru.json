@@ -22,7 +22,9 @@
     "eventLog": "Журнал событий",
     "selectComputer": "Выбор компьютера",
     "preferences": "Настройки",
-    "toggleSidebar": "Показать/скрыть боковую панель"
+    "toggleSidebar": "Показать/скрыть боковую панель",
+    "addProject": "Добавить проект",
+    "accountManager": "Менеджер учётных записей"
   },
   "tasks": {
     "title": "Задания",

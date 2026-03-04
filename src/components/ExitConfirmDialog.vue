@@ -12,10 +12,18 @@ const emit = defineEmits<{
 
 const dialogRef = ref<HTMLElement | null>(null);
 const { activate, deactivate } = useFocusTrap(dialogRef);
-watch(() => props.open, async (isOpen) => {
-  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
-  else { deactivate(); }
-});
+watch(
+  () => props.open,
+  async (isOpen) => {
+    if (isOpen) {
+      await nextTick();
+      if (!props.open) return;
+      activate();
+    } else {
+      deactivate();
+    }
+  },
+);
 
 const store = useManagerSettingsStore();
 
@@ -37,26 +45,36 @@ function confirm() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div ref="dialogRef" class="exit-dialog" role="dialog" aria-modal="true" aria-labelledby="exit-confirm-dialog-title">
-        <h3 id="exit-confirm-dialog-title">{{ $t('exitConfirm.title') }}</h3>
+      <div
+        ref="dialogRef"
+        class="exit-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="exit-confirm-dialog-title"
+      >
+        <h3 id="exit-confirm-dialog-title">{{ $t("exitConfirm.title") }}</h3>
         <p class="exit-message">
-          {{ $t('exitConfirm.message') }}
+          {{ $t("exitConfirm.message") }}
         </p>
 
         <div class="exit-options">
           <label class="exit-toggle">
             <input type="checkbox" v-model="shutdownClient" />
-            <span>{{ $t('exitConfirm.shutdownClient') }}</span>
+            <span>{{ $t("exitConfirm.shutdownClient") }}</span>
           </label>
           <label class="exit-toggle">
             <input type="checkbox" v-model="dontAskAgain" />
-            <span>{{ $t('exitConfirm.dontAskAgain') }}</span>
+            <span>{{ $t("exitConfirm.dontAskAgain") }}</span>
           </label>
         </div>
 
         <div class="exit-footer">
-          <button class="btn" @click="emit('close')">{{ $t('exitConfirm.cancel') }}</button>
-          <button class="btn btn-primary" @click="confirm">{{ $t('exitConfirm.exit') }}</button>
+          <button class="btn" @click="emit('close')">
+            {{ $t("exitConfirm.cancel") }}
+          </button>
+          <button class="btn btn-primary" @click="confirm">
+            {{ $t("exitConfirm.exit") }}
+          </button>
         </div>
       </div>
     </div>

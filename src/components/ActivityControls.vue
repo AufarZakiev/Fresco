@@ -23,32 +23,32 @@ function handleNetworkMode(event: Event) {
 <template>
   <div class="activity-controls">
     <label class="mode-control">
-      <span class="mode-label">{{ $t('activity.cpu') }}</span>
+      <span class="mode-label">{{ $t("activity.cpu") }}</span>
       <select :value="client.status.task_mode_perm" @change="handleRunMode">
-        <option :value="RUN_MODE.ALWAYS">{{ $t('activity.always') }}</option>
-        <option :value="RUN_MODE.AUTO">{{ $t('activity.auto') }}</option>
-        <option :value="RUN_MODE.NEVER">{{ $t('activity.suspend') }}</option>
+        <option :value="RUN_MODE.ALWAYS">{{ $t("activity.always") }}</option>
+        <option :value="RUN_MODE.AUTO">{{ $t("activity.auto") }}</option>
+        <option :value="RUN_MODE.NEVER">{{ $t("activity.suspend") }}</option>
       </select>
     </label>
 
     <label class="mode-control">
-      <span class="mode-label">{{ $t('activity.gpu') }}</span>
+      <span class="mode-label">{{ $t("activity.gpu") }}</span>
       <select :value="client.status.gpu_mode_perm" @change="handleGpuMode">
-        <option :value="RUN_MODE.ALWAYS">{{ $t('activity.always') }}</option>
-        <option :value="RUN_MODE.AUTO">{{ $t('activity.auto') }}</option>
-        <option :value="RUN_MODE.NEVER">{{ $t('activity.suspend') }}</option>
+        <option :value="RUN_MODE.ALWAYS">{{ $t("activity.always") }}</option>
+        <option :value="RUN_MODE.AUTO">{{ $t("activity.auto") }}</option>
+        <option :value="RUN_MODE.NEVER">{{ $t("activity.suspend") }}</option>
       </select>
     </label>
 
     <label class="mode-control">
-      <span class="mode-label">{{ $t('activity.net') }}</span>
+      <span class="mode-label">{{ $t("activity.net") }}</span>
       <select
         :value="client.status.network_mode_perm"
         @change="handleNetworkMode"
       >
-        <option :value="RUN_MODE.ALWAYS">{{ $t('activity.always') }}</option>
-        <option :value="RUN_MODE.AUTO">{{ $t('activity.auto') }}</option>
-        <option :value="RUN_MODE.NEVER">{{ $t('activity.suspend') }}</option>
+        <option :value="RUN_MODE.ALWAYS">{{ $t("activity.always") }}</option>
+        <option :value="RUN_MODE.AUTO">{{ $t("activity.auto") }}</option>
+        <option :value="RUN_MODE.NEVER">{{ $t("activity.suspend") }}</option>
       </select>
     </label>
   </div>

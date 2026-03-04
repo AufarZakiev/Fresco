@@ -25,12 +25,22 @@ const actionBusy = ref(false);
 const selectedKeys = ref<Set<string>>(new Set());
 const lastClickedIndex = ref<number | null>(null);
 const confirmAbort = ref(false);
-const { sortKey, sortDir, visibleKeys } = useColumnState(
-  "transfers",
-  ["file", "project", "direction", "progress", "size", "speed"],
+const allColumnKeys = [
   "file",
-  SORT_DIR.ASC,
-);
+  "project",
+  "direction",
+  "progress",
+  "size",
+  "speed",
+];
+const { sortKey, sortDir, visibleKeys, columnOrder, orderedVisibleKeys } =
+  useColumnState(
+    "transfers",
+    ["file", "project", "direction", "progress", "size", "speed"],
+    "file",
+    SORT_DIR.ASC,
+    allColumnKeys,
+  );
 const showColumns = ref(false);
 
 // Context menu state
@@ -43,13 +53,30 @@ const allColumns = computed<DataTableColumn[]>(() => [
   { key: "project", label: t("transfers.col.project"), sortable: true },
   { key: "direction", label: t("transfers.col.direction"), sortable: true },
   { key: "progress", label: t("transfers.col.progress"), sortable: true },
-  { key: "size", label: t("transfers.col.size"), sortable: true, align: "right" },
-  { key: "speed", label: t("transfers.col.speed"), sortable: true, align: "right" },
+  {
+    key: "size",
+    label: t("transfers.col.size"),
+    sortable: true,
+    align: "right",
+  },
+  {
+    key: "speed",
+    label: t("transfers.col.speed"),
+    sortable: true,
+    align: "right",
+  },
 ]);
 
 const columns = computed(() =>
-  allColumns.value.map((c) => ({ ...c, visible: visibleKeys.value.includes(c.key) })),
+  allColumns.value.map((c) => ({
+    ...c,
+    visible: visibleKeys.value.includes(c.key),
+  })),
 );
+
+function handleUpdateOrder(order: string[]) {
+  columnOrder.value = order;
+}
 
 function transferKey(transfer: FileTransfer): string {
   return `${transfer.project_url}:${transfer.name}`;
@@ -58,7 +85,10 @@ function transferKey(transfer: FileTransfer): string {
 function formatSize(bytes: number): string {
   if (bytes <= 0) return "0 B";
   const units = ["B", "KB", "MB", "GB"];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const i = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 }
 
@@ -77,18 +107,27 @@ function transferProgressText(transfer: FileTransfer): string {
 }
 
 function transferDirection(transfer: FileTransfer): string {
-  return transfer.is_upload ? t("transfers.direction.upload") : t("transfers.direction.download");
+  return transfer.is_upload
+    ? t("transfers.direction.upload")
+    : t("transfers.direction.download");
 }
 
 function getSortValue(transfer: FileTransfer, key: string): number | string {
   switch (key) {
-    case "file": return transfer.name;
-    case "project": return transfer.project_name;
-    case "direction": return transfer.is_upload ? "1" : "0";
-    case "progress": return transferProgress(transfer);
-    case "size": return transfer.nbytes;
-    case "speed": return transfer.xfer_speed;
-    default: return 0;
+    case "file":
+      return transfer.name;
+    case "project":
+      return transfer.project_name;
+    case "direction":
+      return transfer.is_upload ? "1" : "0";
+    case "progress":
+      return transferProgress(transfer);
+    case "size":
+      return transfer.nbytes;
+    case "speed":
+      return transfer.xfer_speed;
+    default:
+      return 0;
   }
 }
 
@@ -112,12 +151,21 @@ const selectedTransfers = computed(() =>
 
 const hasSelection = computed(() => selectedKeys.value.size > 0);
 
-const allSelected = computed(() =>
-  sortedTransfers.value.length > 0 &&
-  sortedTransfers.value.every((t) => selectedKeys.value.has(transferKey(t))),
+const singleSelectedTransfer = computed(() =>
+  selectedTransfers.value.length === 1 ? selectedTransfers.value[0] : null,
 );
 
-function handleRowClick(transfer: FileTransfer, index: number, event: MouseEvent) {
+const allSelected = computed(
+  () =>
+    sortedTransfers.value.length > 0 &&
+    sortedTransfers.value.every((t) => selectedKeys.value.has(transferKey(t))),
+);
+
+function handleRowClick(
+  transfer: FileTransfer,
+  index: number,
+  event: MouseEvent,
+) {
   const key = transferKey(transfer);
   if (event.ctrlKey || event.metaKey) {
     const next = new Set(selectedKeys.value);
@@ -158,7 +206,11 @@ function handleSort(key: string, dir: SortDir) {
   sortDir.value = dir;
 }
 
-function handleRowContext(event: MouseEvent, transfer: FileTransfer, index: number) {
+function handleRowContext(
+  event: MouseEvent,
+  transfer: FileTransfer,
+  index: number,
+) {
   event.preventDefault();
   const key = transferKey(transfer);
   if (!selectedKeys.value.has(key)) {
@@ -238,19 +290,11 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   if (isTypingInInput(e)) return;
   if (hasSelection.value) confirmAbort.value = true;
 });
-
-function isColVisible(key: string): boolean {
-  return visibleKeys.value.includes(key);
-}
 </script>
 
 <template>
   <div class="transfers-view">
-    <PageHeader :title="$t('transfers.title')">
-      <template v-if="hasSelection">
-        <button class="btn" :disabled="actionBusy" @click="handleRetry">{{ $t('transfers.retry') }}</button>
-        <button class="btn btn-danger" :disabled="actionBusy" @click="confirmAbort = true">{{ $t('transfers.abort') }}</button>
-      </template>
+    <PageHeader>
       <Tooltip :text="$t('transfers.columns')">
         <button class="btn-columns" @click="showColumns = true">
           <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
@@ -276,55 +320,119 @@ function isColVisible(key: string): boolean {
       :message="$t('transfers.empty')"
     />
 
-    <DataTable
-      v-if="store.transfers.length > 0"
-      :columns="columns"
-      :sort-key="sortKey"
-      :sort-dir="sortDir"
-      selectable
-      :all-selected="allSelected"
-      @sort="handleSort"
-      @select-all="handleSelectAll"
-    >
-      <tr
-        v-for="(transfer, index) in sortedTransfers"
-        :key="transferKey(transfer)"
-        :class="{ 'row-selected': isSelected(transfer) }"
-        @click="handleRowClick(transfer, index, $event)"
-        @contextmenu="handleRowContext($event, transfer, index)"
-      >
-        <td class="col-checkbox">
-          <input
-            type="checkbox"
-            :checked="isSelected(transfer)"
-            @click.stop
-            @change="handleRowClick(transfer, index, { ctrlKey: true } as MouseEvent)"
-          />
-        </td>
-        <td v-if="isColVisible('file')" class="col-name" :title="transfer.name">{{ transfer.name }}</td>
-        <td v-if="isColVisible('project')">{{ transfer.project_name }}</td>
-        <td v-if="isColVisible('direction')">{{ transferDirection(transfer) }}</td>
-        <td v-if="isColVisible('progress')" class="col-progress">
-          <div
-            class="progress-bar"
-            role="progressbar"
-            :aria-valuenow="Math.min(100, Math.max(0, Math.round(transferProgress(transfer) * 100)))"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            :aria-label="transfer.project_name"
-            :aria-valuetext="transferProgressText(transfer)"
+    <div v-else class="content-row">
+      <div class="content-main">
+        <DataTable
+          :columns="columns"
+          :column-order="columnOrder"
+          :sort-key="sortKey"
+          :sort-dir="sortDir"
+          selectable
+          :all-selected="allSelected"
+          @sort="handleSort"
+          @select-all="handleSelectAll"
+        >
+          <tr
+            v-for="(transfer, index) in sortedTransfers"
+            :key="transferKey(transfer)"
+            :class="{ 'row-selected': isSelected(transfer) }"
+            @click="handleRowClick(transfer, index, $event)"
+            @contextmenu="handleRowContext($event, transfer, index)"
           >
-            <div
-              class="progress-fill"
-              :style="{ width: transferProgressText(transfer) }"
-            ></div>
-            <span class="progress-text">{{ transferProgressText(transfer) }}</span>
+            <td class="col-checkbox">
+              <input
+                type="checkbox"
+                :checked="isSelected(transfer)"
+                @click.stop
+                @change="
+                  handleRowClick(transfer, index, {
+                    ctrlKey: true,
+                  } as MouseEvent)
+                "
+              />
+            </td>
+            <template v-for="colKey in orderedVisibleKeys" :key="colKey">
+              <td
+                v-if="colKey === 'file'"
+                class="col-name"
+                :title="transfer.name"
+              >
+                {{ transfer.name }}
+              </td>
+              <td v-else-if="colKey === 'project'">
+                {{ transfer.project_name }}
+              </td>
+              <td v-else-if="colKey === 'direction'">
+                {{ transferDirection(transfer) }}
+              </td>
+              <td v-else-if="colKey === 'progress'" class="col-progress">
+                <div
+                  class="progress-bar"
+                  role="progressbar"
+                  :aria-valuenow="
+                    Math.min(
+                      100,
+                      Math.max(0, Math.round(transferProgress(transfer) * 100)),
+                    )
+                  "
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  :aria-label="transfer.project_name"
+                  :aria-valuetext="transferProgressText(transfer)"
+                >
+                  <div
+                    class="progress-fill"
+                    :style="{ width: transferProgressText(transfer) }"
+                  ></div>
+                  <span class="progress-text">{{
+                    transferProgressText(transfer)
+                  }}</span>
+                </div>
+              </td>
+              <td v-else-if="colKey === 'size'" class="col-number">
+                {{ formatSize(transfer.nbytes) }}
+              </td>
+              <td v-else-if="colKey === 'speed'" class="col-number">
+                {{ formatSpeed(transfer.xfer_speed) }}
+              </td>
+            </template>
+          </tr>
+        </DataTable>
+      </div>
+
+      <Transition name="drawer">
+        <div v-if="hasSelection" class="drawer-panel">
+          <div class="drawer-header">
+            <h3>
+              {{
+                singleSelectedTransfer?.name ??
+                $t("transfers.nTransfers", selectedKeys.size)
+              }}
+            </h3>
           </div>
-        </td>
-        <td v-if="isColVisible('size')" class="col-number">{{ formatSize(transfer.nbytes) }}</td>
-        <td v-if="isColVisible('speed')" class="col-number">{{ formatSpeed(transfer.xfer_speed) }}</td>
-      </tr>
-    </DataTable>
+
+          <div class="drawer-section">
+            <Tooltip :text="$t('transfers.tooltip.retry')">
+              <button class="btn" :disabled="actionBusy" @click="handleRetry">
+                {{ $t("transfers.retry") }}
+              </button>
+            </Tooltip>
+          </div>
+
+          <div class="drawer-section drawer-danger">
+            <Tooltip :text="$t('transfers.tooltip.abort')">
+              <button
+                class="btn btn-danger"
+                :disabled="actionBusy"
+                @click="confirmAbort = true"
+              >
+                {{ $t("transfers.abort") }}
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+      </Transition>
+    </div>
 
     <ContextMenu
       :open="ctxOpen"
@@ -348,7 +456,9 @@ function isColVisible(key: string): boolean {
       :open="showColumns"
       :columns="allColumns"
       :visible-keys="visibleKeys"
+      :column-order="columnOrder"
       @update="visibleKeys = $event"
+      @update-order="handleUpdateOrder"
       @close="showColumns = false"
     />
   </div>
@@ -356,7 +466,10 @@ function isColVisible(key: string): boolean {
 
 <style scoped>
 .transfers-view {
-  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
 .error {
@@ -433,5 +546,76 @@ function isColVisible(key: string): boolean {
 
 .btn-columns:hover {
   color: var(--color-text-primary);
+}
+
+/* Content layout */
+.content-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+}
+
+.content-main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  margin-right: var(--space-md);
+}
+
+/* Side drawer */
+.drawer-panel {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--color-bg);
+  border-left: 1px solid var(--color-border);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  overflow-y: auto;
+  overflow-x: visible;
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawer-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.drawer-section .btn {
+  width: 100%;
+  text-align: left;
+}
+
+.drawer-danger {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--space-md);
+}
+
+/* Drawer transition */
+.drawer-enter-active,
+.drawer-leave-active {
+  transition:
+    width 0.2s ease,
+    opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.drawer-enter-from,
+.drawer-leave-to {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
 }
 </style>

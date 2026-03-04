@@ -81,7 +81,9 @@ const xRange = computed(() => {
 
 function calculateX(day: number): number {
   const range = xRange.value;
-  return PADDING.left + ((day - range.min) / (range.max - range.min)) * chartW.value;
+  return (
+    PADDING.left + ((day - range.min) / (range.max - range.min)) * chartW.value
+  );
 }
 
 function calculateY(value: number): number {

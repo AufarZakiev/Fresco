@@ -82,7 +82,11 @@ export const useClientStore = defineStore("client", () => {
   }
 
   async function setNetworkMode(mode: number) {
-    status.value = { ...status.value, network_mode: mode, network_mode_perm: mode };
+    status.value = {
+      ...status.value,
+      network_mode: mode,
+      network_mode_perm: mode,
+    };
     await rpcSetNetworkMode(mode, 0);
     restartPolling();
   }

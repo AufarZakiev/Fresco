@@ -14,6 +14,8 @@ import SelectComputerDialog from "./components/SelectComputerDialog.vue";
 import ExitConfirmDialog from "./components/ExitConfirmDialog.vue";
 import ToastContainer from "./components/ToastContainer.vue";
 import UpdateBanner from "./components/UpdateBanner.vue";
+import ProjectAttachWizard from "./components/ProjectAttachWizard.vue";
+import AccountManagerWizard from "./components/AccountManagerWizard.vue";
 import Tooltip from "./components/Tooltip.vue";
 import { useWindowState } from "./composables/useWindowState";
 import { useUpdateCheck } from "./composables/useUpdateCheck";
@@ -55,14 +57,20 @@ useManagerSettingsStore(); // Initialize early to apply theme before ConnectView
 const showPreferences = ref(false);
 const showAbout = ref(false);
 const showSelectComputer = ref(false);
+const showAttachWizard = ref(false);
+const showAcctMgr = ref(false);
 const prefsInitialTab = ref<"computing" | "manager">("computing");
 const showExitConfirm = ref(false);
 const initializing = ref(true);
 const loadingStatus = ref(t("app.loading.connectingLocal"));
-const isDarkTheme = ref(window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false);
-window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-  isDarkTheme.value = e.matches;
-});
+const isDarkTheme = ref(
+  window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false,
+);
+window
+  .matchMedia?.("(prefers-color-scheme: dark)")
+  .addEventListener("change", (e) => {
+    isDarkTheme.value = e.matches;
+  });
 const sidebarOpen = ref(false);
 const collapsedGroups = ref<string[]>(["advanced"]);
 
@@ -78,12 +86,21 @@ function toggleCollapsed(key: string) {
   }
 }
 const hasSidebar = computed(
-  () => connection.state === CONNECTION_STATE.CONNECTED || connection.state === CONNECTION_STATE.RECONNECTING,
+  () =>
+    connection.state === CONNECTION_STATE.CONNECTED ||
+    connection.state === CONNECTION_STATE.RECONNECTING,
 );
 let autoConnectCancelled = false;
 
 useWindowState();
-const { updateAvailable, dismissed, updateOnExit, downloaded, downloading, checkForUpdates: doUpdateCheck } = useUpdateCheck();
+const {
+  updateAvailable,
+  dismissed,
+  updateOnExit,
+  downloaded,
+  downloading,
+  checkForUpdates: doUpdateCheck,
+} = useUpdateCheck();
 
 // ── Auto-connect to local BOINC client on startup ───────────────
 
@@ -105,7 +122,10 @@ async function autoConnect() {
   await connection.connectToLocal(dataDir);
 
   // If connection failed with a non-auth error, try auto-starting BOINC
-  if (connection.state !== CONNECTION_STATE.CONNECTED && connection.state !== CONNECTION_STATE.AUTH_ERROR) {
+  if (
+    connection.state !== CONNECTION_STATE.CONNECTED &&
+    connection.state !== CONNECTION_STATE.AUTH_ERROR
+  ) {
     loadingStatus.value = t("app.loading.startingBoinc");
     try {
       await startBoincClient(dataDir);
@@ -144,7 +164,15 @@ useEventListener(document, "contextmenu", (e) => e.preventDefault());
 
 // Prevent Backspace from triggering browser-like back navigation in the WebView.
 // Only allow Backspace in text-editable elements (text inputs, textareas, contenteditable).
-const TEXT_INPUT_TYPES = new Set(["text", "password", "search", "email", "url", "tel", "number"]);
+const TEXT_INPUT_TYPES = new Set([
+  "text",
+  "password",
+  "search",
+  "email",
+  "url",
+  "tel",
+  "number",
+]);
 
 function isTextEditable(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -224,9 +252,8 @@ async function doExit(doShutdownClient: boolean) {
     }
   }
   try {
-    const { getCurrentWebviewWindow } = await import(
-      "@tauri-apps/api/webviewWindow"
-    );
+    const { getCurrentWebviewWindow } =
+      await import("@tauri-apps/api/webviewWindow");
     await getCurrentWebviewWindow().destroy();
   } catch {
     // ignore
@@ -273,7 +300,9 @@ watch(
   (path) => {
     for (const group of navGroups.value) {
       if (group.collapsible && group.items.some((i) => i.path === path)) {
-        collapsedGroups.value = collapsedGroups.value.filter((l) => l !== group.key);
+        collapsedGroups.value = collapsedGroups.value.filter(
+          (l) => l !== group.key,
+        );
       }
     }
   },
@@ -286,9 +315,8 @@ watch(
     if (newState === CONNECTION_STATE.CONNECTED) {
       wasConnected = true;
       try {
-        const { getCurrentWebviewWindow } = await import(
-          "@tauri-apps/api/webviewWindow"
-        );
+        const { getCurrentWebviewWindow } =
+          await import("@tauri-apps/api/webviewWindow");
         const win = getCurrentWebviewWindow();
         const info = await getHostInfo();
         if (info.domain_name) {
@@ -310,11 +338,19 @@ watch(
 <template>
   <div v-if="initializing" class="loading-screen">
     <div class="loading-content">
-      <img class="loading-logo" :src="isDarkTheme ? '/icon-dark.png' : '/icon.png'" alt="Fresco" width="96" height="96" />
+      <img
+        class="loading-logo"
+        :src="isDarkTheme ? '/icon-dark.png' : '/icon.png'"
+        alt="Fresco"
+        width="96"
+        height="96"
+      />
       <span class="loading-app-title">Fresco</span>
       <div class="loading-spinner"></div>
       <span class="loading-text">{{ loadingStatus }}</span>
-      <button class="btn loading-cancel" @click="cancelAutoConnect">{{ $t('app.loading.cancel') }}</button>
+      <button class="btn loading-cancel" @click="cancelAutoConnect">
+        {{ $t("app.loading.cancel") }}
+      </button>
     </div>
   </div>
   <div v-else class="app" :class="{ 'has-sidebar': hasSidebar }">
@@ -325,11 +361,15 @@ watch(
       @click="sidebarOpen = !sidebarOpen"
     >
       <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
-        <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+        <path
+          fill-rule="evenodd"
+          d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+          clip-rule="evenodd"
+        />
       </svg>
     </button>
     <div
-      v-if="sidebarOpen && (hasSidebar)"
+      v-if="sidebarOpen && hasSidebar"
       class="sidebar-backdrop"
       @click="sidebarOpen = false"
     ></div>
@@ -341,7 +381,12 @@ watch(
             :class="{ clickable: group.collapsible }"
             @click="group.collapsible && toggleCollapsed(group.key)"
           >
-            <span v-if="group.collapsible" class="nav-group-chevron" :class="{ collapsed: isCollapsed(group.key) }">&#9662;</span>
+            <span
+              v-if="group.collapsible"
+              class="nav-group-chevron"
+              :class="{ collapsed: isCollapsed(group.key) }"
+              >&#9662;</span
+            >
             {{ group.label }}
           </span>
           <router-link
@@ -356,29 +401,53 @@ watch(
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
               <template v-if="item.icon === 'cpu'">
                 <path d="M13 7H7v6h6V7z" />
-                <path fill-rule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h1a2 2 0 012 2v1h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v1a2 2 0 01-2 2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H6a2 2 0 01-2-2v-1H3a1 1 0 110-2h1V8H3a1 1 0 010-2h1V5a2 2 0 012-2V2zm0 3h6a1 1 0 011 1v6a1 1 0 01-1 1H7a1 1 0 01-1-1V6a1 1 0 011-1z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h1a2 2 0 012 2v1h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v1a2 2 0 01-2 2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H6a2 2 0 01-2-2v-1H3a1 1 0 110-2h1V8H3a1 1 0 010-2h1V5a2 2 0 012-2V2zm0 3h6a1 1 0 011 1v6a1 1 0 01-1 1H7a1 1 0 01-1-1V6a1 1 0 011-1z"
+                  clip-rule="evenodd"
+                />
               </template>
               <template v-else-if="item.icon === 'folder'">
-                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                <path
+                  d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                />
               </template>
               <template v-else-if="item.icon === 'chart'">
                 <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
                 <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
               </template>
               <template v-else-if="item.icon === 'transfer'">
-                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                  clip-rule="evenodd"
+                />
               </template>
               <template v-else-if="item.icon === 'message'">
-                <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
+                  clip-rule="evenodd"
+                />
               </template>
               <template v-else-if="item.icon === 'bell'">
-                <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                <path
+                  d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"
+                />
               </template>
               <template v-else-if="item.icon === 'disk'">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                  clip-rule="evenodd"
+                />
               </template>
               <template v-else-if="item.icon === 'monitor'">
-                <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm11 1H6v3h8V6zM6 15a1 1 0 100 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M3 5a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm11 1H6v3h8V6zM6 15a1 1 0 100 2h8a1 1 0 100-2H6z"
+                  clip-rule="evenodd"
+                />
               </template>
             </svg>
             {{ item.label }}
@@ -387,19 +456,68 @@ watch(
       </nav>
 
       <div class="sidebar-footer">
+        <div class="sidebar-global-actions">
+          <button class="sidebar-global-btn" @click="showAttachWizard = true">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+              <path
+                fill-rule="evenodd"
+                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            {{ $t("sidebar.addProject") }}
+          </button>
+          <button class="sidebar-global-btn" @click="showAcctMgr = true">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+              <path
+                fill-rule="evenodd"
+                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            {{ $t("sidebar.accountManager") }}
+          </button>
+        </div>
         <ActivityControls />
         <div class="sidebar-actions">
           <Tooltip :text="$t('sidebar.selectComputer')">
-            <button class="sidebar-action-btn" @click="showSelectComputer = true">
-              <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-                <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm11 1H6v3h8V6zM6 15a1 1 0 100 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+            <button
+              class="sidebar-action-btn"
+              @click="showSelectComputer = true"
+            >
+              <svg
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                width="18"
+                height="18"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M3 5a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm11 1H6v3h8V6zM6 15a1 1 0 100 2h8a1 1 0 100-2H6z"
+                  clip-rule="evenodd"
+                />
               </svg>
             </button>
           </Tooltip>
           <Tooltip :text="$t('sidebar.preferences')">
-            <button class="sidebar-action-btn" @click="prefsInitialTab = 'computing'; showPreferences = true">
-              <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-                <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+            <button
+              class="sidebar-action-btn"
+              @click="
+                prefsInitialTab = 'computing';
+                showPreferences = true;
+              "
+            >
+              <svg
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                width="18"
+                height="18"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                  clip-rule="evenodd"
+                />
               </svg>
             </button>
           </Tooltip>
@@ -427,6 +545,16 @@ watch(
       :open="showExitConfirm"
       @close="showExitConfirm = false"
       @confirm="doExit"
+    />
+    <ProjectAttachWizard
+      v-if="showAttachWizard"
+      :open="showAttachWizard"
+      @close="showAttachWizard = false"
+    />
+    <AccountManagerWizard
+      v-if="showAcctMgr"
+      :open="showAcctMgr"
+      @close="showAcctMgr = false"
     />
     <ToastContainer />
   </div>
@@ -507,7 +635,9 @@ body {
 }
 
 /* Global input dark mode support */
-input, textarea, select {
+input,
+textarea,
+select {
   color-scheme: light dark;
 }
 </style>
@@ -636,6 +766,35 @@ input, textarea, select {
   border-top: 1px solid var(--color-border);
 }
 
+.sidebar-global-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.sidebar-global-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 450;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.sidebar-global-btn:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
 .sidebar-actions {
   display: flex;
   justify-content: space-between;
@@ -710,7 +869,9 @@ input, textarea, select {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Hamburger button (mobile only) ─────────────────────────── */

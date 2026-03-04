@@ -22,7 +22,9 @@
     "eventLog": "Registro de eventos",
     "selectComputer": "Selecionar computador",
     "preferences": "Preferências",
-    "toggleSidebar": "Alternar barra lateral"
+    "toggleSidebar": "Alternar barra lateral",
+    "addProject": "Adicionar Projeto",
+    "accountManager": "Gerenciador de contas"
   },
   "tasks": {
     "title": "Tarefas",

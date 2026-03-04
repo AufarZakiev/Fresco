@@ -25,7 +25,7 @@ describe("DataTable", () => {
     const wrapper = mount(DataTable, {
       props: { columns },
       slots: {
-        default: '<tr><td>Row 1</td><td>Active</td></tr>',
+        default: "<tr><td>Row 1</td><td>Active</td></tr>",
       },
     });
     expect(wrapper.find("tbody").text()).toContain("Row 1");
@@ -52,35 +52,45 @@ describe("DataTable", () => {
     const wrapper = mount(DataTable, {
       props: { columns, sortKey: "name", sortDir: SORT_DIR.ASC },
     });
-    expect(findThByLabel(wrapper, "Name")?.attributes("aria-sort")).toBe("ascending");
+    expect(findThByLabel(wrapper, "Name")?.attributes("aria-sort")).toBe(
+      "ascending",
+    );
   });
 
   it("sets aria-sort='descending' when sort direction is DESC", () => {
     const wrapper = mount(DataTable, {
       props: { columns, sortKey: "name", sortDir: SORT_DIR.DESC },
     });
-    expect(findThByLabel(wrapper, "Name")?.attributes("aria-sort")).toBe("descending");
+    expect(findThByLabel(wrapper, "Name")?.attributes("aria-sort")).toBe(
+      "descending",
+    );
   });
 
   it("sets aria-sort='none' on sortable columns that are not actively sorted", () => {
     const wrapper = mount(DataTable, {
       props: { columns, sortKey: "status", sortDir: SORT_DIR.ASC },
     });
-    expect(findThByLabel(wrapper, "Name")?.attributes("aria-sort")).toBe("none");
+    expect(findThByLabel(wrapper, "Name")?.attributes("aria-sort")).toBe(
+      "none",
+    );
   });
 
   it("omits aria-sort on non-sortable columns", () => {
     const wrapper = mount(DataTable, {
       props: { columns, sortKey: "name", sortDir: SORT_DIR.ASC },
     });
-    expect(findThByLabel(wrapper, "Status")?.attributes("aria-sort")).toBeUndefined();
+    expect(
+      findThByLabel(wrapper, "Status")?.attributes("aria-sort"),
+    ).toBeUndefined();
   });
 
   it("falls back to aria-sort='none' when sortDir is undefined for active column", () => {
     const wrapper = mount(DataTable, {
       props: { columns, sortKey: "name" },
     });
-    expect(findThByLabel(wrapper, "Name")?.attributes("aria-sort")).toBe("none");
+    expect(findThByLabel(wrapper, "Name")?.attributes("aria-sort")).toBe(
+      "none",
+    );
   });
 
   it("adds scope='col' to all header cells", () => {
@@ -113,5 +123,43 @@ describe("DataTable", () => {
     expect(findThByLabel(wrapper, "Name")?.exists()).toBe(true);
     expect(findThByLabel(wrapper, "Hidden")).toBeUndefined();
     expect(findThByLabel(wrapper, "Status")?.exists()).toBe(true);
+  });
+
+  it("reorders columns according to columnOrder prop", () => {
+    const cols = [
+      { key: "name", label: "Name" },
+      { key: "status", label: "Status" },
+      { key: "progress", label: "Progress" },
+    ];
+    const wrapper = mount(DataTable, {
+      props: { columns: cols, columnOrder: ["progress", "name", "status"] },
+    });
+    const headers = wrapper.findAll("thead th").map((th) => th.text());
+    expect(headers).toEqual(["Progress", "Name", "Status"]);
+  });
+
+  it("ignores unknown keys in columnOrder", () => {
+    const cols = [
+      { key: "name", label: "Name" },
+      { key: "status", label: "Status" },
+    ];
+    const wrapper = mount(DataTable, {
+      props: { columns: cols, columnOrder: ["unknown", "status", "name"] },
+    });
+    const headers = wrapper.findAll("thead th").map((th) => th.text());
+    expect(headers).toEqual(["Status", "Name"]);
+  });
+
+  it("appends columns missing from columnOrder at the end", () => {
+    const cols = [
+      { key: "name", label: "Name" },
+      { key: "status", label: "Status" },
+      { key: "progress", label: "Progress" },
+    ];
+    const wrapper = mount(DataTable, {
+      props: { columns: cols, columnOrder: ["status"] },
+    });
+    const headers = wrapper.findAll("thead th").map((th) => th.text());
+    expect(headers).toEqual(["Status", "Name", "Progress"]);
   });
 });

@@ -1,7 +1,11 @@
 import type { ProjectStatistics, DailyStats } from "../../types/boinc";
 import { NOW, DAY, ROSETTA_URL, EINSTEIN_URL, CLIMATE_URL } from "./_shared";
 
-function generateStats(days: number, baseCredit: number, dailyGain: number): DailyStats[] {
+function generateStats(
+  days: number,
+  baseCredit: number,
+  dailyGain: number,
+): DailyStats[] {
   const stats: DailyStats[] = [];
   for (let i = days; i >= 0; i--) {
     const dayTimestamp = NOW - i * DAY;

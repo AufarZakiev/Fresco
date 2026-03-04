@@ -168,9 +168,14 @@ describe("TasksView", () => {
     const store = useTasksStore();
     const projectsStore = useProjectsStore();
     projectsStore.projects = [
-      { master_url: "https://example.com/", project_name: "Climate Model" } as never,
+      {
+        master_url: "https://example.com/",
+        project_name: "Climate Model",
+      } as never,
     ];
-    store.tasks = [makeTask({ wu_name: "climate_sim_42", fraction_done: 0.456 })];
+    store.tasks = [
+      makeTask({ wu_name: "climate_sim_42", fraction_done: 0.456 }),
+    ];
 
     const wrapper = mount(TasksView);
     const bar = wrapper.find(".progress-bar");
@@ -193,7 +198,12 @@ describe("TasksView", () => {
     const store = useTasksStore();
     store.tasks = [
       makeTask({ wu_name: "active_task", active_task: true }),
-      makeTask({ name: "task_002_0", wu_name: "inactive_task", active_task: false, state: 1 }),
+      makeTask({
+        name: "task_002_0",
+        wu_name: "inactive_task",
+        active_task: false,
+        state: 1,
+      }),
     ];
 
     const wrapper = mount(TasksView);

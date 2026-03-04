@@ -50,13 +50,15 @@ export function handleIpc(cmd: string, payload?: InvokeArgs): unknown {
     case "get_statistics":
       return mockStatistics;
     case "get_messages": {
-      const seqno = (payload as Record<string, unknown>)?.seqno as number ?? 0;
+      const seqno =
+        ((payload as Record<string, unknown>)?.seqno as number) ?? 0;
       return mockMessages.filter((m) => m.seqno > seqno);
     }
     case "get_message_count":
       return mockMessages.length;
     case "get_notices": {
-      const seqno = (payload as Record<string, unknown>)?.seqno as number ?? 0;
+      const seqno =
+        ((payload as Record<string, unknown>)?.seqno as number) ?? 0;
       return mockNotices.filter((n) => n.seqno > seqno);
     }
     case "get_disk_usage":

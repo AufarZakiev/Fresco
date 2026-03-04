@@ -22,7 +22,9 @@ const mockSetPreferences = vi.mocked(setPreferences);
 const mockGetWorking = vi.mocked(getGlobalPrefsWorking);
 const mockGetFile = vi.mocked(getGlobalPrefsFile);
 
-function makePrefs(overrides: Partial<GlobalPreferences> = {}): GlobalPreferences {
+function makePrefs(
+  overrides: Partial<GlobalPreferences> = {},
+): GlobalPreferences {
   return {
     run_on_batteries: false,
     run_if_user_active: true,

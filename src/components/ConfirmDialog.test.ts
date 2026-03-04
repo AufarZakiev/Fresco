@@ -120,7 +120,9 @@ describe("ConfirmDialog", () => {
     const dialog = document.body.querySelector("[role='dialog']");
     expect(dialog).not.toBeNull();
     expect(dialog!.getAttribute("aria-modal")).toBe("true");
-    expect(dialog!.getAttribute("aria-labelledby")).toBe("confirm-dialog-title");
+    expect(dialog!.getAttribute("aria-labelledby")).toBe(
+      "confirm-dialog-title",
+    );
     const title = document.body.querySelector("#confirm-dialog-title");
     expect(title).not.toBeNull();
     expect(title!.textContent).toContain("Delete Item");

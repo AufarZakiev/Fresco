@@ -10,10 +10,18 @@ const emit = defineEmits<{ close: [] }>();
 
 const dialogRef = ref<HTMLElement | null>(null);
 const { activate, deactivate } = useFocusTrap(dialogRef);
-watch(() => props.open, async (isOpen) => {
-  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
-  else { deactivate(); }
-});
+watch(
+  () => props.open,
+  async (isOpen) => {
+    if (isOpen) {
+      await nextTick();
+      if (!props.open) return;
+      activate();
+    } else {
+      deactivate();
+    }
+  },
+);
 
 const store = useManagerSettingsStore();
 const form = ref({ ...store.settings });
@@ -48,26 +56,44 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div ref="dialogRef" class="options-dialog" role="dialog" aria-modal="true" aria-labelledby="manager-options-dialog-title">
+      <div
+        ref="dialogRef"
+        class="options-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="manager-options-dialog-title"
+      >
         <div class="options-header">
-          <h3 id="manager-options-dialog-title">{{ $t('managerOptions.title') }}</h3>
-          <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
+          <h3 id="manager-options-dialog-title">
+            {{ $t("managerOptions.title") }}
+          </h3>
+          <button class="close-btn" aria-label="Close" @click="emit('close')">
+            &times;
+          </button>
         </div>
 
         <div class="options-body">
           <div class="option-group">
-            <label class="option-label">{{ $t('managerOptions.appearance') }}</label>
+            <label class="option-label">{{
+              $t("managerOptions.appearance")
+            }}</label>
             <select v-model="form.theme" class="option-select">
-              <option value="system">{{ $t('prefs.manager.themeSystem') }}</option>
-              <option value="light">{{ $t('prefs.manager.themeLight') }}</option>
-              <option value="dark">{{ $t('prefs.manager.themeDark') }}</option>
+              <option value="system">
+                {{ $t("prefs.manager.themeSystem") }}
+              </option>
+              <option value="light">
+                {{ $t("prefs.manager.themeLight") }}
+              </option>
+              <option value="dark">{{ $t("prefs.manager.themeDark") }}</option>
             </select>
           </div>
 
           <div class="option-group">
-            <label class="option-label">{{ $t('managerOptions.language') }}</label>
+            <label class="option-label">{{
+              $t("managerOptions.language")
+            }}</label>
             <select v-model="form.language" class="option-select">
-              <option value="auto">{{ $t('prefs.manager.langAuto') }}</option>
+              <option value="auto">{{ $t("prefs.manager.langAuto") }}</option>
               <option value="en">English</option>
               <option value="de">Deutsch</option>
               <option value="fr">Français</option>
@@ -80,56 +106,66 @@ async function save() {
           </div>
 
           <div class="option-group">
-            <label class="option-label">{{ $t('managerOptions.noticeReminder') }}</label>
+            <label class="option-label">{{
+              $t("managerOptions.noticeReminder")
+            }}</label>
             <select v-model="form.reminderFrequency" class="option-select">
-              <option value="always">{{ $t('prefs.manager.reminderAlways') }}</option>
-              <option value="1h">{{ $t('prefs.manager.reminder1h') }}</option>
-              <option value="6h">{{ $t('prefs.manager.reminder6h') }}</option>
-              <option value="1d">{{ $t('prefs.manager.reminder1d') }}</option>
-              <option value="1w">{{ $t('prefs.manager.reminder1w') }}</option>
-              <option value="never">{{ $t('prefs.manager.reminderNever') }}</option>
+              <option value="always">
+                {{ $t("prefs.manager.reminderAlways") }}
+              </option>
+              <option value="1h">{{ $t("prefs.manager.reminder1h") }}</option>
+              <option value="6h">{{ $t("prefs.manager.reminder6h") }}</option>
+              <option value="1d">{{ $t("prefs.manager.reminder1d") }}</option>
+              <option value="1w">{{ $t("prefs.manager.reminder1w") }}</option>
+              <option value="never">
+                {{ $t("prefs.manager.reminderNever") }}
+              </option>
             </select>
           </div>
 
           <div class="option-group">
             <label class="option-toggle">
               <input type="checkbox" v-model="form.showExitConfirmation" />
-              <span>{{ $t('managerOptions.showExitConfirm') }}</span>
+              <span>{{ $t("managerOptions.showExitConfirm") }}</span>
             </label>
           </div>
 
           <div class="option-group">
             <label class="option-toggle">
               <input type="checkbox" v-model="form.showShutdownConfirmation" />
-              <span>{{ $t('managerOptions.showShutdownConfirm') }}</span>
+              <span>{{ $t("managerOptions.showShutdownConfirm") }}</span>
             </label>
           </div>
 
           <div class="option-group">
             <label class="option-toggle">
               <input type="checkbox" v-model="form.minimizeToTrayOnClose" />
-              <span>{{ $t('managerOptions.minimizeToTray') }}</span>
+              <span>{{ $t("managerOptions.minimizeToTray") }}</span>
             </label>
           </div>
 
           <div class="option-group">
             <label class="option-toggle">
               <input type="checkbox" v-model="form.startMinimizedToTray" />
-              <span>{{ $t('managerOptions.startMinimized') }}</span>
+              <span>{{ $t("managerOptions.startMinimized") }}</span>
             </label>
           </div>
 
           <div class="option-group">
             <label class="option-toggle">
               <input type="checkbox" v-model="launchAtLogin" />
-              <span>{{ $t('managerOptions.launchAtLogin') }}</span>
+              <span>{{ $t("managerOptions.launchAtLogin") }}</span>
             </label>
           </div>
         </div>
 
         <div class="options-footer">
-          <button class="btn" @click="emit('close')">{{ $t('managerOptions.cancel') }}</button>
-          <button class="btn btn-primary" @click="save">{{ $t('managerOptions.save') }}</button>
+          <button class="btn" @click="emit('close')">
+            {{ $t("managerOptions.cancel") }}
+          </button>
+          <button class="btn btn-primary" @click="save">
+            {{ $t("managerOptions.save") }}
+          </button>
         </div>
       </div>
     </div>
