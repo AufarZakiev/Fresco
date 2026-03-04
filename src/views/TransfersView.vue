@@ -1,21 +1,25 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, h, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useTransfersStore } from "../stores/transfers";
-import type { FileTransfer, SortDir } from "../types/boinc";
-import { SORT_DIR } from "../types/boinc";
+import type { FileTransfer } from "../types/boinc";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import PageHeader from "../components/PageHeader.vue";
 import DataTable from "../components/DataTable.vue";
-import type { DataTableColumn } from "../components/DataTable.vue";
+import type { ColumnMeta } from "../components/DataTable.vue";
 import EmptyState from "../components/EmptyState.vue";
 import ContextMenu from "../components/ContextMenu.vue";
 import type { ContextMenuItem } from "../components/ContextMenu.vue";
-import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import Tooltip from "../components/Tooltip.vue";
 import { onKeyStroke } from "@vueuse/core";
-import { useColumnState } from "../composables/useColumnState";
+import { useTableState } from "../composables/useTableState";
 import { useToastStore } from "../stores/toast";
+import type { ColumnDef } from "@tanstack/vue-table";
+import {
+  useVueTable,
+  getCoreRowModel,
+  getSortedRowModel,
+} from "@tanstack/vue-table";
 
 const { t } = useI18n();
 const store = useTransfersStore();
@@ -33,50 +37,18 @@ const allColumnKeys = [
   "size",
   "speed",
 ];
-const { sortKey, sortDir, visibleKeys, columnOrder, orderedVisibleKeys } =
-  useColumnState(
-    "transfers",
-    ["file", "project", "direction", "progress", "size", "speed"],
-    "file",
-    SORT_DIR.ASC,
-    allColumnKeys,
-  );
-const showColumns = ref(false);
-
+const {
+  sorting,
+  columnVisibility,
+  columnOrder,
+  onSortingChange,
+  onColumnVisibilityChange,
+  onColumnOrderChange,
+} = useTableState("transfers", allColumnKeys, "file");
 // Context menu state
 const ctxOpen = ref(false);
 const ctxX = ref(0);
 const ctxY = ref(0);
-
-const allColumns = computed<DataTableColumn[]>(() => [
-  { key: "file", label: t("transfers.col.file"), sortable: true },
-  { key: "project", label: t("transfers.col.project"), sortable: true },
-  { key: "direction", label: t("transfers.col.direction"), sortable: true },
-  { key: "progress", label: t("transfers.col.progress"), sortable: true },
-  {
-    key: "size",
-    label: t("transfers.col.size"),
-    sortable: true,
-    align: "right",
-  },
-  {
-    key: "speed",
-    label: t("transfers.col.speed"),
-    sortable: true,
-    align: "right",
-  },
-]);
-
-const columns = computed(() =>
-  allColumns.value.map((c) => ({
-    ...c,
-    visible: visibleKeys.value.includes(c.key),
-  })),
-);
-
-function handleUpdateOrder(order: string[]) {
-  columnOrder.value = order;
-}
 
 function transferKey(transfer: FileTransfer): string {
   return `${transfer.project_url}:${transfer.name}`;
@@ -112,37 +84,97 @@ function transferDirection(transfer: FileTransfer): string {
     : t("transfers.direction.download");
 }
 
-function getSortValue(transfer: FileTransfer, key: string): number | string {
-  switch (key) {
-    case "file":
-      return transfer.name;
-    case "project":
-      return transfer.project_name;
-    case "direction":
-      return transfer.is_upload ? "1" : "0";
-    case "progress":
-      return transferProgress(transfer);
-    case "size":
-      return transfer.nbytes;
-    case "speed":
-      return transfer.xfer_speed;
-    default:
-      return 0;
-  }
-}
+const columns: ColumnDef<FileTransfer, unknown>[] = [
+  {
+    id: "file",
+    accessorFn: (row) => row.name,
+    header: () => t("transfers.col.file"),
+    meta: { class: "col-name" } satisfies ColumnMeta,
+  },
+  {
+    id: "project",
+    accessorFn: (row) => row.project_name,
+    header: () => t("transfers.col.project"),
+  },
+  {
+    id: "direction",
+    accessorFn: (row) => (row.is_upload ? "1" : "0"),
+    header: () => t("transfers.col.direction"),
+    cell: (info) => transferDirection(info.row.original),
+  },
+  {
+    id: "progress",
+    accessorFn: (row) => transferProgress(row),
+    header: () => t("transfers.col.progress"),
+    cell: (info) => {
+      const transfer = info.row.original;
+      const progress = transferProgress(transfer);
+      return h(
+        "div",
+        {
+          class: "progress-bar",
+          role: "progressbar",
+          "aria-valuenow": Math.min(
+            100,
+            Math.max(0, Math.round(progress * 100)),
+          ),
+          "aria-valuemin": 0,
+          "aria-valuemax": 100,
+          "aria-label": transfer.project_name,
+          "aria-valuetext": transferProgressText(transfer),
+        },
+        [
+          h("div", {
+            class: "progress-fill",
+            style: { width: transferProgressText(transfer) },
+          }),
+          h(
+            "span",
+            { class: "progress-text" },
+            transferProgressText(transfer),
+          ),
+        ],
+      );
+    },
+    meta: { class: "col-progress" } satisfies ColumnMeta,
+  },
+  {
+    id: "size",
+    accessorFn: (row) => row.nbytes,
+    header: () => t("transfers.col.size"),
+    cell: (info) => formatSize(info.getValue() as number),
+    meta: { align: "right", class: "col-number" } satisfies ColumnMeta,
+  },
+  {
+    id: "speed",
+    accessorFn: (row) => row.xfer_speed,
+    header: () => t("transfers.col.speed"),
+    cell: (info) => formatSpeed(info.getValue() as number),
+    meta: { align: "right", class: "col-number" } satisfies ColumnMeta,
+  },
+];
 
-const sortedTransfers = computed(() => {
-  const transfers = [...store.transfers];
-  const key = sortKey.value;
-  const dir = sortDir.value === SORT_DIR.ASC ? 1 : -1;
-  return transfers.sort((a, b) => {
-    const va = getSortValue(a, key);
-    const vb = getSortValue(b, key);
-    if (typeof va === "string" && typeof vb === "string") {
-      return dir * va.localeCompare(vb);
-    }
-    return dir * ((va as number) - (vb as number));
-  });
+const table = useVueTable({
+  get data() {
+    return store.transfers;
+  },
+  columns,
+  state: {
+    get sorting() {
+      return sorting.value;
+    },
+    get columnVisibility() {
+      return columnVisibility.value;
+    },
+    get columnOrder() {
+      return columnOrder.value;
+    },
+  },
+  onSortingChange,
+  onColumnVisibilityChange,
+  onColumnOrderChange,
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
 });
 
 const selectedTransfers = computed(() =>
@@ -155,11 +187,13 @@ const singleSelectedTransfer = computed(() =>
   selectedTransfers.value.length === 1 ? selectedTransfers.value[0] : null,
 );
 
-const allSelected = computed(
-  () =>
-    sortedTransfers.value.length > 0 &&
-    sortedTransfers.value.every((t) => selectedKeys.value.has(transferKey(t))),
-);
+const allSelected = computed(() => {
+  const rows = table.getRowModel().rows;
+  return (
+    rows.length > 0 &&
+    rows.every((r) => selectedKeys.value.has(transferKey(r.original)))
+  );
+});
 
 function handleRowClick(
   transfer: FileTransfer,
@@ -176,11 +210,12 @@ function handleRowClick(
     }
     selectedKeys.value = next;
   } else if (event.shiftKey && lastClickedIndex.value !== null) {
+    const rows = table.getRowModel().rows;
     const start = Math.min(lastClickedIndex.value, index);
     const end = Math.max(lastClickedIndex.value, index);
     const next = new Set(selectedKeys.value);
     for (let i = start; i <= end; i++) {
-      next.add(transferKey(sortedTransfers.value[i]));
+      next.add(transferKey(rows[i].original));
     }
     selectedKeys.value = next;
   } else {
@@ -191,7 +226,9 @@ function handleRowClick(
 
 function handleSelectAll(selected: boolean) {
   if (selected) {
-    selectedKeys.value = new Set(sortedTransfers.value.map(transferKey));
+    selectedKeys.value = new Set(
+      table.getRowModel().rows.map((r) => transferKey(r.original)),
+    );
   } else {
     selectedKeys.value = new Set();
   }
@@ -201,17 +238,11 @@ function isSelected(transfer: FileTransfer): boolean {
   return selectedKeys.value.has(transferKey(transfer));
 }
 
-function handleSort(key: string, dir: SortDir) {
-  sortKey.value = key;
-  sortDir.value = dir;
-}
-
 function handleRowContext(
   event: MouseEvent,
   transfer: FileTransfer,
   index: number,
 ) {
-  event.preventDefault();
   const key = transferKey(transfer);
   if (!selectedKeys.value.has(key)) {
     selectedKeys.value = new Set([key]);
@@ -295,15 +326,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 <template>
   <div class="transfers-view">
     <PageHeader>
-      <Tooltip :text="$t('transfers.columns')">
-        <button class="btn-columns" @click="showColumns = true">
-          <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
-            <rect x="1" y="2" width="3" height="12" rx="0.5" />
-            <rect x="6.5" y="2" width="3" height="12" rx="0.5" />
-            <rect x="12" y="2" width="3" height="12" rx="0.5" />
-          </svg>
-        </button>
-      </Tooltip>
     </PageHeader>
 
     <p v-if="store.error" class="error">{{ store.error }}</p>
@@ -323,81 +345,15 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
     <div v-else class="content-row">
       <div class="content-main">
         <DataTable
-          :columns="columns"
-          :column-order="columnOrder"
-          :sort-key="sortKey"
-          :sort-dir="sortDir"
+          :table="table"
           selectable
+          reorderable
           :all-selected="allSelected"
-          @sort="handleSort"
+          :is-row-selected="isSelected"
+          @row-click="handleRowClick"
+          @row-contextmenu="handleRowContext"
           @select-all="handleSelectAll"
-        >
-          <tr
-            v-for="(transfer, index) in sortedTransfers"
-            :key="transferKey(transfer)"
-            :class="{ 'row-selected': isSelected(transfer) }"
-            @click="handleRowClick(transfer, index, $event)"
-            @contextmenu="handleRowContext($event, transfer, index)"
-          >
-            <td class="col-checkbox">
-              <input
-                type="checkbox"
-                :checked="isSelected(transfer)"
-                @click.stop
-                @change="
-                  handleRowClick(transfer, index, {
-                    ctrlKey: true,
-                  } as MouseEvent)
-                "
-              />
-            </td>
-            <template v-for="colKey in orderedVisibleKeys" :key="colKey">
-              <td
-                v-if="colKey === 'file'"
-                class="col-name"
-                :title="transfer.name"
-              >
-                {{ transfer.name }}
-              </td>
-              <td v-else-if="colKey === 'project'">
-                {{ transfer.project_name }}
-              </td>
-              <td v-else-if="colKey === 'direction'">
-                {{ transferDirection(transfer) }}
-              </td>
-              <td v-else-if="colKey === 'progress'" class="col-progress">
-                <div
-                  class="progress-bar"
-                  role="progressbar"
-                  :aria-valuenow="
-                    Math.min(
-                      100,
-                      Math.max(0, Math.round(transferProgress(transfer) * 100)),
-                    )
-                  "
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                  :aria-label="transfer.project_name"
-                  :aria-valuetext="transferProgressText(transfer)"
-                >
-                  <div
-                    class="progress-fill"
-                    :style="{ width: transferProgressText(transfer) }"
-                  ></div>
-                  <span class="progress-text">{{
-                    transferProgressText(transfer)
-                  }}</span>
-                </div>
-              </td>
-              <td v-else-if="colKey === 'size'" class="col-number">
-                {{ formatSize(transfer.nbytes) }}
-              </td>
-              <td v-else-if="colKey === 'speed'" class="col-number">
-                {{ formatSpeed(transfer.xfer_speed) }}
-              </td>
-            </template>
-          </tr>
-        </DataTable>
+        />
       </div>
 
       <Transition name="drawer">
@@ -452,15 +408,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       @cancel="confirmAbort = false"
     />
 
-    <ColumnCustomizationDialog
-      :open="showColumns"
-      :columns="allColumns"
-      :visible-keys="visibleKeys"
-      :column-order="columnOrder"
-      @update="visibleKeys = $event"
-      @update-order="handleUpdateOrder"
-      @close="showColumns = false"
-    />
   </div>
 </template>
 
@@ -475,17 +422,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 .error {
   color: var(--color-danger);
   font-size: var(--font-size-md);
-}
-
-.col-checkbox {
-  width: 36px;
-  text-align: center;
-  vertical-align: middle;
-}
-
-.col-checkbox input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
 }
 
 .col-name {
@@ -528,23 +464,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   text-align: center;
   font-size: var(--font-size-xs);
   line-height: 18px;
-  color: var(--color-text-primary);
-}
-
-.btn-columns {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border: none;
-  background: none;
-  color: var(--color-text-tertiary);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: color 0.15s;
-}
-
-.btn-columns:hover {
   color: var(--color-text-primary);
 }
 

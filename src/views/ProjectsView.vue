@@ -1,23 +1,27 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, h, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useProjectsStore } from "../stores/projects";
-import type { Project, SortDir } from "../types/boinc";
-import { SORT_DIR } from "../types/boinc";
+import type { Project } from "../types/boinc";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import PageHeader from "../components/PageHeader.vue";
 import DataTable from "../components/DataTable.vue";
-import type { DataTableColumn } from "../components/DataTable.vue";
+import type { ColumnMeta } from "../components/DataTable.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import ContextMenu from "../components/ContextMenu.vue";
 import type { ContextMenuItem } from "../components/ContextMenu.vue";
-import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import ItemPropertiesDialog from "../components/ItemPropertiesDialog.vue";
 import Tooltip from "../components/Tooltip.vue";
 import { onKeyStroke } from "@vueuse/core";
-import { useColumnState } from "../composables/useColumnState";
+import { useTableState } from "../composables/useTableState";
 import { useToastStore } from "../stores/toast";
+import type { ColumnDef } from "@tanstack/vue-table";
+import {
+  useVueTable,
+  getCoreRowModel,
+  getSortedRowModel,
+} from "@tanstack/vue-table";
 
 const { t } = useI18n();
 const store = useProjectsStore();
@@ -35,23 +39,14 @@ const allColumnKeys = [
   "status",
   "source",
 ];
-const { sortKey, sortDir, visibleKeys, columnOrder, orderedVisibleKeys } =
-  useColumnState(
-    "projects",
-    [
-      "project",
-      "account",
-      "team",
-      "totalCredit",
-      "avgCredit",
-      "source",
-      "status",
-    ],
-    "project",
-    SORT_DIR.ASC,
-    allColumnKeys,
-  );
-const showColumns = ref(false);
+const {
+  sorting,
+  columnVisibility,
+  columnOrder,
+  onSortingChange,
+  onColumnVisibilityChange,
+  onColumnOrderChange,
+} = useTableState("projects", allColumnKeys, "project");
 const showProperties = ref(false);
 const propertiesProject = ref<Project | null>(null);
 const confirmAction = ref<{
@@ -64,37 +59,6 @@ const confirmAction = ref<{
 const ctxOpen = ref(false);
 const ctxX = ref(0);
 const ctxY = ref(0);
-
-const allColumns = computed<DataTableColumn[]>(() => [
-  { key: "project", label: t("projects.col.project"), sortable: true },
-  { key: "account", label: t("projects.col.account"), sortable: true },
-  { key: "team", label: t("projects.col.team"), sortable: true },
-  {
-    key: "totalCredit",
-    label: t("projects.col.totalCredit"),
-    sortable: true,
-    align: "right",
-  },
-  {
-    key: "avgCredit",
-    label: t("projects.col.avgCredit"),
-    sortable: true,
-    align: "right",
-  },
-  { key: "status", label: t("projects.col.status"), sortable: true },
-  { key: "source", label: t("projects.col.source"), sortable: true },
-]);
-
-const columns = computed(() =>
-  allColumns.value.map((c) => ({
-    ...c,
-    visible: visibleKeys.value.includes(c.key),
-  })),
-);
-
-function handleUpdateOrder(order: string[]) {
-  columnOrder.value = order;
-}
 
 function formatCredit(credit: number): string {
   return credit.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -114,41 +78,96 @@ function statusVariant(
   return "success";
 }
 
-function getSortValue(project: Project, key: string): number | string {
-  switch (key) {
-    case "project":
-      return project.project_name;
-    case "account":
-      return project.user_name;
-    case "team":
-      return project.team_name;
-    case "totalCredit":
-      return project.user_total_credit;
-    case "avgCredit":
-      return project.user_expavg_credit;
-    case "source":
-      return project.attached_via_acct_mgr
+const columns: ColumnDef<Project, unknown>[] = [
+  {
+    id: "project",
+    accessorFn: (row) => row.project_name,
+    header: () => t("projects.col.project"),
+    meta: { class: "col-name" } satisfies ColumnMeta,
+  },
+  {
+    id: "account",
+    accessorFn: (row) => row.user_name,
+    header: () => t("projects.col.account"),
+  },
+  {
+    id: "team",
+    accessorFn: (row) => row.team_name,
+    header: () => t("projects.col.team"),
+    cell: (info) => (info.getValue() as string) || "---",
+  },
+  {
+    id: "totalCredit",
+    accessorFn: (row) => row.user_total_credit,
+    header: () => t("projects.col.totalCredit"),
+    cell: (info) => formatCredit(info.getValue() as number),
+    meta: { align: "right", class: "col-number" } satisfies ColumnMeta,
+  },
+  {
+    id: "avgCredit",
+    accessorFn: (row) => row.user_expavg_credit,
+    header: () => t("projects.col.avgCredit"),
+    cell: (info) => formatCredit(info.getValue() as number),
+    meta: { align: "right", class: "col-number" } satisfies ColumnMeta,
+  },
+  {
+    id: "status",
+    accessorFn: (row) => projectStatus(row),
+    header: () => t("projects.col.status"),
+    cell: (info) =>
+      h(
+        StatusBadge,
+        { variant: statusVariant(info.row.original) },
+        () => info.getValue() as string,
+      ),
+  },
+  {
+    id: "source",
+    accessorFn: (row) =>
+      row.attached_via_acct_mgr
         ? t("projects.source.manager")
-        : t("projects.source.user");
-    case "status":
-      return projectStatus(project);
-    default:
-      return 0;
-  }
-}
+        : t("projects.source.user"),
+    header: () => t("projects.col.source"),
+    cell: (info) => {
+      const project = info.row.original;
+      const isManager = project.attached_via_acct_mgr;
+      return h(
+        "span",
+        {
+          class: [
+            "source-badge",
+            isManager ? "source-manager" : "source-user",
+          ],
+          title: info.getValue() as string,
+        },
+        h("span", { class: "source-label" }, info.getValue() as string),
+      );
+    },
+    meta: { class: "col-source" } satisfies ColumnMeta,
+  },
+];
 
-const sortedProjects = computed(() => {
-  const projects = [...store.projects];
-  const key = sortKey.value;
-  const dir = sortDir.value === SORT_DIR.ASC ? 1 : -1;
-  return projects.sort((a, b) => {
-    const va = getSortValue(a, key);
-    const vb = getSortValue(b, key);
-    if (typeof va === "string" && typeof vb === "string") {
-      return dir * va.localeCompare(vb);
-    }
-    return dir * ((va as number) - (vb as number));
-  });
+const table = useVueTable({
+  get data() {
+    return store.projects;
+  },
+  columns,
+  state: {
+    get sorting() {
+      return sorting.value;
+    },
+    get columnVisibility() {
+      return columnVisibility.value;
+    },
+    get columnOrder() {
+      return columnOrder.value;
+    },
+  },
+  onSortingChange,
+  onColumnVisibilityChange,
+  onColumnOrderChange,
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
 });
 
 const selectedProjects = computed(() =>
@@ -160,11 +179,13 @@ const singleSelected = computed(() =>
   selectedProjects.value.length === 1 ? selectedProjects.value[0] : null,
 );
 
-const allSelected = computed(
-  () =>
-    sortedProjects.value.length > 0 &&
-    sortedProjects.value.every((p) => selectedUrls.value.has(p.master_url)),
-);
+const allSelected = computed(() => {
+  const rows = table.getRowModel().rows;
+  return (
+    rows.length > 0 &&
+    rows.every((r) => selectedUrls.value.has(r.original.master_url))
+  );
+});
 
 function handleRowClick(project: Project, index: number, event: MouseEvent) {
   if (event.ctrlKey || event.metaKey) {
@@ -176,11 +197,12 @@ function handleRowClick(project: Project, index: number, event: MouseEvent) {
     }
     selectedUrls.value = next;
   } else if (event.shiftKey && lastClickedIndex.value !== null) {
+    const rows = table.getRowModel().rows;
     const start = Math.min(lastClickedIndex.value, index);
     const end = Math.max(lastClickedIndex.value, index);
     const next = new Set(selectedUrls.value);
     for (let i = start; i <= end; i++) {
-      next.add(sortedProjects.value[i].master_url);
+      next.add(rows[i].original.master_url);
     }
     selectedUrls.value = next;
   } else {
@@ -191,7 +213,9 @@ function handleRowClick(project: Project, index: number, event: MouseEvent) {
 
 function handleSelectAll(selected: boolean) {
   if (selected) {
-    selectedUrls.value = new Set(sortedProjects.value.map((p) => p.master_url));
+    selectedUrls.value = new Set(
+      table.getRowModel().rows.map((r) => r.original.master_url),
+    );
   } else {
     selectedUrls.value = new Set();
   }
@@ -201,17 +225,11 @@ function isSelected(project: Project): boolean {
   return selectedUrls.value.has(project.master_url);
 }
 
-function handleSort(key: string, dir: SortDir) {
-  sortKey.value = key;
-  sortDir.value = dir;
-}
-
 function handleRowContext(
   event: MouseEvent,
   _project: Project,
   _index: number,
 ) {
-  event.preventDefault();
   ctxX.value = event.clientX;
   ctxY.value = event.clientY;
   ctxOpen.value = true;
@@ -437,15 +455,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 <template>
   <div class="projects-view">
     <PageHeader>
-      <Tooltip :text="$t('projects.columns')">
-        <button class="btn-columns" @click="showColumns = true">
-          <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
-            <rect x="1" y="2" width="3" height="12" rx="0.5" />
-            <rect x="6.5" y="2" width="3" height="12" rx="0.5" />
-            <rect x="12" y="2" width="3" height="12" rx="0.5" />
-          </svg>
-        </button>
-      </Tooltip>
     </PageHeader>
 
     <div class="content-row">
@@ -466,77 +475,15 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 
         <DataTable
           v-if="store.projects.length > 0"
-          :columns="columns"
-          :column-order="columnOrder"
-          :sort-key="sortKey"
-          :sort-dir="sortDir"
+          :table="table"
           selectable
+          reorderable
           :all-selected="allSelected"
-          @sort="handleSort"
+          :is-row-selected="isSelected"
+          @row-click="handleRowClick"
+          @row-contextmenu="handleRowContext"
           @select-all="handleSelectAll"
-        >
-          <tr
-            v-for="(project, index) in sortedProjects"
-            :key="project.master_url"
-            :class="{ 'row-selected': isSelected(project) }"
-            @click="handleRowClick(project, index, $event)"
-            @contextmenu="handleRowContext($event, project, index)"
-          >
-            <td class="col-checkbox">
-              <input
-                type="checkbox"
-                :checked="isSelected(project)"
-                @click.stop
-                @change="
-                  handleRowClick(project, index, {
-                    ctrlKey: true,
-                  } as MouseEvent)
-                "
-              />
-            </td>
-            <template v-for="colKey in orderedVisibleKeys" :key="colKey">
-              <td v-if="colKey === 'project'" class="col-name">
-                {{ project.project_name }}
-              </td>
-              <td v-else-if="colKey === 'account'">{{ project.user_name }}</td>
-              <td v-else-if="colKey === 'team'">
-                {{ project.team_name || "---" }}
-              </td>
-              <td v-else-if="colKey === 'totalCredit'" class="col-number">
-                {{ formatCredit(project.user_total_credit) }}
-              </td>
-              <td v-else-if="colKey === 'avgCredit'" class="col-number">
-                {{ formatCredit(project.user_expavg_credit) }}
-              </td>
-              <td v-else-if="colKey === 'status'">
-                <StatusBadge :variant="statusVariant(project)">
-                  {{ projectStatus(project) }}
-                </StatusBadge>
-              </td>
-              <td v-else-if="colKey === 'source'" class="col-source">
-                <span
-                  class="source-badge"
-                  :class="
-                    project.attached_via_acct_mgr
-                      ? 'source-manager'
-                      : 'source-user'
-                  "
-                  :title="
-                    project.attached_via_acct_mgr
-                      ? $t('projects.source.manager')
-                      : $t('projects.source.user')
-                  "
-                >
-                  <span class="source-label">{{
-                    project.attached_via_acct_mgr
-                      ? $t("projects.source.manager")
-                      : $t("projects.source.user")
-                  }}</span>
-                </span>
-              </td>
-            </template>
-          </tr>
-        </DataTable>
+        />
       </div>
 
       <Transition name="drawer">
@@ -655,16 +602,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       @cancel="confirmAction = null"
     />
 
-    <ColumnCustomizationDialog
-      :open="showColumns"
-      :columns="allColumns"
-      :visible-keys="visibleKeys"
-      :column-order="columnOrder"
-      @update="visibleKeys = $event"
-      @update-order="handleUpdateOrder"
-      @close="showColumns = false"
-    />
-
     <ItemPropertiesDialog
       :open="showProperties"
       type="project"
@@ -730,18 +667,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   color: var(--color-text-secondary);
 }
 
-/* Collapse to dot when column is narrow */
-@container (max-width: 0px) {
-  .source-label {
-    display: none;
-  }
-}
-
-/* Use a resize-aware approach: hide label when table is tight */
-.data-table-wrapper:has(.col-source) .source-label {
-  /* label always visible by default */
-}
-
 @media (max-width: 900px) {
   .source-label {
     display: none;
@@ -763,23 +688,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 .col-number {
   font-family: monospace;
   text-align: right;
-}
-
-.btn-columns {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border: none;
-  background: none;
-  color: var(--color-text-tertiary);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: color 0.15s;
-}
-
-.btn-columns:hover {
-  color: var(--color-text-primary);
 }
 
 /* Content layout */

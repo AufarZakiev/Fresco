@@ -1,62 +1,176 @@
-<script setup lang="ts">
-import { computed } from "vue";
-import { SORT_DIR } from "../types/boinc";
-import type { SortDir } from "../types/boinc";
+<script setup lang="ts" generic="T">
+import { ref, computed, onUnmounted } from "vue";
+import { FlexRender } from "@tanstack/vue-table";
+import type { Table, Header } from "@tanstack/vue-table";
 
-export interface DataTableColumn {
-  key: string;
-  label: string;
+export interface ColumnMeta {
   align?: "left" | "right" | "center";
-  sortable?: boolean;
-  visible?: boolean;
+  class?: string;
 }
 
 const props = defineProps<{
-  columns: DataTableColumn[];
-  columnOrder?: string[];
-  emptyMessage?: string;
-  sortKey?: string;
-  sortDir?: SortDir;
+  table: Table<T>;
   selectable?: boolean;
   allSelected?: boolean;
+  isRowSelected?: (row: T) => boolean;
+  rowClass?: (row: T) => string;
+  reorderable?: boolean;
 }>();
 
 const emit = defineEmits<{
-  sort: [key: string, dir: SortDir];
-  contextmenu: [event: MouseEvent, index: number];
+  "row-click": [original: T, index: number, event: MouseEvent];
+  "row-contextmenu": [event: MouseEvent, original: T, index: number];
+  "row-dblclick": [original: T];
   "select-all": [selected: boolean];
 }>();
 
-const visibleColumns = computed(() => {
-  const visible = props.columns.filter((c) => c.visible !== false);
-  if (!props.columnOrder || props.columnOrder.length === 0) return visible;
+const isReorderable = computed(() =>
+  props.reorderable ?? !!props.table.options.onColumnOrderChange,
+);
 
-  const colMap = new Map(visible.map((c) => [c.key, c]));
-  const ordered = props.columnOrder
-    .filter((key) => colMap.has(key))
-    .map((key) => colMap.get(key)!);
+// --- Drag state ---
+const DRAG_THRESHOLD = 5;
+const draggedColIndex = ref<number | null>(null);
+const dragDeltaX = ref(0);
+const pointerStartX = ref(0);
+const isDragging = ref(false);
+const headerWidths = ref<number[]>([]);
 
-  // Append any visible columns not in the order array (safety net)
-  for (const col of visible) {
-    if (!props.columnOrder.includes(col.key)) {
-      ordered.push(col);
-    }
-  }
-  return ordered;
-});
+function onHeaderPointerDown(event: PointerEvent, headerIndex: number, headers: Header<T, unknown>[]) {
+  if (!isReorderable.value || headers.length <= 1) return;
 
-function handleHeaderClick(col: DataTableColumn) {
-  if (!col.sortable) return;
-  const newDir =
-    props.sortKey === col.key && props.sortDir === SORT_DIR.ASC
-      ? SORT_DIR.DESC
-      : SORT_DIR.ASC;
-  emit("sort", col.key, newDir);
+  const th = event.currentTarget as HTMLElement;
+  th.setPointerCapture(event.pointerId);
+
+  pointerStartX.value = event.clientX;
+  draggedColIndex.value = headerIndex;
+  dragDeltaX.value = 0;
+  isDragging.value = false;
+
+  // Measure all draggable header widths
+  const row = th.parentElement!;
+  const ths = Array.from(row.querySelectorAll<HTMLElement>("th:not(.col-checkbox)"));
+  headerWidths.value = ths.map((el) => el.offsetWidth);
+
+  document.addEventListener("pointermove", onPointerMove);
+  document.addEventListener("pointerup", onPointerUp);
 }
 
-function handleContextMenu(event: MouseEvent, index: number) {
-  event.preventDefault();
-  emit("contextmenu", event, index);
+function onPointerMove(event: PointerEvent) {
+  if (draggedColIndex.value === null) return;
+
+  const deltaX = event.clientX - pointerStartX.value;
+
+  if (!isDragging.value && Math.abs(deltaX) < DRAG_THRESHOLD) return;
+  isDragging.value = true;
+  dragDeltaX.value = deltaX;
+
+  const idx = draggedColIndex.value;
+
+  // Check if crossed midpoint of adjacent header to the right
+  if (deltaX > 0 && idx < headerWidths.value.length - 1) {
+    const threshold = headerWidths.value[idx + 1] / 2;
+    if (deltaX > threshold) {
+      performSwap(idx, idx + 1);
+    }
+  }
+  // Check if crossed midpoint of adjacent header to the left
+  if (deltaX < 0 && idx > 0) {
+    const threshold = headerWidths.value[idx - 1] / 2;
+    if (-deltaX > threshold) {
+      performSwap(idx, idx - 1);
+    }
+  }
+}
+
+function performSwap(fromIdx: number, toIdx: number) {
+  const headers = props.table.getHeaderGroups()[0].headers;
+  const visibleIds = headers.map((h) => h.column.id);
+
+  // Build full column order: start from current state or fallback to all leaf columns
+  const currentOrder = props.table.getState().columnOrder.length > 0
+    ? [...props.table.getState().columnOrder]
+    : props.table.getAllLeafColumns().map((c) => c.id);
+
+  const fromId = visibleIds[fromIdx];
+  const toId = visibleIds[toIdx];
+  const fullFromIdx = currentOrder.indexOf(fromId);
+  const fullToIdx = currentOrder.indexOf(toId);
+
+  if (fullFromIdx === -1 || fullToIdx === -1) return;
+
+  // Swap in the full order
+  [currentOrder[fullFromIdx], currentOrder[fullToIdx]] = [currentOrder[fullToIdx], currentOrder[fullFromIdx]];
+  props.table.setColumnOrder(currentOrder);
+
+  // Swap widths tracker
+  [headerWidths.value[fromIdx], headerWidths.value[toIdx]] = [headerWidths.value[toIdx], headerWidths.value[fromIdx]];
+
+  // Adjust baseline so drag feels continuous
+  const swappedWidth = fromIdx < toIdx ? headerWidths.value[fromIdx] : -headerWidths.value[toIdx];
+  pointerStartX.value += swappedWidth;
+  dragDeltaX.value -= swappedWidth;
+  draggedColIndex.value = toIdx;
+}
+
+function cleanupDrag() {
+  draggedColIndex.value = null;
+  dragDeltaX.value = 0;
+  isDragging.value = false;
+  headerWidths.value = [];
+  document.removeEventListener("pointermove", onPointerMove);
+  document.removeEventListener("pointerup", onPointerUp);
+}
+
+function onPointerUp() {
+  if (isDragging.value) {
+    // Defer reset so click handler still sees isDragging = true and skips sort
+    requestAnimationFrame(() => cleanupDrag());
+  } else {
+    cleanupDrag();
+  }
+}
+
+onUnmounted(cleanupDrag);
+
+function onHeaderClick(event: MouseEvent, header: Header<T, unknown>) {
+  if (isDragging.value) return;
+  header.column.getToggleSortingHandler()?.(event);
+}
+
+function getHeaderDragStyle(index: number): Record<string, string> {
+  if (!isDragging.value) return {};
+  if (draggedColIndex.value === index) {
+    return {
+      transform: `translateX(${dragDeltaX.value}px) scale(1.02)`,
+      zIndex: "10",
+      boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+      opacity: "0.9",
+    };
+  }
+  return { transition: "transform 0.25s cubic-bezier(0.2, 0, 0, 1)" };
+}
+
+// --- Existing helpers ---
+
+function getAlign(header: Header<T, unknown>): string {
+  return (header.column.columnDef.meta as ColumnMeta | undefined)?.align ?? "left";
+}
+
+function getCellClass(meta: ColumnMeta | undefined): string {
+  return meta?.class ?? "";
+}
+
+function getCellAlign(meta: ColumnMeta | undefined): string {
+  return meta?.align ? `align-${meta.align}` : "";
+}
+
+function ariaSort(header: Header<T, unknown>): "ascending" | "descending" | "none" | "other" | undefined {
+  if (!header.column.getCanSort()) return undefined;
+  const sorted = header.column.getIsSorted();
+  if (sorted === "asc") return "ascending";
+  if (sorted === "desc") return "descending";
+  return "none";
 }
 </script>
 
@@ -64,7 +178,10 @@ function handleContextMenu(event: MouseEvent, index: number) {
   <div class="data-table-wrapper">
     <table class="data-table">
       <thead>
-        <tr>
+        <tr
+          v-for="headerGroup in table.getHeaderGroups()"
+          :key="headerGroup.id"
+        >
           <th v-if="selectable" scope="col" class="col-checkbox">
             <input
               type="checkbox"
@@ -75,38 +192,101 @@ function handleContextMenu(event: MouseEvent, index: number) {
             />
           </th>
           <th
-            v-for="col in visibleColumns"
-            :key="col.key"
+            v-for="(header, headerIndex) in headerGroup.headers"
+            :key="header.id"
             scope="col"
             :class="[
-              `align-${col.align ?? 'left'}`,
-              { sortable: col.sortable, sorted: sortKey === col.key },
+              `align-${getAlign(header)}`,
+              {
+                sortable: header.column.getCanSort(),
+                sorted: header.column.getIsSorted(),
+                reorderable: isReorderable,
+                dragging: isReorderable && isDragging && draggedColIndex === headerIndex,
+              },
             ]"
-            :aria-sort="
-              col.sortable
-                ? sortKey === col.key
-                  ? sortDir === SORT_DIR.ASC
-                    ? 'ascending'
-                    : sortDir === SORT_DIR.DESC
-                      ? 'descending'
-                      : 'none'
-                  : 'none'
-                : undefined
-            "
-            @click="handleHeaderClick(col)"
+            :style="isReorderable ? getHeaderDragStyle(headerIndex) : undefined"
+            :aria-sort="ariaSort(header)"
+            @pointerdown="isReorderable ? onHeaderPointerDown($event, headerIndex, headerGroup.headers) : undefined"
+            @click="onHeaderClick($event, header)"
           >
-            {{ col.label }}
-            <span
-              v-if="col.sortable && sortKey === col.key"
+            <FlexRender
+              v-if="!header.isPlaceholder"
+              :render="header.column.columnDef.header"
+              :props="header.getContext()"
+            />
+            <svg
+              v-if="header.column.getIsSorted()"
               class="sort-indicator"
+              width="10"
+              height="10"
+              viewBox="0 0 10 10"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
             >
-              {{ sortDir === SORT_DIR.ASC ? "\u25B2" : "\u25BC" }}
-            </span>
+              <path v-if="header.column.getIsSorted() === 'asc'" d="M2 7 L5 3 L8 7" />
+              <path v-else d="M2 3 L5 7 L8 3" />
+            </svg>
+            <svg
+              v-if="isReorderable"
+              class="drag-handle"
+              width="8"
+              height="12"
+              viewBox="0 0 10 14"
+              fill="currentColor"
+            >
+              <circle cx="2.5" cy="2" r="1.5" />
+              <circle cx="7.5" cy="2" r="1.5" />
+              <circle cx="2.5" cy="7" r="1.5" />
+              <circle cx="7.5" cy="7" r="1.5" />
+              <circle cx="2.5" cy="12" r="1.5" />
+              <circle cx="7.5" cy="12" r="1.5" />
+            </svg>
           </th>
         </tr>
       </thead>
-      <tbody @contextmenu="handleContextMenu($event, -1)">
-        <slot />
+      <tbody>
+        <tr
+          v-for="(row, index) in table.getRowModel().rows"
+          :key="row.id"
+          :class="[
+            rowClass?.(row.original),
+            { 'row-selected': isRowSelected?.(row.original) },
+          ]"
+          @click="emit('row-click', row.original, index, $event)"
+          @contextmenu.prevent="
+            emit('row-contextmenu', $event, row.original, index)
+          "
+          @dblclick="emit('row-dblclick', row.original)"
+        >
+          <td v-if="selectable" class="col-checkbox">
+            <input
+              type="checkbox"
+              :checked="isRowSelected?.(row.original)"
+              @click.stop
+              @change="
+                emit('row-click', row.original, index, {
+                  ctrlKey: true,
+                } as MouseEvent)
+              "
+            />
+          </td>
+          <td
+            v-for="cell in row.getVisibleCells()"
+            :key="cell.id"
+            :class="[
+              getCellClass(cell.column.columnDef.meta as ColumnMeta | undefined),
+              getCellAlign(cell.column.columnDef.meta as ColumnMeta | undefined),
+            ]"
+          >
+            <FlexRender
+              :render="cell.column.columnDef.cell"
+              :props="cell.getContext()"
+            />
+          </td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -120,7 +300,7 @@ function handleContextMenu(event: MouseEvent, index: number) {
 }
 
 .data-table {
-  width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-md);
 }
@@ -142,7 +322,37 @@ function handleContextMenu(event: MouseEvent, index: number) {
   z-index: 2;
 }
 
-.data-table th.sortable {
+.data-table th.reorderable {
+  touch-action: none;
+  padding-right: 20px;
+}
+
+.data-table th.dragging {
+  cursor: grabbing;
+  position: relative;
+}
+
+.drag-handle {
+  opacity: 0;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary);
+  cursor: grab;
+  transition: opacity 0.15s;
+}
+
+.data-table th.dragging .drag-handle {
+  cursor: grabbing;
+}
+
+.data-table th.reorderable:hover .drag-handle,
+.data-table th.dragging .drag-handle {
+  opacity: 1;
+}
+
+.data-table th.sortable:not(.reorderable) {
   cursor: pointer;
 }
 
@@ -155,8 +365,8 @@ function handleContextMenu(event: MouseEvent, index: number) {
 }
 
 .sort-indicator {
-  font-size: 9px;
   margin-left: 4px;
+  vertical-align: middle;
 }
 
 .col-checkbox {
@@ -170,25 +380,29 @@ function handleContextMenu(event: MouseEvent, index: number) {
   height: 15px;
 }
 
-.data-table :deep(td) {
+.data-table td {
   padding: 8px 12px;
   border-bottom: 1px solid var(--color-border-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
 }
 
-.data-table :deep(tbody tr) {
+.data-table tbody tr {
   cursor: pointer;
   transition: background var(--transition-fast);
 }
 
-.data-table :deep(tbody tr:last-child td) {
+.data-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.data-table :deep(tbody tr:hover) {
+.data-table tbody tr:hover {
   background: var(--color-bg-secondary);
 }
 
-.data-table :deep(tbody tr.row-selected) {
+.data-table tbody tr.row-selected {
   background: var(--color-accent-light);
 }
 

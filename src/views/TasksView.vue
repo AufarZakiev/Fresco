@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, h, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useTasksStore } from "../stores/tasks";
 import type { TaskResult } from "../types/boinc";
@@ -7,25 +7,28 @@ import {
   RESULT_STATE,
   ACTIVE_TASK_STATE,
   SCHEDULER_STATE,
-  SORT_DIR,
 } from "../types/boinc";
-import type { SortDir } from "../types/boinc";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import PageHeader from "../components/PageHeader.vue";
 import DataTable from "../components/DataTable.vue";
-import type { DataTableColumn } from "../components/DataTable.vue";
+import type { ColumnMeta } from "../components/DataTable.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import ContextMenu from "../components/ContextMenu.vue";
 import type { ContextMenuItem } from "../components/ContextMenu.vue";
-import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import ItemPropertiesDialog from "../components/ItemPropertiesDialog.vue";
 import Tooltip from "../components/Tooltip.vue";
 import { onKeyStroke } from "@vueuse/core";
-import { useColumnState } from "../composables/useColumnState";
+import { useTableState } from "../composables/useTableState";
 import { launchGraphics, launchRemoteDesktop } from "../composables/useRpc";
 import { useProjectsStore } from "../stores/projects";
 import { useToastStore } from "../stores/toast";
+import type { ColumnDef } from "@tanstack/vue-table";
+import {
+  useVueTable,
+  getCoreRowModel,
+  getSortedRowModel,
+} from "@tanstack/vue-table";
 
 const { t } = useI18n();
 const store = useTasksStore();
@@ -46,15 +49,14 @@ const allColumnKeys = [
   "resources",
   "task",
 ];
-const { sortKey, sortDir, visibleKeys, columnOrder, orderedVisibleKeys } =
-  useColumnState(
-    "tasks",
-    ["task", "project", "progress", "elapsed", "remaining", "status"],
-    "progress",
-    SORT_DIR.DESC,
-    allColumnKeys,
-  );
-const showColumns = ref(false);
+const {
+  sorting,
+  columnVisibility,
+  columnOrder,
+  onSortingChange,
+  onColumnVisibilityChange,
+  onColumnOrderChange,
+} = useTableState("tasks", allColumnKeys, "progress", true);
 const showProperties = ref(false);
 const propertiesTask = ref<TaskResult | null>(null);
 
@@ -73,37 +75,6 @@ const projectNameByUrl = computed(() => {
 
 function projectName(url: string): string {
   return projectNameByUrl.value.get(url) || url;
-}
-
-const allColumns = computed<DataTableColumn[]>(() => [
-  { key: "project", label: t("tasks.col.project"), sortable: true },
-  { key: "progress", label: t("tasks.col.progress"), sortable: true },
-  {
-    key: "elapsed",
-    label: t("tasks.col.elapsed"),
-    sortable: true,
-    align: "right",
-  },
-  {
-    key: "remaining",
-    label: t("tasks.col.remaining"),
-    sortable: true,
-    align: "right",
-  },
-  { key: "status", label: t("tasks.col.status"), sortable: true },
-  { key: "resources", label: t("tasks.col.resources"), sortable: true },
-  { key: "task", label: t("tasks.col.task"), sortable: true },
-]);
-
-const columns = computed(() =>
-  allColumns.value.map((c) => ({
-    ...c,
-    visible: visibleKeys.value.includes(c.key),
-  })),
-);
-
-function handleUpdateOrder(order: string[]) {
-  columnOrder.value = order;
 }
 
 function formatTime(seconds: number): string {
@@ -174,26 +145,84 @@ function statusVariant(
   return "default";
 }
 
-function getSortValue(task: TaskResult, key: string): number | string {
-  switch (key) {
-    case "task":
-      return task.wu_name;
-    case "project":
-      return projectName(task.project_url);
-    case "progress":
-      return task.fraction_done;
-    case "elapsed":
-      return task.elapsed_time;
-    case "remaining":
-      return task.estimated_cpu_time_remaining;
-    case "status":
-      return taskStatus(task);
-    case "resources":
-      return task.resources;
-    default:
-      return 0;
-  }
-}
+const columns: ColumnDef<TaskResult, unknown>[] = [
+  {
+    id: "project",
+    accessorFn: (row) => projectName(row.project_url),
+    header: () => t("tasks.col.project"),
+    meta: { class: "col-project" } satisfies ColumnMeta,
+  },
+  {
+    id: "progress",
+    accessorFn: (row) => row.fraction_done,
+    header: () => t("tasks.col.progress"),
+    cell: (info) => {
+      const fraction = info.getValue() as number;
+      const task = info.row.original;
+      return h(
+        "div",
+        {
+          class: "progress-bar",
+          role: "progressbar",
+          "aria-valuenow": Math.min(
+            100,
+            Math.max(0, Math.round(fraction * 100)),
+          ),
+          "aria-valuemin": 0,
+          "aria-valuemax": 100,
+          "aria-label": projectName(task.project_url),
+          "aria-valuetext": formatPercent(fraction),
+        },
+        [
+          h("div", {
+            class: "progress-fill",
+            style: { width: formatPercent(fraction) },
+          }),
+          h("span", { class: "progress-text" }, formatPercent(fraction)),
+        ],
+      );
+    },
+    meta: { class: "col-progress" } satisfies ColumnMeta,
+  },
+  {
+    id: "elapsed",
+    accessorFn: (row) => row.elapsed_time,
+    header: () => t("tasks.col.elapsed"),
+    cell: (info) => formatTime(info.getValue() as number),
+    meta: { align: "right", class: "col-time" } satisfies ColumnMeta,
+  },
+  {
+    id: "remaining",
+    accessorFn: (row) => row.estimated_cpu_time_remaining,
+    header: () => t("tasks.col.remaining"),
+    cell: (info) => formatTime(info.getValue() as number),
+    meta: { align: "right", class: "col-time" } satisfies ColumnMeta,
+  },
+  {
+    id: "status",
+    accessorFn: (row) => taskStatus(row),
+    header: () => t("tasks.col.status"),
+    cell: (info) =>
+      h(
+        StatusBadge,
+        { variant: statusVariant(info.row.original) },
+        () => info.getValue() as string,
+      ),
+  },
+  {
+    id: "resources",
+    accessorFn: (row) => row.resources,
+    header: () => t("tasks.col.resources"),
+    cell: (info) =>
+      (info.getValue() as string) || t("tasks.defaultResources"),
+  },
+  {
+    id: "task",
+    accessorFn: (row) => row.wu_name,
+    header: () => t("tasks.col.task"),
+    meta: { class: "col-name" } satisfies ColumnMeta,
+  },
+];
 
 const filteredTasks = computed(() => {
   let tasks = store.tasks;
@@ -203,18 +232,27 @@ const filteredTasks = computed(() => {
   return tasks;
 });
 
-const sortedTasks = computed(() => {
-  const tasks = [...filteredTasks.value];
-  const key = sortKey.value;
-  const dir = sortDir.value === SORT_DIR.ASC ? 1 : -1;
-  return tasks.sort((a, b) => {
-    const va = getSortValue(a, key);
-    const vb = getSortValue(b, key);
-    if (typeof va === "string" && typeof vb === "string") {
-      return dir * va.localeCompare(vb);
-    }
-    return dir * ((va as number) - (vb as number));
-  });
+const table = useVueTable({
+  get data() {
+    return filteredTasks.value;
+  },
+  columns,
+  state: {
+    get sorting() {
+      return sorting.value;
+    },
+    get columnVisibility() {
+      return columnVisibility.value;
+    },
+    get columnOrder() {
+      return columnOrder.value;
+    },
+  },
+  onSortingChange,
+  onColumnVisibilityChange,
+  onColumnOrderChange,
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
 });
 
 const selectedTasks = computed(() =>
@@ -237,11 +275,13 @@ const suspendResumeLabel = computed(() =>
   allSelectedSuspended.value ? t("tasks.resume") : t("tasks.suspend"),
 );
 
-const allSelected = computed(
-  () =>
-    sortedTasks.value.length > 0 &&
-    sortedTasks.value.every((t) => selectedNames.value.has(t.name)),
-);
+const allSelected = computed(() => {
+  const rows = table.getRowModel().rows;
+  return (
+    rows.length > 0 &&
+    rows.every((r) => selectedNames.value.has(r.original.name))
+  );
+});
 
 function handleRowClick(task: TaskResult, index: number, event: MouseEvent) {
   if (event.ctrlKey || event.metaKey) {
@@ -253,11 +293,12 @@ function handleRowClick(task: TaskResult, index: number, event: MouseEvent) {
     }
     selectedNames.value = next;
   } else if (event.shiftKey && lastClickedIndex.value !== null) {
+    const rows = table.getRowModel().rows;
     const start = Math.min(lastClickedIndex.value, index);
     const end = Math.max(lastClickedIndex.value, index);
     const next = new Set(selectedNames.value);
     for (let i = start; i <= end; i++) {
-      next.add(sortedTasks.value[i].name);
+      next.add(rows[i].original.name);
     }
     selectedNames.value = next;
   } else {
@@ -268,7 +309,9 @@ function handleRowClick(task: TaskResult, index: number, event: MouseEvent) {
 
 function handleSelectAll(selected: boolean) {
   if (selected) {
-    selectedNames.value = new Set(sortedTasks.value.map((t) => t.name));
+    selectedNames.value = new Set(
+      table.getRowModel().rows.map((r) => r.original.name),
+    );
   } else {
     selectedNames.value = new Set();
   }
@@ -278,13 +321,7 @@ function isSelected(task: TaskResult): boolean {
   return selectedNames.value.has(task.name);
 }
 
-function handleSort(key: string, dir: SortDir) {
-  sortKey.value = key;
-  sortDir.value = dir;
-}
-
 function handleRowContext(event: MouseEvent, task: TaskResult, index: number) {
-  event.preventDefault();
   if (!selectedNames.value.has(task.name)) {
     selectedNames.value = new Set([task.name]);
     lastClickedIndex.value = index;
@@ -292,6 +329,11 @@ function handleRowContext(event: MouseEvent, task: TaskResult, index: number) {
   ctxX.value = event.clientX;
   ctxY.value = event.clientY;
   ctxOpen.value = true;
+}
+
+function handleRowDblClick(task: TaskResult) {
+  propertiesTask.value = task;
+  showProperties.value = true;
 }
 
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
@@ -332,11 +374,6 @@ function openProperties() {
     propertiesTask.value = tasks[0];
     showProperties.value = true;
   }
-}
-
-function handleRowDblClick(task: TaskResult) {
-  propertiesTask.value = task;
-  showProperties.value = true;
 }
 
 async function handleShowGraphics() {
@@ -470,15 +507,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
           $t("tasks.activeOnly")
         }}</span>
       </label>
-      <Tooltip :text="$t('tasks.columns')">
-        <button class="btn-columns" @click="showColumns = true">
-          <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
-            <rect x="1" y="2" width="3" height="12" rx="0.5" />
-            <rect x="6.5" y="2" width="3" height="12" rx="0.5" />
-            <rect x="12" y="2" width="3" height="12" rx="0.5" />
-          </svg>
-        </button>
-      </Tooltip>
     </PageHeader>
 
     <p v-if="store.error" class="error">{{ store.error }}</p>
@@ -500,89 +528,16 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
     <div v-else class="content-row">
       <div class="content-main">
         <DataTable
-          :columns="columns"
-          :column-order="columnOrder"
-          :sort-key="sortKey"
-          :sort-dir="sortDir"
+          :table="table"
           selectable
+          reorderable
           :all-selected="allSelected"
-          @sort="handleSort"
+          :is-row-selected="isSelected"
+          @row-click="handleRowClick"
+          @row-contextmenu="handleRowContext"
+          @row-dblclick="handleRowDblClick"
           @select-all="handleSelectAll"
-        >
-          <tr
-            v-for="(task, index) in sortedTasks"
-            :key="task.name"
-            :class="{ 'row-selected': isSelected(task) }"
-            @click="handleRowClick(task, index, $event)"
-            @dblclick="handleRowDblClick(task)"
-            @contextmenu="handleRowContext($event, task, index)"
-          >
-            <td class="col-checkbox">
-              <input
-                type="checkbox"
-                :checked="isSelected(task)"
-                @click.stop
-                @change="
-                  handleRowClick(task, index, { ctrlKey: true } as MouseEvent)
-                "
-              />
-            </td>
-            <template v-for="colKey in orderedVisibleKeys" :key="colKey">
-              <td
-                v-if="colKey === 'project'"
-                class="col-project"
-                :title="task.project_url"
-              >
-                {{ projectName(task.project_url) }}
-              </td>
-              <td v-else-if="colKey === 'progress'" class="col-progress">
-                <div
-                  class="progress-bar"
-                  role="progressbar"
-                  :aria-valuenow="
-                    Math.min(
-                      100,
-                      Math.max(0, Math.round(task.fraction_done * 100)),
-                    )
-                  "
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                  :aria-label="projectName(task.project_url)"
-                  :aria-valuetext="formatPercent(task.fraction_done)"
-                >
-                  <div
-                    class="progress-fill"
-                    :style="{ width: formatPercent(task.fraction_done) }"
-                  ></div>
-                  <span class="progress-text">{{
-                    formatPercent(task.fraction_done)
-                  }}</span>
-                </div>
-              </td>
-              <td v-else-if="colKey === 'elapsed'" class="col-time">
-                {{ formatTime(task.elapsed_time) }}
-              </td>
-              <td v-else-if="colKey === 'remaining'" class="col-time">
-                {{ formatTime(task.estimated_cpu_time_remaining) }}
-              </td>
-              <td v-else-if="colKey === 'status'">
-                <StatusBadge :variant="statusVariant(task)">
-                  {{ taskStatus(task) }}
-                </StatusBadge>
-              </td>
-              <td v-else-if="colKey === 'resources'">
-                {{ task.resources || $t("tasks.defaultResources") }}
-              </td>
-              <td
-                v-else-if="colKey === 'task'"
-                class="col-name"
-                :title="task.name"
-              >
-                {{ task.wu_name }}
-              </td>
-            </template>
-          </tr>
-        </DataTable>
+        />
       </div>
 
       <Transition name="drawer">
@@ -667,16 +622,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       @cancel="confirmAbort = false"
     />
 
-    <ColumnCustomizationDialog
-      :open="showColumns"
-      :columns="allColumns"
-      :visible-keys="visibleKeys"
-      :column-order="columnOrder"
-      @update="visibleKeys = $event"
-      @update-order="handleUpdateOrder"
-      @close="showColumns = false"
-    />
-
     <ItemPropertiesDialog
       :open="showProperties"
       type="task"
@@ -697,17 +642,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 .error {
   color: var(--color-danger);
   font-size: var(--font-size-md);
-}
-
-.col-checkbox {
-  width: 36px;
-  text-align: center;
-  vertical-align: middle;
-}
-
-.col-checkbox input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
 }
 
 .col-name {
@@ -803,23 +737,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   user-select: none;
-}
-
-.btn-columns {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border: none;
-  background: none;
-  color: var(--color-text-tertiary);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: color 0.15s;
-}
-
-.btn-columns:hover {
-  color: var(--color-text-primary);
 }
 
 /* Content layout */

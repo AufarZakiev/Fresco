@@ -1,19 +1,18 @@
 <script setup lang="ts">
 import { nextTick, ref, computed, watch, onUnmounted } from "vue";
 import { onKeyStroke } from "@vueuse/core";
-import type { DataTableColumn } from "./DataTable.vue";
 import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
+import type { Table, VisibilityState, Updater } from "@tanstack/vue-table";
 
 const props = defineProps<{
   open: boolean;
-  columns: DataTableColumn[];
-  visibleKeys: string[];
-  columnOrder?: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  table: Table<any>;
 }>();
 
 const emit = defineEmits<{
-  update: [keys: string[]];
-  "update-order": [order: string[]];
+  "update-visibility": [updater: Updater<VisibilityState>];
+  "update-order": [updater: Updater<string[]>];
   close: [];
 }>();
 
@@ -32,7 +31,7 @@ watch(
   },
 );
 
-const localKeys = ref<Set<string>>(new Set());
+const localVisibility = ref<Record<string, boolean>>({});
 const localOrder = ref<string[]>([]);
 
 // Drag state — pointer-based, not HTML5 Drag API
@@ -49,31 +48,50 @@ watch(
   () => props.open,
   (isOpen) => {
     if (isOpen) {
-      localKeys.value = new Set(props.visibleKeys);
-      localOrder.value = props.columnOrder
-        ? [...props.columnOrder]
-        : props.columns.map((c) => c.key);
+      const allColumns = props.table.getAllLeafColumns();
+      const vis: Record<string, boolean> = {};
+      for (const col of allColumns) {
+        vis[col.id] = col.getIsVisible();
+      }
+      localVisibility.value = vis;
+      localOrder.value = props.table.getState().columnOrder.length > 0
+        ? [...props.table.getState().columnOrder]
+        : allColumns.map((c) => c.id);
     }
   },
 );
 
-const orderedColumns = computed(() => {
-  const colMap = new Map(props.columns.map((c) => [c.key, c]));
+interface ColumnInfo {
+  id: string;
+  label: string;
+}
+
+const orderedColumns = computed<ColumnInfo[]>(() => {
+  const allColumns = props.table.getAllLeafColumns();
+  const colMap = new Map(
+    allColumns.map((c) => [
+      c.id,
+      { id: c.id, label: typeof c.columnDef.header === "function"
+        ? String(c.columnDef.header({} as never))
+        : String(c.columnDef.header ?? c.id) },
+    ]),
+  );
   return localOrder.value
     .filter((key) => colMap.has(key))
     .map((key) => colMap.get(key)!);
 });
 
-function toggle(key: string) {
-  const next = new Set(localKeys.value);
-  if (next.has(key)) {
-    if (next.size > 1) {
-      next.delete(key);
+function toggle(id: string) {
+  const next = { ...localVisibility.value };
+  const visibleCount = Object.values(next).filter(Boolean).length;
+  if (next[id]) {
+    if (visibleCount > 1) {
+      next[id] = false;
     }
   } else {
-    next.add(key);
+    next[id] = true;
   }
-  localKeys.value = next;
+  localVisibility.value = next;
 }
 
 function onPointerDown(event: PointerEvent, index: number) {
@@ -162,7 +180,7 @@ function getDragStyle(index: number) {
 }
 
 function save() {
-  emit("update", Array.from(localKeys.value));
+  emit("update-visibility", localVisibility.value);
   emit("update-order", localOrder.value);
   emit("close");
 }
@@ -187,7 +205,7 @@ function save() {
         <div class="dialog-body">
           <div
             v-for="(col, index) in orderedColumns"
-            :key="col.key"
+            :key="col.id"
             class="col-option"
             :class="{ dragging: draggedIndex === index }"
             :style="getDragStyle(index)"
@@ -211,8 +229,8 @@ function save() {
             <label class="col-label" @pointerdown.stop>
               <input
                 type="checkbox"
-                :checked="localKeys.has(col.key)"
-                @change="toggle(col.key)"
+                :checked="localVisibility[col.id]"
+                @change="toggle(col.id)"
               />
               <span>{{ col.label }}</span>
             </label>
