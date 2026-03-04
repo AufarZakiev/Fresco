@@ -34,6 +34,12 @@ const isHideable = computed(() =>
   props.hideable ?? !!props.table.options.onColumnVisibilityChange,
 );
 
+const hasSelection = computed(() =>
+  props.isRowSelected
+    ? props.table.getRowModel().rows.some((r) => props.isRowSelected!(r.original))
+    : false,
+);
+
 function canHideColumn(header: Header<T, unknown>): boolean {
   if (!isHideable.value) return false;
   const visibleCount = props.table.getVisibleLeafColumns().length;
@@ -193,13 +199,13 @@ function ariaSort(header: Header<T, unknown>): "ascending" | "descending" | "non
 
 <template>
   <div class="data-table-wrapper">
-    <table class="data-table">
+    <table :class="['data-table', { 'has-selection': hasSelection }]">
       <thead>
         <tr
           v-for="headerGroup in table.getHeaderGroups()"
           :key="headerGroup.id"
         >
-          <th v-if="selectable" scope="col" class="col-checkbox">
+          <th v-if="selectable" scope="col" class="col-checkbox" @click.stop>
             <input
               type="checkbox"
               :checked="allSelected"
@@ -297,7 +303,7 @@ function ariaSort(header: Header<T, unknown>): "ascending" | "descending" | "non
             rowClass?.(row.original),
             { 'row-selected': isRowSelected?.(row.original) },
           ]"
-          @click="emit('row-click', row.original, index, $event)"
+          @click.stop="emit('row-click', row.original, index, $event)"
           @contextmenu.prevent="
             emit('row-contextmenu', $event, row.original, index)
           "
@@ -433,14 +439,31 @@ function ariaSort(header: Header<T, unknown>): "ascending" | "descending" | "non
 }
 
 .col-checkbox {
-  width: 36px;
+  width: 20px;
   text-align: center;
+  padding-right: 0 !important;
+}
+
+thead .col-checkbox {
   vertical-align: middle;
+}
+
+tbody .col-checkbox {
+  vertical-align: baseline;
 }
 
 .col-checkbox input[type="checkbox"] {
   width: 15px;
   height: 15px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  vertical-align: text-bottom;
+}
+
+.data-table.has-selection .col-checkbox input[type="checkbox"],
+.data-table thead tr:hover .col-checkbox input[type="checkbox"],
+.data-table tbody tr:hover .col-checkbox input[type="checkbox"] {
+  opacity: 1;
 }
 
 .data-table td {

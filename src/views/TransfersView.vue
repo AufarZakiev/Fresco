@@ -220,7 +220,8 @@ function handleRowClick(
     }
     selectedKeys.value = next;
   } else {
-    selectedKeys.value = new Set([key]);
+    const isOnlySelected = selectedKeys.value.size === 1 && selectedKeys.value.has(key);
+    selectedKeys.value = isOnlySelected ? new Set() : new Set([key]);
   }
   lastClickedIndex.value = index;
 }
@@ -326,7 +327,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 </script>
 
 <template>
-  <div class="transfers-view">
+  <div class="transfers-view" @click="selectedKeys = new Set()">
     <p v-if="store.error" class="error">{{ store.error }}</p>
 
     <EmptyState
@@ -357,7 +358,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       </div>
 
       <Transition name="drawer">
-        <div v-if="hasSelection && !selectedViaContext" class="drawer-panel">
+        <div v-if="hasSelection && !selectedViaContext" class="drawer-panel" @click.stop>
           <div class="drawer-header">
             <h3>
               {{

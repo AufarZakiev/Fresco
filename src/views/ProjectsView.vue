@@ -207,7 +207,8 @@ function handleRowClick(project: Project, index: number, event: MouseEvent) {
     }
     selectedUrls.value = next;
   } else {
-    selectedUrls.value = new Set([project.master_url]);
+    const isOnlySelected = selectedUrls.value.size === 1 && selectedUrls.value.has(project.master_url);
+    selectedUrls.value = isOnlySelected ? new Set() : new Set([project.master_url]);
   }
   lastClickedIndex.value = index;
 }
@@ -464,7 +465,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 </script>
 
 <template>
-  <div class="projects-view">
+  <div class="projects-view" @click="selectedUrls = new Set()">
     <div class="content-row">
       <div class="content-main">
         <p v-if="store.error" class="error">{{ store.error }}</p>
@@ -496,7 +497,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       </div>
 
       <Transition name="drawer">
-        <div v-if="hasSelection && !selectedViaContext" class="drawer-panel">
+        <div v-if="hasSelection && !selectedViaContext" class="drawer-panel" @click.stop>
           <div class="drawer-header">
             <h3>
               {{

@@ -303,7 +303,8 @@ function handleRowClick(task: TaskResult, index: number, event: MouseEvent) {
     }
     selectedNames.value = next;
   } else {
-    selectedNames.value = new Set([task.name]);
+    const isOnlySelected = selectedNames.value.size === 1 && selectedNames.value.has(task.name);
+    selectedNames.value = isOnlySelected ? new Set() : new Set([task.name]);
   }
   lastClickedIndex.value = index;
 }
@@ -511,7 +512,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 </script>
 
 <template>
-  <div class="tasks-view">
+  <div class="tasks-view" @click="selectedNames = new Set()">
     <p v-if="store.error" class="error">{{ store.error }}</p>
 
     <EmptyState
@@ -545,7 +546,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       </div>
 
       <Transition name="drawer">
-        <div v-if="hasSelection && !selectedViaContext" class="drawer-panel">
+        <div v-if="hasSelection && !selectedViaContext" class="drawer-panel" @click.stop>
           <div class="drawer-header">
             <h3>
               {{

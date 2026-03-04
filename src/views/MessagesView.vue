@@ -147,8 +147,11 @@ function handleRowClick(msg: Message, _index: number, event: MouseEvent) {
       next.add(seqno);
     }
   } else {
+    const isOnlySelected = next.size === 1 && next.has(seqno);
     next.clear();
-    next.add(seqno);
+    if (!isOnlySelected) {
+      next.add(seqno);
+    }
   }
   selectedSeqnos.value = next;
 }
@@ -271,8 +274,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="messages-view">
-    <PageHeader>
+  <div class="messages-view" @click="selectedSeqnos = new Set()">
+    <PageHeader @click.stop>
       <button class="btn" @click="showLogFlags = true">
         {{ $t("messages.logFlags") }}
       </button>
