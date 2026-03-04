@@ -187,7 +187,7 @@
     "filterAlerts": "ユーザー警告",
     "filterErrors": "エラー",
     "empty": "表示するメッセージがありません。",
-    "loadingMore": "過去のメッセージを読み込み中\u2026",
+    "loadingMore": "過去のメッセージを読み込み中…",
     "col": {
       "time": "日時",
       "project": "プロジェクト",
@@ -671,5 +671,11 @@
     "clear": "クリア",
     "cancel": "キャンセル",
     "ok": "OK"
+  },
+  "notifications": {
+    "newNoticesTitle": "新しい通知",
+    "newNoticesBody": "{count} 件の新しい通知",
+    "connectionLostTitle": "接続が切断されました",
+    "connectionLostBody": "BOINCクライアントとの接続が失われました。"
   }
 }

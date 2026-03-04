@@ -129,11 +129,11 @@
     },
     "resetDialog": {
       "title": "重置项目",
-      "message": "重置\u201c{names}\u201d？该项目的所有任务将会丢失。"
+      "message": "重置“{names}”？该项目的所有任务将会丢失。"
     },
     "detachDialog": {
       "title": "分离项目",
-      "message": "从\u201c{names}\u201d分离？你将停止为该项目贡献计算。"
+      "message": "从“{names}”分离？你将停止为该项目贡献计算。"
     },
     "toast": {
       "updated": "项目已更新",
@@ -187,7 +187,7 @@
     "filterAlerts": "用户警告",
     "filterErrors": "错误",
     "empty": "没有消息可显示。",
-    "loadingMore": "正在加载旧消息\u2026",
+    "loadingMore": "正在加载旧消息…",
     "col": {
       "time": "时间",
       "project": "项目",
@@ -671,5 +671,11 @@
     "clear": "清除",
     "cancel": "取消",
     "ok": "确定"
+  },
+  "notifications": {
+    "newNoticesTitle": "新通知",
+    "newNoticesBody": "{count} 条新通知",
+    "connectionLostTitle": "连接丢失",
+    "connectionLostBody": "与 BOINC 客户端的连接已断开。"
   }
 }

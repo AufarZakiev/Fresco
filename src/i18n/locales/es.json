@@ -187,7 +187,7 @@
     "filterAlerts": "Alertas de usuario",
     "filterErrors": "Errores",
     "empty": "No hay mensajes para mostrar.",
-    "loadingMore": "Cargando mensajes anteriores\u2026",
+    "loadingMore": "Cargando mensajes anteriores…",
     "col": {
       "time": "Hora",
       "project": "Proyecto",
@@ -671,5 +671,11 @@
     "clear": "Limpiar",
     "cancel": "Cancelar",
     "ok": "Aceptar"
+  },
+  "notifications": {
+    "newNoticesTitle": "Nuevos avisos",
+    "newNoticesBody": "{count} aviso nuevo | {count} avisos nuevos",
+    "connectionLostTitle": "Conexión perdida",
+    "connectionLostBody": "Se perdió la conexión con el cliente BOINC."
   }
 }

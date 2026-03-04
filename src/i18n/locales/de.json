@@ -187,7 +187,7 @@
     "filterAlerts": "Benutzerhinweise",
     "filterErrors": "Fehler",
     "empty": "Keine Meldungen vorhanden.",
-    "loadingMore": "Ältere Meldungen werden geladen\u2026",
+    "loadingMore": "Ältere Meldungen werden geladen…",
     "col": {
       "time": "Zeit",
       "project": "Projekt",
@@ -671,5 +671,11 @@
     "clear": "Löschen",
     "cancel": "Abbrechen",
     "ok": "OK"
+  },
+  "notifications": {
+    "newNoticesTitle": "Neue Hinweise",
+    "newNoticesBody": "{count} neuer Hinweis | {count} neue Hinweise",
+    "connectionLostTitle": "Verbindung verloren",
+    "connectionLostBody": "Verbindung zum BOINC-Client verloren."
   }
 }

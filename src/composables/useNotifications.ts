@@ -1,4 +1,5 @@
 import { useManagerSettingsStore } from "../stores/managerSettings";
+import i18n from "../i18n";
 
 const LAST_REMINDER_KEY = "boinc-last-reminder";
 
@@ -52,14 +53,17 @@ async function sendNotification(title: string, body: string) {
 export async function notifyNewNotices(count: number) {
   if (count <= 0 || !shouldNotify()) return;
   markNotified();
+  const t = i18n.global.t;
   await sendNotification(
-    "BOINC Notices",
-    count === 1
-      ? "There is 1 new notice — click to view"
-      : `There are ${count} new notices — click to view`,
+    t("notifications.newNoticesTitle"),
+    t("notifications.newNoticesBody", count),
   );
 }
 
 export async function notifyConnectionLost() {
-  await sendNotification("BOINC Manager", "Lost connection to BOINC client");
+  const t = i18n.global.t;
+  await sendNotification(
+    t("notifications.connectionLostTitle"),
+    t("notifications.connectionLostBody"),
+  );
 }
