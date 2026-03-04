@@ -463,6 +463,10 @@
     "cancel": "Cancel",
     "apply": "Apply"
   },
+  "table": {
+    "hideColumn": "Hide column",
+    "reorderColumn": "Drag to reorder"
+  },
   "properties": {
     "taskProperties": "Task Properties",
     "projectProperties": "Project Properties",

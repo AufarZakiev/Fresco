@@ -644,8 +644,9 @@ select {
 
 <style scoped>
 .app {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
+  overflow: hidden;
 }
 
 .app.has-sidebar .main-content {

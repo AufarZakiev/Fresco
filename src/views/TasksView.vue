@@ -531,6 +531,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
           :table="table"
           selectable
           reorderable
+          hideable
           :all-selected="allSelected"
           :is-row-selected="isSelected"
           @row-click="handleRowClick"
@@ -750,8 +751,9 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 .content-main {
   flex: 1;
   min-width: 0;
-  overflow: auto;
-  margin-right: var(--space-md);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Side drawer */

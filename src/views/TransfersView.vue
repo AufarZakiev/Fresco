@@ -4,7 +4,6 @@ import { useI18n } from "vue-i18n";
 import { useTransfersStore } from "../stores/transfers";
 import type { FileTransfer } from "../types/boinc";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
-import PageHeader from "../components/PageHeader.vue";
 import DataTable from "../components/DataTable.vue";
 import type { ColumnMeta } from "../components/DataTable.vue";
 import EmptyState from "../components/EmptyState.vue";
@@ -325,9 +324,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 
 <template>
   <div class="transfers-view">
-    <PageHeader>
-    </PageHeader>
-
     <p v-if="store.error" class="error">{{ store.error }}</p>
 
     <EmptyState
@@ -348,6 +344,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
           :table="table"
           selectable
           reorderable
+          hideable
           :all-selected="allSelected"
           :is-row-selected="isSelected"
           @row-click="handleRowClick"
@@ -478,8 +475,9 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 .content-main {
   flex: 1;
   min-width: 0;
-  overflow: auto;
-  margin-right: var(--space-md);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Side drawer */

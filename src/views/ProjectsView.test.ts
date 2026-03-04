@@ -354,20 +354,16 @@ describe("ProjectsView", () => {
 
     const wrapper = mount(ProjectsView);
 
-    // Before selection — header should not contain action buttons
-    let headerButtons = wrapper.find(".page-header").findAll("button");
-    let headerLabels = headerButtons.map((b) => b.text());
-    expect(headerLabels).not.toContain("Update");
-    expect(headerLabels).not.toContain("Suspend");
-    expect(headerLabels).not.toContain("Reset");
+    // Before selection — no drawer, so no action buttons visible
+    expect(wrapper.find(".drawer-panel").exists()).toBe(false);
 
-    // After selection — action buttons should be in the drawer, not the header
+    // After selection — action buttons should be in the drawer
     await wrapper.find("tbody tr").trigger("click");
-    headerButtons = wrapper.find(".page-header").findAll("button");
-    headerLabels = headerButtons.map((b) => b.text());
-    expect(headerLabels).not.toContain("Update");
-    expect(headerLabels).not.toContain("Suspend");
-    expect(headerLabels).not.toContain("Reset");
+    const drawerButtons = wrapper.find(".drawer-panel").findAll("button");
+    const drawerLabels = drawerButtons.map((b) => b.text());
+    expect(drawerLabels).toContain("Update");
+    expect(drawerLabels).toContain("Suspend");
+    expect(drawerLabels).toContain("Reset");
   });
 
   it("shows web links in drawer when project with gui_urls is selected", async () => {

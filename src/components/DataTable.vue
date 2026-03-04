@@ -2,6 +2,7 @@
 import { ref, computed, onUnmounted } from "vue";
 import { FlexRender } from "@tanstack/vue-table";
 import type { Table, Header } from "@tanstack/vue-table";
+import Tooltip from "./Tooltip.vue";
 
 export interface ColumnMeta {
   align?: "left" | "right" | "center";
@@ -15,6 +16,7 @@ const props = defineProps<{
   isRowSelected?: (row: T) => boolean;
   rowClass?: (row: T) => string;
   reorderable?: boolean;
+  hideable?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -27,6 +29,21 @@ const emit = defineEmits<{
 const isReorderable = computed(() =>
   props.reorderable ?? !!props.table.options.onColumnOrderChange,
 );
+
+const isHideable = computed(() =>
+  props.hideable ?? !!props.table.options.onColumnVisibilityChange,
+);
+
+function canHideColumn(header: Header<T, unknown>): boolean {
+  if (!isHideable.value) return false;
+  const visibleCount = props.table.getVisibleLeafColumns().length;
+  return visibleCount > 1 && header.column.getCanHide();
+}
+
+function hideColumn(event: MouseEvent, header: Header<T, unknown>) {
+  event.stopPropagation();
+  header.column.toggleVisibility(false);
+}
 
 // --- Drag state ---
 const DRAG_THRESHOLD = 5;
@@ -217,33 +234,58 @@ function ariaSort(header: Header<T, unknown>): "ascending" | "descending" | "non
             <svg
               v-if="header.column.getIsSorted()"
               class="sort-indicator"
-              width="10"
-              height="10"
-              viewBox="0 0 10 10"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path v-if="header.column.getIsSorted() === 'asc'" d="M2 7 L5 3 L8 7" />
-              <path v-else d="M2 3 L5 7 L8 3" />
-            </svg>
-            <svg
-              v-if="isReorderable"
-              class="drag-handle"
-              width="8"
+              width="12"
               height="12"
-              viewBox="0 0 10 14"
+              viewBox="0 0 16 16"
               fill="currentColor"
             >
-              <circle cx="2.5" cy="2" r="1.5" />
-              <circle cx="7.5" cy="2" r="1.5" />
-              <circle cx="2.5" cy="7" r="1.5" />
-              <circle cx="7.5" cy="7" r="1.5" />
-              <circle cx="2.5" cy="12" r="1.5" />
-              <circle cx="7.5" cy="12" r="1.5" />
+              <template v-if="header.column.getIsSorted() === 'asc'">
+                <rect x="0" y="10" width="3" height="6" />
+                <rect x="5" y="6" width="3" height="10" />
+                <rect x="10" y="2" width="3" height="14" />
+              </template>
+              <template v-else>
+                <rect x="0" y="2" width="3" height="14" />
+                <rect x="5" y="6" width="3" height="10" />
+                <rect x="10" y="10" width="3" height="6" />
+              </template>
             </svg>
+            <Tooltip v-if="canHideColumn(header)" :text="$t('table.hideColumn')" placement="bottom">
+              <svg
+                class="col-hide-btn"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                @click="hideColumn($event, header)"
+                @pointerdown.stop
+              >
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            </Tooltip>
+            <Tooltip v-if="isReorderable" :text="$t('table.reorderColumn')" placement="bottom">
+              <svg
+                class="drag-handle"
+                width="8"
+                height="12"
+                viewBox="0 0 10 14"
+                fill="currentColor"
+              >
+                <circle cx="2.5" cy="2" r="1.5" />
+                <circle cx="7.5" cy="2" r="1.5" />
+                <circle cx="2.5" cy="7" r="1.5" />
+                <circle cx="7.5" cy="7" r="1.5" />
+                <circle cx="2.5" cy="12" r="1.5" />
+                <circle cx="7.5" cy="12" r="1.5" />
+              </svg>
+            </Tooltip>
           </th>
         </tr>
       </thead>
@@ -301,7 +343,8 @@ function ariaSort(header: Header<T, unknown>): "ascending" | "descending" | "non
 
 .data-table {
   min-width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: var(--font-size-md);
 }
 
@@ -324,12 +367,31 @@ function ariaSort(header: Header<T, unknown>): "ascending" | "descending" | "non
 
 .data-table th.reorderable {
   touch-action: none;
-  padding-right: 20px;
+  padding-right: 44px;
 }
 
 .data-table th.dragging {
   cursor: grabbing;
   position: relative;
+}
+
+.col-hide-btn {
+  opacity: 0;
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.data-table th:hover .col-hide-btn {
+  opacity: 1;
+}
+
+.col-hide-btn:hover {
+  color: var(--color-danger);
 }
 
 .drag-handle {
@@ -365,8 +427,9 @@ function ariaSort(header: Header<T, unknown>): "ascending" | "descending" | "non
 }
 
 .sort-indicator {
-  margin-left: 4px;
-  vertical-align: middle;
+  margin-left: 10px;
+  position: relative;
+  top: 1px;
 }
 
 .col-checkbox {
