@@ -281,7 +281,12 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
     action: "properties",
     disabled: selectedUrls.value.size !== 1,
   });
-  return items;
+  const filtered = items.filter((item) => !item.disabled);
+  return filtered.filter(
+    (item, i, arr) =>
+      !item.divider ||
+      (i > 0 && i < arr.length - 1 && !arr[i - 1].divider),
+  );
 });
 
 function openProperties() {
@@ -484,7 +489,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       </div>
 
       <Transition name="drawer">
-        <div v-if="hasSelection" class="drawer-panel">
+        <div v-if="hasSelection && !ctxOpen" class="drawer-panel">
           <div class="drawer-header">
             <h3>
               {{

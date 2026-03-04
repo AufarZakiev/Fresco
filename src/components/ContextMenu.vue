@@ -7,6 +7,7 @@ export interface ContextMenuItem {
   danger?: boolean;
   disabled?: boolean;
   divider?: boolean;
+  checked?: boolean;
 }
 
 const props = defineProps<{
@@ -185,6 +186,7 @@ onUnmounted(() => {
           :tabindex="getTabIndex(idx)"
           @click="handleAction(item)"
         >
+          <span v-if="item.checked !== undefined" class="context-check">{{ item.checked ? "&#x2713;" : "" }}</span>
           {{ item.label }}
         </button>
       </template>
@@ -237,6 +239,13 @@ onUnmounted(() => {
 .context-item.disabled {
   color: var(--color-text-tertiary);
   cursor: default;
+}
+
+.context-check {
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+  margin-right: 4px;
 }
 
 .context-divider {

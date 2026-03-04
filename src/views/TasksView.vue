@@ -9,7 +9,6 @@ import {
   SCHEDULER_STATE,
 } from "../types/boinc";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
-import PageHeader from "../components/PageHeader.vue";
 import DataTable from "../components/DataTable.vue";
 import type { ColumnMeta } from "../components/DataTable.vue";
 import EmptyState from "../components/EmptyState.vue";
@@ -331,6 +330,12 @@ function handleRowContext(event: MouseEvent, task: TaskResult, index: number) {
   ctxOpen.value = true;
 }
 
+function handleTableContext(event: MouseEvent) {
+  ctxX.value = event.clientX;
+  ctxY.value = event.clientY;
+  ctxOpen.value = true;
+}
+
 function handleRowDblClick(task: TaskResult) {
   propertiesTask.value = task;
   showProperties.value = true;
@@ -338,10 +343,18 @@ function handleRowDblClick(task: TaskResult) {
 
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
   const items: ContextMenuItem[] = [];
+  items.push({
+    label: t("tasks.activeOnly"),
+    action: "toggle-active",
+    checked: activeTasksOnly.value,
+  });
+  items.push({ label: "", action: "", divider: true });
+  const hasSelected = selectedNames.value.size > 0;
   const isSuspended = allSelectedSuspended.value;
   items.push({
     label: isSuspended ? t("tasks.resume") : t("tasks.suspend"),
     action: "suspend-resume",
+    disabled: !hasSelected,
   });
   items.push({
     label: t("tasks.context.showGraphics"),
@@ -358,6 +371,7 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
     label: t("tasks.abort"),
     action: "abort",
     danger: true,
+    disabled: !hasSelected,
   });
   items.push({ label: "", action: "", divider: true });
   items.push({
@@ -365,7 +379,12 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
     action: "properties",
     disabled: selectedNames.value.size !== 1,
   });
-  return items;
+  const filtered = items.filter((item) => !item.disabled);
+  return filtered.filter(
+    (item, i, arr) =>
+      !item.divider ||
+      (i > 0 && i < arr.length - 1 && !arr[i - 1].divider),
+  );
 });
 
 function openProperties() {
@@ -404,6 +423,9 @@ const hasVmConsole = computed(() => {
 
 async function handleContextAction(action: string) {
   switch (action) {
+    case "toggle-active":
+      activeTasksOnly.value = !activeTasksOnly.value;
+      break;
     case "suspend-resume":
       await handleSuspendResume();
       break;
@@ -486,29 +508,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 
 <template>
   <div class="tasks-view">
-    <PageHeader>
-      <label
-        class="active-filter-toggle"
-        @click.prevent="activeTasksOnly = !activeTasksOnly"
-      >
-        <span
-          class="toggle-switch"
-          :class="{ on: activeTasksOnly }"
-          role="switch"
-          :aria-checked="!!activeTasksOnly"
-          aria-labelledby="active-tasks-only-label"
-          tabindex="0"
-          @keydown.enter.prevent="activeTasksOnly = !activeTasksOnly"
-          @keydown.space.prevent="activeTasksOnly = !activeTasksOnly"
-        >
-          <span class="toggle-knob" />
-        </span>
-        <span id="active-tasks-only-label" class="toggle-label">{{
-          $t("tasks.activeOnly")
-        }}</span>
-      </label>
-    </PageHeader>
-
     <p v-if="store.error" class="error">{{ store.error }}</p>
 
     <EmptyState
@@ -526,7 +525,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
     />
 
     <div v-else class="content-row">
-      <div class="content-main">
+      <div class="content-main" @contextmenu.self.prevent="handleTableContext">
         <DataTable
           :table="table"
           selectable
@@ -542,7 +541,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       </div>
 
       <Transition name="drawer">
-        <div v-if="hasSelection" class="drawer-panel">
+        <div v-if="hasSelection && !ctxOpen" class="drawer-panel">
           <div class="drawer-header">
             <h3>
               {{
@@ -691,53 +690,6 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   font-size: var(--font-size-xs);
   line-height: 18px;
   color: var(--color-text-primary);
-}
-
-.active-filter-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  cursor: pointer;
-}
-
-.toggle-switch {
-  width: 36px;
-  height: 20px;
-  border-radius: 10px;
-  background: var(--color-text-tertiary);
-  opacity: 0.4;
-  cursor: pointer;
-  position: relative;
-  flex-shrink: 0;
-  transition:
-    background 0.2s,
-    opacity 0.2s;
-}
-
-.toggle-switch.on {
-  background: var(--color-accent);
-  opacity: 1;
-}
-
-.toggle-knob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: white;
-  transition: left 0.2s;
-}
-
-.toggle-switch.on .toggle-knob {
-  left: 18px;
-}
-
-.toggle-label {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  user-select: none;
 }
 
 /* Content layout */

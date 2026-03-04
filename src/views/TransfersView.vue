@@ -354,7 +354,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       </div>
 
       <Transition name="drawer">
-        <div v-if="hasSelection" class="drawer-panel">
+        <div v-if="hasSelection && !ctxOpen" class="drawer-panel">
           <div class="drawer-header">
             <h3>
               {{
