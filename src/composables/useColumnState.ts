@@ -30,7 +30,7 @@ export function useColumnState(
       if (raw) {
         const parsed = JSON.parse(raw);
         return {
-          visibleKeys: parsed.visibleKeys ?? defaultVisibleKeys,
+          visibleKeys: parsed.visibleKeys ?? [...defaultVisibleKeys],
           sortKey: parsed.sortKey ?? defaultSortKey,
           sortDir: parsed.sortDir ?? defaultSortDir,
         };
