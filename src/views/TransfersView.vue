@@ -48,6 +48,7 @@ const {
 const ctxOpen = ref(false);
 const ctxX = ref(0);
 const ctxY = ref(0);
+const selectedViaContext = ref(false);
 
 function transferKey(transfer: FileTransfer): string {
   return `${transfer.project_url}:${transfer.name}`;
@@ -199,6 +200,7 @@ function handleRowClick(
   index: number,
   event: MouseEvent,
 ) {
+  selectedViaContext.value = false;
   const key = transferKey(transfer);
   if (event.ctrlKey || event.metaKey) {
     const next = new Set(selectedKeys.value);
@@ -242,6 +244,7 @@ function handleRowContext(
   transfer: FileTransfer,
   index: number,
 ) {
+  selectedViaContext.value = true;
   const key = transferKey(transfer);
   if (!selectedKeys.value.has(key)) {
     selectedKeys.value = new Set([key]);
@@ -354,7 +357,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       </div>
 
       <Transition name="drawer">
-        <div v-if="hasSelection && !ctxOpen" class="drawer-panel">
+        <div v-if="hasSelection && !selectedViaContext" class="drawer-panel">
           <div class="drawer-header">
             <h3>
               {{

@@ -58,6 +58,7 @@ const confirmAction = ref<{
 const ctxOpen = ref(false);
 const ctxX = ref(0);
 const ctxY = ref(0);
+const selectedViaContext = ref(false);
 
 function formatCredit(credit: number): string {
   return credit.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -187,6 +188,7 @@ const allSelected = computed(() => {
 });
 
 function handleRowClick(project: Project, index: number, event: MouseEvent) {
+  selectedViaContext.value = false;
   if (event.ctrlKey || event.metaKey) {
     const next = new Set(selectedUrls.value);
     if (next.has(project.master_url)) {
@@ -226,9 +228,14 @@ function isSelected(project: Project): boolean {
 
 function handleRowContext(
   event: MouseEvent,
-  _project: Project,
-  _index: number,
+  project: Project,
+  index: number,
 ) {
+  selectedViaContext.value = true;
+  if (!selectedUrls.value.has(project.master_url)) {
+    selectedUrls.value = new Set([project.master_url]);
+    lastClickedIndex.value = index;
+  }
   ctxX.value = event.clientX;
   ctxY.value = event.clientY;
   ctxOpen.value = true;
@@ -489,7 +496,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       </div>
 
       <Transition name="drawer">
-        <div v-if="hasSelection && !ctxOpen" class="drawer-panel">
+        <div v-if="hasSelection && !selectedViaContext" class="drawer-panel">
           <div class="drawer-header">
             <h3>
               {{

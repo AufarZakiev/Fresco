@@ -63,6 +63,7 @@ const propertiesTask = ref<TaskResult | null>(null);
 const ctxOpen = ref(false);
 const ctxX = ref(0);
 const ctxY = ref(0);
+const selectedViaContext = ref(false);
 
 const projectNameByUrl = computed(() => {
   const map = new Map<string, string>();
@@ -283,6 +284,7 @@ const allSelected = computed(() => {
 });
 
 function handleRowClick(task: TaskResult, index: number, event: MouseEvent) {
+  selectedViaContext.value = false;
   if (event.ctrlKey || event.metaKey) {
     const next = new Set(selectedNames.value);
     if (next.has(task.name)) {
@@ -321,6 +323,7 @@ function isSelected(task: TaskResult): boolean {
 }
 
 function handleRowContext(event: MouseEvent, task: TaskResult, index: number) {
+  selectedViaContext.value = true;
   if (!selectedNames.value.has(task.name)) {
     selectedNames.value = new Set([task.name]);
     lastClickedIndex.value = index;
@@ -331,6 +334,7 @@ function handleRowContext(event: MouseEvent, task: TaskResult, index: number) {
 }
 
 function handleTableContext(event: MouseEvent) {
+  selectedViaContext.value = true;
   ctxX.value = event.clientX;
   ctxY.value = event.clientY;
   ctxOpen.value = true;
@@ -541,7 +545,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       </div>
 
       <Transition name="drawer">
-        <div v-if="hasSelection && !ctxOpen" class="drawer-panel">
+        <div v-if="hasSelection && !selectedViaContext" class="drawer-panel">
           <div class="drawer-header">
             <h3>
               {{
