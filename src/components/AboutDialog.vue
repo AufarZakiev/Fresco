@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from "vue";
-import { onKeyStroke } from "@vueuse/core";
+import { computed, nextTick, ref, watch } from "vue";
+import { onKeyStroke, usePreferredDark } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { useUpdateCheck, startBackgroundDownload } from "../composables/useUpdateCheck";
@@ -17,6 +17,8 @@ watch(() => props.open, async (isOpen) => {
 });
 
 const { t } = useI18n();
+const isDark = usePreferredDark();
+const logoSrc = computed(() => isDark.value ? "/icon-dark.png" : "/icon.png");
 const updating = ref(false);
 const updateError = ref("");
 const {
@@ -121,7 +123,7 @@ async function openGitHub() {
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
       <div ref="dialogRef" class="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-dialog-title">
         <div class="about-logo">
-          <img src="/icon.png" alt="Fresco" width="64" height="64" />
+          <img :src="logoSrc" alt="Fresco" width="64" height="64" />
         </div>
         <h3 id="about-dialog-title">{{ $t('about.title') }}</h3>
         <p class="build-time">{{ $t('about.built', { time: formatBuildTime(buildTime) }) }}</p>
@@ -162,7 +164,10 @@ async function openGitHub() {
             </div>
           </template>
 
-          <p v-else-if="buildTime && buildTime !== 'dev' && !checking && !checkError" class="up-to-date">
+          <p v-else-if="buildTime === 'dev'" class="up-to-date">
+            {{ $t('about.devBuild') }}
+          </p>
+          <p v-else-if="buildTime && !checking && !checkError" class="up-to-date">
             {{ $t('about.upToDate') }}
           </p>
           <p v-if="checkError" class="update-error">{{ checkError }}</p>
