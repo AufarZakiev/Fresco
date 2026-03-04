@@ -139,14 +139,12 @@ watch(
     if (isOpen) {
       focusedIndex.value = -1;
       document.addEventListener("keydown", handleKeydown);
-      // Delay click listener to avoid the opening click from immediately closing
-      setTimeout(() => {
-        document.addEventListener("click", handleClickOutside);
-      }, 0);
+      // Use mousedown so @click.stop on table rows doesn't block outside detection
+      document.addEventListener("mousedown", handleClickOutside);
       await nextTick();
       focusFirstEnabled();
     } else {
-      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeydown);
     }
   },
@@ -155,12 +153,12 @@ watch(
 onMounted(() => {
   if (props.open) {
     document.addEventListener("keydown", handleKeydown);
-    document.addEventListener("click", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
   }
 });
 
 onUnmounted(() => {
-  document.removeEventListener("click", handleClickOutside);
+  document.removeEventListener("mousedown", handleClickOutside);
   document.removeEventListener("keydown", handleKeydown);
 });
 </script>
