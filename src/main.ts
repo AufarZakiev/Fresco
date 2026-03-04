@@ -7,7 +7,7 @@ async function bootstrap() {
   // In a regular browser (no Tauri runtime), install IPC mocks
   // so that all invoke() calls return realistic data.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (typeof (window as any).__TAURI_INTERNALS__ === "undefined") {
+  if (!import.meta.env.PROD && typeof (window as any).__TAURI_INTERNALS__ === "undefined") {
     const { installMocks } = await import("./mocks/setupMocks");
     installMocks();
   }

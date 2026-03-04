@@ -30,5 +30,12 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 tauri-plugin-process = "2"
 tauri-plugin-autostart = "2"
 
+[profile.release]
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
+
 [dev-dependencies]
 tokio = { version = "1", features = ["full", "test-util"] }
