@@ -187,7 +187,7 @@
     "filterAlerts": "Оповещения",
     "filterErrors": "Ошибки",
     "empty": "Нет сообщений для отображения.",
-    "loadingMore": "Загрузка старых сообщений\u2026",
+    "loadingMore": "Загрузка старых сообщений…",
     "col": {
       "time": "Время",
       "project": "Проект",
@@ -671,5 +671,11 @@
     "clear": "Очистить",
     "cancel": "Отмена",
     "ok": "OK"
+  },
+  "notifications": {
+    "newNoticesTitle": "Новые уведомления",
+    "newNoticesBody": "{count} новое уведомление | {count} новых уведомления | {count} новых уведомлений",
+    "connectionLostTitle": "Соединение потеряно",
+    "connectionLostBody": "Потеряно соединение с клиентом BOINC."
   }
 }

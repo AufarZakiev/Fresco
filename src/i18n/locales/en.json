@@ -187,7 +187,7 @@
     "filterAlerts": "User Alerts",
     "filterErrors": "Errors",
     "empty": "No messages to display.",
-    "loadingMore": "Loading older messages\u2026",
+    "loadingMore": "Loading older messages…",
     "col": {
       "time": "Time",
       "project": "Project",
@@ -671,5 +671,11 @@
     "clear": "Clear",
     "cancel": "Cancel",
     "ok": "OK"
+  },
+  "notifications": {
+    "newNoticesTitle": "New Notices",
+    "newNoticesBody": "{count} new notice | {count} new notices",
+    "connectionLostTitle": "Connection Lost",
+    "connectionLostBody": "Lost connection to the BOINC client."
   }
 }

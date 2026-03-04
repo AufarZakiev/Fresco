@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useManagerSettingsStore } from "../stores/managerSettings";
+import i18n from "../i18n";
 
 // Mock Tauri notification plugin
 const mockSendNotification = vi.fn();
@@ -57,10 +58,11 @@ describe("useNotifications", () => {
 
       await notifyNewNotices(3);
 
+      const t = i18n.global.t;
       expect(mockSendNotification).toHaveBeenCalledOnce();
       expect(mockSendNotification).toHaveBeenCalledWith({
-        title: "BOINC Notices",
-        body: "There are 3 new notices — click to view",
+        title: t("notifications.newNoticesTitle"),
+        body: t("notifications.newNoticesBody", 3),
       });
     });
 
@@ -70,9 +72,10 @@ describe("useNotifications", () => {
 
       await notifyNewNotices(1);
 
+      const t = i18n.global.t;
       expect(mockSendNotification).toHaveBeenCalledWith({
-        title: "BOINC Notices",
-        body: "There is 1 new notice — click to view",
+        title: t("notifications.newNoticesTitle"),
+        body: t("notifications.newNoticesBody", 1),
       });
     });
 
@@ -166,9 +169,10 @@ describe("useNotifications", () => {
     it("sends connection lost notification", async () => {
       await notifyConnectionLost();
 
+      const t = i18n.global.t;
       expect(mockSendNotification).toHaveBeenCalledWith({
-        title: "BOINC Manager",
-        body: "Lost connection to BOINC client",
+        title: t("notifications.connectionLostTitle"),
+        body: t("notifications.connectionLostBody"),
       });
     });
   });
