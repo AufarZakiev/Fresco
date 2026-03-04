@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, inject, ref } from "vue";
+import { computed, h, inject, nextTick, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useProjectsStore } from "../stores/projects";
 import type { Project } from "../types/boinc";
@@ -189,6 +189,7 @@ const allSelected = computed(() => {
 });
 
 function handleRowClick(project: Project, index: number, event: MouseEvent) {
+  ctxOpen.value = false;
   selectedViaContext.value = false;
   if (event.ctrlKey || event.metaKey) {
     const next = new Set(selectedUrls.value);
@@ -228,7 +229,7 @@ function isSelected(project: Project): boolean {
   return selectedUrls.value.has(project.master_url);
 }
 
-function handleRowContext(
+async function handleRowContext(
   event: MouseEvent,
   project: Project,
   index: number,
@@ -238,6 +239,8 @@ function handleRowContext(
     selectedUrls.value = new Set([project.master_url]);
     lastClickedIndex.value = index;
   }
+  ctxOpen.value = false;
+  await nextTick();
   ctxX.value = event.clientX;
   ctxY.value = event.clientY;
   ctxOpen.value = true;
@@ -510,7 +513,8 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 
           <div class="drawer-section">
             <Tooltip :text="$t('projects.tooltip.update')">
-              <button class="btn" :disabled="actionBusy" @click="handleUpdate">
+              <button class="btn icon-btn" :disabled="actionBusy" @click="handleUpdate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
                 {{ $t("projects.drawer.update") }}
               </button>
             </Tooltip>
@@ -522,10 +526,12 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
               "
             >
               <button
-                class="btn"
+                class="btn icon-btn"
                 :disabled="actionBusy"
                 @click="handleSuspendResume"
               >
+                <svg v-if="singleSelected?.suspended_via_gui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" /></svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
                 {{
                   singleSelected?.suspended_via_gui
                     ? $t("projects.drawer.resume")
@@ -541,10 +547,12 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
               "
             >
               <button
-                class="btn"
+                class="btn icon-btn"
                 :disabled="actionBusy"
                 @click="handleNoNewAllowTasks"
               >
+                <svg v-if="singleSelected?.dont_request_more_work" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" /></svg>
                 {{
                   singleSelected?.dont_request_more_work
                     ? $t("projects.drawer.allowNewTasks")
@@ -556,7 +564,8 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
               v-if="selectedUrls.size === 1"
               :text="$t('projects.tooltip.properties')"
             >
-              <button class="btn" @click="openProperties">
+              <button class="btn icon-btn" @click="openProperties">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>
                 {{ $t("projects.drawer.properties") }}
               </button>
             </Tooltip>
@@ -564,12 +573,14 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 
           <div class="drawer-section drawer-danger">
             <Tooltip :text="$t('projects.tooltip.reset')">
-              <button class="btn btn-danger" @click="handleReset">
+              <button class="btn btn-danger icon-btn" @click="handleReset">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
                 {{ $t("projects.drawer.reset") }}
               </button>
             </Tooltip>
             <Tooltip :text="$t('projects.tooltip.detach')">
-              <button class="btn btn-danger" @click="handleDetach">
+              <button class="btn btn-danger icon-btn" @click="handleDetach">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                 {{ $t("projects.drawer.detach") }}
               </button>
             </Tooltip>
@@ -620,15 +631,17 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       @close="showProperties = false"
     />
 
-    <button class="fab" :title="$t('sidebar.addProject')" @click.stop="openAttachWizard">
-      <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
-        <path
-          fill-rule="evenodd"
-          d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-          clip-rule="evenodd"
-        />
-      </svg>
-    </button>
+    <Tooltip :text="$t('sidebar.addProject')">
+      <button class="fab" @click.stop="openAttachWizard">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+          <path
+            fill-rule="evenodd"
+            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+            clip-rule="evenodd"
+          />
+        </svg>
+      </button>
+    </Tooltip>
   </div>
 </template>
 
@@ -760,6 +773,10 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 .drawer-section .btn {
   width: 100%;
   text-align: left;
+}
+
+.drawer-section .icon-btn {
+  padding-left: 8px;
 }
 
 .drawer-danger {

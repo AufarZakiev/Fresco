@@ -36,7 +36,6 @@ import {
   setGpuMode,
   shutdownClient,
   disconnect,
-  getHostInfo,
   startBoincClient,
 } from "./composables/useRpc";
 
@@ -344,17 +343,6 @@ watch(
   async (newState) => {
     if (newState === CONNECTION_STATE.CONNECTED) {
       wasConnected = true;
-      try {
-        const { getCurrentWebviewWindow } =
-          await import("@tauri-apps/api/webviewWindow");
-        const win = getCurrentWebviewWindow();
-        const info = await getHostInfo();
-        if (info.domain_name) {
-          win.setTitle(`BOINC — ${info.domain_name}`);
-        }
-      } catch {
-        // ignore if not in Tauri environment
-      }
     } else if (newState === CONNECTION_STATE.RECONNECTING) {
       // Don't reset wasConnected — we're trying to reconnect
     } else if (wasConnected && newState !== CONNECTION_STATE.CONNECTING) {
@@ -363,6 +351,7 @@ watch(
     }
   },
 );
+
 </script>
 
 <template>
@@ -681,6 +670,41 @@ input,
 textarea,
 select {
   color-scheme: light dark;
+}
+
+/* Global icon button style for drawer actions */
+.btn.icon-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding-left: 8px !important;
+}
+
+.icon-btn svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* Global dialog animations */
+.dialog-overlay {
+  animation: overlay-in 0.2s ease;
+}
+
+.dialog-overlay > * {
+  animation: dialog-in 0.2s cubic-bezier(0.2, 0, 0.13, 1.5);
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
 }
 </style>
 

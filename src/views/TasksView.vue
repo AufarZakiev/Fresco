@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, ref } from "vue";
+import { computed, h, nextTick, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useTasksStore } from "../stores/tasks";
 import type { TaskResult } from "../types/boinc";
@@ -284,6 +284,7 @@ const allSelected = computed(() => {
 });
 
 function handleRowClick(task: TaskResult, index: number, event: MouseEvent) {
+  ctxOpen.value = false;
   selectedViaContext.value = false;
   if (event.ctrlKey || event.metaKey) {
     const next = new Set(selectedNames.value);
@@ -323,19 +324,23 @@ function isSelected(task: TaskResult): boolean {
   return selectedNames.value.has(task.name);
 }
 
-function handleRowContext(event: MouseEvent, task: TaskResult, index: number) {
+async function handleRowContext(event: MouseEvent, task: TaskResult, index: number) {
   selectedViaContext.value = true;
   if (!selectedNames.value.has(task.name)) {
     selectedNames.value = new Set([task.name]);
     lastClickedIndex.value = index;
   }
+  ctxOpen.value = false;
+  await nextTick();
   ctxX.value = event.clientX;
   ctxY.value = event.clientY;
   ctxOpen.value = true;
 }
 
-function handleTableContext(event: MouseEvent) {
+async function handleTableContext(event: MouseEvent) {
   selectedViaContext.value = true;
+  ctxOpen.value = false;
+  await nextTick();
   ctxX.value = event.clientX;
   ctxY.value = event.clientY;
   ctxOpen.value = true;
@@ -565,10 +570,12 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
               "
             >
               <button
-                class="btn"
+                class="btn icon-btn"
                 :disabled="actionBusy"
                 @click="handleSuspendResume"
               >
+                <svg v-if="allSelectedSuspended" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" /></svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
                 {{ suspendResumeLabel }}
               </button>
             </Tooltip>
@@ -577,10 +584,11 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
               :text="$t('tasks.context.showGraphics')"
             >
               <button
-                class="btn"
+                class="btn icon-btn"
                 :disabled="actionBusy"
                 @click="handleShowGraphics"
               >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
                 {{ $t("tasks.graphics") }}
               </button>
             </Tooltip>
@@ -588,7 +596,8 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
               v-if="selectedNames.size === 1"
               :text="$t('tasks.tooltip.properties')"
             >
-              <button class="btn" @click="openProperties">
+              <button class="btn icon-btn" @click="openProperties">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>
                 {{ $t("tasks.properties") }}
               </button>
             </Tooltip>
@@ -597,10 +606,11 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
           <div class="drawer-section drawer-danger">
             <Tooltip :text="$t('tasks.tooltip.abort')">
               <button
-                class="btn btn-danger"
+                class="btn btn-danger icon-btn"
                 :disabled="actionBusy"
                 @click="confirmAbort = true"
               >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                 {{ $t("tasks.abort") }}
               </button>
             </Tooltip>
@@ -745,6 +755,10 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 .drawer-section .btn {
   width: 100%;
   text-align: left;
+}
+
+.drawer-section .icon-btn {
+  padding-left: 8px;
 }
 
 .drawer-danger {
