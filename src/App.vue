@@ -452,6 +452,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Global focus-visible outline for keyboard navigation (WCAG 2.4.7) */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Remove default focus for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* Global button styles */
 .btn {
   padding: 6px 14px;
