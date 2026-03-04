@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, ref } from "vue";
+import { computed, h, inject, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useProjectsStore } from "../stores/projects";
 import type { Project } from "../types/boinc";
@@ -26,6 +26,7 @@ const { t } = useI18n();
 const store = useProjectsStore();
 const toast = useToastStore();
 const actionBusy = ref(false);
+const openAttachWizard = inject<() => void>("openAttachWizard", () => {});
 
 const selectedUrls = ref<Set<string>>(new Set());
 const lastClickedIndex = ref<number | null>(null);
@@ -618,11 +619,22 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       :project="propertiesProject ?? undefined"
       @close="showProperties = false"
     />
+
+    <button class="fab" :title="$t('sidebar.addProject')" @click.stop="openAttachWizard">
+      <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+        <path
+          fill-rule="evenodd"
+          d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+          clip-rule="evenodd"
+        />
+      </svg>
+    </button>
   </div>
 </template>
 
 <style scoped>
 .projects-view {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -798,5 +810,42 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   padding-left: 0;
   padding-right: 0;
   opacity: 0;
+}
+
+.fab {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: none;
+  background: var(--color-accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow:
+    0 3px 5px -1px rgba(0, 0, 0, 0.2),
+    0 6px 10px 0 rgba(0, 0, 0, 0.14),
+    0 1px 18px 0 rgba(0, 0, 0, 0.12);
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fab:hover {
+  background: var(--color-accent-hover);
+  box-shadow:
+    0 5px 5px -3px rgba(0, 0, 0, 0.2),
+    0 8px 10px 1px rgba(0, 0, 0, 0.14),
+    0 3px 14px 2px rgba(0, 0, 0, 0.12);
+  transform: scale(1.05);
+}
+
+.fab:active {
+  transform: scale(0.97);
 }
 </style>

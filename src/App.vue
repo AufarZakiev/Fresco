@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, provide } from "vue";
 import { onKeyStroke, useEventListener } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
@@ -59,6 +59,7 @@ const showAbout = ref(false);
 const showSelectComputer = ref(false);
 const showAttachWizard = ref(false);
 const showAcctMgr = ref(false);
+provide("openAttachWizard", () => { showAttachWizard.value = true; });
 const prefsInitialTab = ref<"computing" | "manager">("computing");
 const showExitConfirm = ref(false);
 const initializing = ref(true);
@@ -90,6 +91,35 @@ const hasSidebar = computed(
     connection.state === CONNECTION_STATE.CONNECTED ||
     connection.state === CONNECTION_STATE.RECONNECTING,
 );
+
+const statusDotClass = computed(() => {
+  const state = connection.state;
+  if (state === CONNECTION_STATE.CONNECTED) return "status-dot-connected";
+  if (state === CONNECTION_STATE.RECONNECTING) return "status-dot-reconnecting";
+  if (
+    state === CONNECTION_STATE.AUTH_ERROR ||
+    (typeof state === "object" && "Error" in state)
+  )
+    return "status-dot-error";
+  return "status-dot-disconnected";
+});
+
+const statusText = computed(() => {
+  const state = connection.state;
+  if (state === CONNECTION_STATE.CONNECTED) return t("statusBar.connected");
+  if (state === CONNECTION_STATE.RECONNECTING)
+    return t("statusBar.reconnecting", {
+      attempt: connection.reconnectAttempt,
+      max: connection.maxReconnectAttempts,
+    });
+  if (state === CONNECTION_STATE.CONNECTING) return t("statusBar.connecting");
+  if (state === CONNECTION_STATE.AUTH_ERROR) return t("statusBar.authError");
+  if (state === CONNECTION_STATE.DISCONNECTED)
+    return t("statusBar.disconnected");
+  if (typeof state === "object" && "Error" in state)
+    return t("statusBar.error");
+  return t("statusBar.disconnected");
+});
 let autoConnectCancelled = false;
 
 useWindowState();
@@ -451,76 +481,88 @@ watch(
               </template>
             </svg>
             {{ item.label }}
+            <Tooltip v-if="item.path === '/projects'" :text="$t('sidebar.accountManager')" placement="bottom">
+              <button
+                class="nav-item-add"
+                @click.prevent.stop="showAcctMgr = true"
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </button>
+            </Tooltip>
+            <Tooltip v-if="item.path === '/host'" :text="$t('sidebar.selectComputer')" placement="bottom">
+              <button
+                class="nav-item-add"
+                @click.prevent.stop="showSelectComputer = true"
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                  <path
+                    fill-rule="evenodd"
+                    d="M3 5a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm11 1H6v3h8V6zM6 15a1 1 0 100 2h8a1 1 0 100-2H6z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </button>
+            </Tooltip>
           </router-link>
         </div>
       </nav>
 
       <div class="sidebar-footer">
-        <div class="sidebar-global-actions">
-          <button class="sidebar-global-btn" @click="showAttachWizard = true">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-              <path
-                fill-rule="evenodd"
-                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            {{ $t("sidebar.addProject") }}
-          </button>
-          <button class="sidebar-global-btn" @click="showAcctMgr = true">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-              <path
-                fill-rule="evenodd"
-                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            {{ $t("sidebar.accountManager") }}
-          </button>
-        </div>
         <ActivityControls />
         <div class="sidebar-actions">
-          <Tooltip :text="$t('sidebar.selectComputer')">
-            <button
-              class="sidebar-action-btn"
-              @click="showSelectComputer = true"
-            >
-              <svg
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                width="18"
-                height="18"
+          <div class="sidebar-status">
+            <span class="status-dot" :class="statusDotClass" />
+            <span class="status-label">{{ statusText }}</span>
+          </div>
+          <div class="sidebar-actions-btns">
+            <Tooltip :text="$t('sidebar.preferences')">
+              <button
+                class="sidebar-action-btn"
+                @click="
+                  prefsInitialTab = 'computing';
+                  showPreferences = true;
+                "
               >
-                <path
-                  fill-rule="evenodd"
-                  d="M3 5a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm11 1H6v3h8V6zM6 15a1 1 0 100 2h8a1 1 0 100-2H6z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </button>
-          </Tooltip>
-          <Tooltip :text="$t('sidebar.preferences')">
-            <button
-              class="sidebar-action-btn"
-              @click="
-                prefsInitialTab = 'computing';
-                showPreferences = true;
-              "
-            >
-              <svg
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                width="18"
-                height="18"
+                <svg
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  width="18"
+                  height="18"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </button>
+            </Tooltip>
+            <Tooltip :text="$t('statusBar.about')">
+              <button
+                class="sidebar-action-btn"
+                @click="showAbout = true"
               >
-                <path
-                  fill-rule="evenodd"
-                  d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </button>
-          </Tooltip>
+                <svg
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  width="18"
+                  height="18"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </button>
+            </Tooltip>
+          </div>
         </div>
       </div>
     </aside>
@@ -529,7 +571,7 @@ watch(
       <router-view />
     </main>
 
-    <StatusBar v-if="hasSidebar" @show-about="showAbout = true" />
+    <StatusBar v-if="hasSidebar" />
 
     <PreferencesDialog
       :open="showPreferences"
@@ -657,7 +699,6 @@ select {
 
 .main-content {
   flex: 1;
-  padding-bottom: 28px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -676,14 +717,14 @@ select {
   display: flex;
   flex-direction: column;
   z-index: var(--z-sidebar-overlay);
-  overflow-y: auto;
 }
 
 /* ── Nav ──────────────────────────────────────────────────────── */
 
 .sidebar-nav {
   flex: 1;
-  padding: 4px 8px;
+  padding: 4px 0 4px 8px;
+  overflow-y: auto;
 }
 
 .nav-group {
@@ -730,12 +771,20 @@ select {
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
+  margin-right: 8px;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-md);
   text-decoration: none;
   color: var(--color-text-secondary);
-  transition: all var(--transition-fast);
   font-weight: 450;
+  clip-path: polygon(0 0, 100% 0, 100% 50%, 100% 100%, 0 100%);
+  transition:
+    background 0.25s ease,
+    color 0.25s ease,
+    clip-path 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-radius 0.3s ease;
 }
 
 .nav-item:hover {
@@ -744,9 +793,13 @@ select {
 }
 
 .nav-item.active {
-  background: var(--color-accent-light);
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
   color: var(--color-accent);
   font-weight: 550;
+  margin-right: 0;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  padding-right: 22px;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%);
 }
 
 .nav-icon {
@@ -756,6 +809,35 @@ select {
   opacity: 0.7;
 }
 
+.nav-item-add {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.nav-item:hover .nav-item-add {
+  opacity: 1;
+}
+
+.nav-item.active .nav-item-add {
+  margin-right: 8px;
+}
+
+.nav-item-add:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-accent);
+}
+
 .nav-item.active .nav-icon {
   opacity: 1;
 }
@@ -763,43 +845,63 @@ select {
 /* ── Footer ───────────────────────────────────────────────────── */
 
 .sidebar-footer {
-  padding: 12px;
+  padding: 4px 12px 6px;
   border-top: 1px solid var(--color-border);
-}
-
-.sidebar-global-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-bottom: 8px;
-}
-
-.sidebar-global-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 6px 8px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: 450;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  text-align: left;
-}
-
-.sidebar-global-btn:hover {
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
 }
 
 .sidebar-actions {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   margin-top: 8px;
+}
+
+.sidebar-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot-connected {
+  background: var(--color-success);
+}
+
+.status-dot-reconnecting {
+  background: var(--color-warning);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.status-dot-error {
+  background: var(--color-danger);
+}
+
+.status-dot-disconnected {
+  background: var(--color-text-tertiary);
+}
+
+.status-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-actions-btns {
+  display: flex;
+  gap: 2px;
 }
 
 .sidebar-action-btn {

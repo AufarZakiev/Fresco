@@ -61,8 +61,10 @@ watch(
 async function loadCurrentInfo() {
   loading.value = true;
   try {
-    currentMgr.value = await acctMgrInfo();
-  } catch {
+    const info = await acctMgrInfo();
+    currentMgr.value = info;
+  } catch (e) {
+    console.error("Failed to load account manager info:", e);
     currentMgr.value = null;
   } finally {
     loading.value = false;
@@ -179,7 +181,10 @@ function close() {
         </div>
 
         <!-- Step 1: Form -->
-        <div v-if="step === 'form'" class="wizard-body">
+        <div v-if="step === 'form' && loading" class="wizard-body wizard-center">
+          <div class="spinner"></div>
+        </div>
+        <div v-else-if="step === 'form'" class="wizard-body">
           <!-- Current manager info -->
           <div v-if="currentMgr?.have_credentials" class="current-mgr">
             <div class="current-mgr-label">

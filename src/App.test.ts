@@ -202,8 +202,8 @@ describe("App", () => {
     const texts = tooltips.map((t: { props: (key: string) => string }) =>
       t.props("text"),
     );
-    expect(texts).toContain("Select Computer");
     expect(texts).toContain("Preferences");
+    expect(texts).toContain("About");
   });
 
   it("prevents Backspace on non-editable targets", async () => {
