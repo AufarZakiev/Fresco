@@ -225,7 +225,8 @@
     "totalDisk": "ディスク総容量",
     "boincUsage": "BOINC 使用量",
     "freeSpace": "空き容量",
-    "allowed": "許可量"
+    "allowed": "許可量",
+    "chartLabel": "ディスク使用量チャート"
   },
   "host": {
     "title": "ホスト情報",
@@ -281,7 +282,8 @@
     "user": "参加者",
     "host": "計算機",
     "totalCredit": "合計クレジット",
-    "avgCredit": "平均クレジット"
+    "avgCredit": "平均クレジット",
+    "chartLabel": "統計チャート"
   },
   "notices": {
     "title": "お知らせ",
@@ -447,7 +449,10 @@
     "net": "ネットワーク",
     "always": "常時通知",
     "auto": "自動",
-    "suspend": "一時停止"
+    "suspend": "一時停止",
+    "cpuModeLabel": "CPUモード",
+    "gpuModeLabel": "GPUモード",
+    "netModeLabel": "ネットワークモード"
   },
   "statusBar": {
     "connected": "接続しました",

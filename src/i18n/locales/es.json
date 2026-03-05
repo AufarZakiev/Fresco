@@ -225,7 +225,8 @@
     "totalDisk": "Disco total",
     "boincUsage": "Uso de BOINC",
     "freeSpace": "Espacio libre",
-    "allowed": "Permitido"
+    "allowed": "Permitido",
+    "chartLabel": "Gráfico de uso de disco"
   },
   "host": {
     "title": "Información del ordenador",
@@ -281,7 +282,8 @@
     "user": "Usuario",
     "host": "Ordenador",
     "totalCredit": "Crédito total",
-    "avgCredit": "Crédito promedio"
+    "avgCredit": "Crédito promedio",
+    "chartLabel": "Gráfico de estadísticas"
   },
   "notices": {
     "title": "Avisos",
@@ -447,7 +449,10 @@
     "net": "Red",
     "always": "siempre",
     "auto": "Automático",
-    "suspend": "Suspender"
+    "suspend": "Suspender",
+    "cpuModeLabel": "Modo de CPU",
+    "gpuModeLabel": "Modo de GPU",
+    "netModeLabel": "Modo de red"
   },
   "statusBar": {
     "connected": "Conectado",

@@ -24,7 +24,7 @@ function handleNetworkMode(event: Event) {
   <div class="activity-controls">
     <label class="mode-control">
       <span class="mode-label">{{ $t("activity.cpu") }}</span>
-      <select :value="client.status.task_mode_perm" @change="handleRunMode">
+      <select :value="client.status.task_mode_perm" :aria-label="$t('activity.cpuModeLabel')" @change="handleRunMode">
         <option :value="RUN_MODE.ALWAYS">{{ $t("activity.always") }}</option>
         <option :value="RUN_MODE.AUTO">{{ $t("activity.auto") }}</option>
         <option :value="RUN_MODE.NEVER">{{ $t("activity.suspend") }}</option>
@@ -33,7 +33,7 @@ function handleNetworkMode(event: Event) {
 
     <label class="mode-control">
       <span class="mode-label">{{ $t("activity.gpu") }}</span>
-      <select :value="client.status.gpu_mode_perm" @change="handleGpuMode">
+      <select :value="client.status.gpu_mode_perm" :aria-label="$t('activity.gpuModeLabel')" @change="handleGpuMode">
         <option :value="RUN_MODE.ALWAYS">{{ $t("activity.always") }}</option>
         <option :value="RUN_MODE.AUTO">{{ $t("activity.auto") }}</option>
         <option :value="RUN_MODE.NEVER">{{ $t("activity.suspend") }}</option>
@@ -44,6 +44,7 @@ function handleNetworkMode(event: Event) {
       <span class="mode-label">{{ $t("activity.net") }}</span>
       <select
         :value="client.status.network_mode_perm"
+        :aria-label="$t('activity.netModeLabel')"
         @change="handleNetworkMode"
       >
         <option :value="RUN_MODE.ALWAYS">{{ $t("activity.always") }}</option>

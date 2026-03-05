@@ -163,6 +163,8 @@ onUnmounted(() => {
           <h3 class="section-title">{{ $t("disk.boincByProject") }}</h3>
           <div class="boinc-chart-card">
             <svg
+              role="img"
+              :aria-label="$t('disk.chartLabel')"
               width="240"
               height="240"
               viewBox="0 0 240 240"

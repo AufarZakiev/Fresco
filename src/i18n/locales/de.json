@@ -225,7 +225,8 @@
     "totalDisk": "Gesamtspeicher",
     "boincUsage": "BOINC-Nutzung",
     "freeSpace": "Freier Speicher",
-    "allowed": "Erlaubt"
+    "allowed": "Erlaubt",
+    "chartLabel": "Diagramm zur Festplattennutzung"
   },
   "host": {
     "title": "Rechnerinformationen",
@@ -281,7 +282,8 @@
     "user": "Benutzer",
     "host": "Rechner",
     "totalCredit": "Gesamtguthaben",
-    "avgCredit": "Durchschnittliches Guthaben"
+    "avgCredit": "Durchschnittliches Guthaben",
+    "chartLabel": "Statistikdiagramm"
   },
   "notices": {
     "title": "Nachrichten",
@@ -447,7 +449,10 @@
     "net": "Netz",
     "always": "ständig",
     "auto": "Auto",
-    "suspend": "Anhalten"
+    "suspend": "Anhalten",
+    "cpuModeLabel": "CPU-Modus",
+    "gpuModeLabel": "GPU-Modus",
+    "netModeLabel": "Netzwerkmodus"
   },
   "statusBar": {
     "connected": "Verbunden",

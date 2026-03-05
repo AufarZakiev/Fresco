@@ -52,6 +52,15 @@ describe("ActivityControls", () => {
     expect(selects).toHaveLength(3);
   });
 
+  it("each select has an aria-label", () => {
+    const wrapper = mount(ActivityControls);
+    const selects = wrapper.findAll("select");
+
+    selects.forEach((select) => {
+      expect(select.attributes("aria-label")).toBeTruthy();
+    });
+  });
+
   it("displays current mode values", () => {
     const store = useClientStore();
     store.status = {
