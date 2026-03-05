@@ -11,10 +11,11 @@ const toast = useToastStore();
         <div
           v-for="t in toast.toasts"
           :key="t.id"
+          role="status"
           :class="['toast', `toast-${t.type}`]"
           @click="toast.dismiss(t.id)"
         >
-          <span class="toast-icon">
+          <span class="toast-icon" aria-hidden="true">
             <template v-if="t.type === 'success'">&#x2713;</template>
             <template v-else-if="t.type === 'error'">&#x2717;</template>
             <template v-else>&#x2139;</template>

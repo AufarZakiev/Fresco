@@ -67,4 +67,25 @@ describe("StatusBar", () => {
     const wrapper = mount(StatusBar);
     expect(wrapper.find(".about-btn").exists()).toBe(true);
   });
+
+  it("has contentinfo role on status bar", () => {
+    const conn = useConnectionStore();
+    conn.state = CONNECTION_STATE.CONNECTED;
+    const wrapper = mount(StatusBar);
+    expect(wrapper.find(".status-bar").attributes("role")).toBe("contentinfo");
+  });
+
+  it("about button has aria-label", () => {
+    const conn = useConnectionStore();
+    conn.state = CONNECTION_STATE.CONNECTED;
+    const wrapper = mount(StatusBar);
+    expect(wrapper.find(".about-btn").attributes("aria-label")).toBe("About");
+  });
+
+  it("status dot is hidden from screen readers", () => {
+    const conn = useConnectionStore();
+    conn.state = CONNECTION_STATE.CONNECTED;
+    const wrapper = mount(StatusBar);
+    expect(wrapper.find(".status-dot").attributes("aria-hidden")).toBe("true");
+  });
 });
