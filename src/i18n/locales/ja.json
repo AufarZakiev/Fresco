@@ -441,7 +441,8 @@
     "connect": "接続",
     "or": "または",
     "localInfo": "このコンピュータのBOINCクライアントに接続します。データディレクトリは自動検出されます。",
-    "connectLocal": "ローカル接続"
+    "connectLocal": "ローカル接続",
+    "connectionFailed": "接続に失敗しました"
   },
   "activity": {
     "cpu": "CPU",

@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
-import { connect, connectLocal } from "../composables/useRpc";
+import { useI18n } from "vue-i18n";
 import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
+import { useConnectionStore } from "../stores/connection";
+import { CONNECTION_STATE } from "../types/boinc";
+import { getOS, defaultDataDir } from "../composables/usePlatform";
 
 const props = defineProps<{ open: boolean }>();
-const emit = defineEmits<{ close: [] }>();
+const emit = defineEmits<{ close: []; connected: [] }>();
+
+const { t } = useI18n();
+const connection = useConnectionStore();
 
 const dialogRef = ref<HTMLElement | null>(null);
 const { activate, deactivate } = useFocusTrap(dialogRef);
@@ -36,22 +42,29 @@ const error = ref("");
 async function doConnect() {
   connecting.value = true;
   error.value = "";
-  try {
-    await connect(hostname.value, port.value, password.value);
+  await connection.connectToRemote(hostname.value.trim(), port.value, password.value);
+  if (connection.state === CONNECTION_STATE.CONNECTED) {
+    emit("connected");
     emit("close");
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    connecting.value = false;
+  } else {
+    error.value = connection.error ?? t("selectComputer.connectionFailed");
   }
+  connecting.value = false;
 }
 
 async function doConnectLocal() {
   connecting.value = true;
   error.value = "";
   try {
-    await connectLocal("");
-    emit("close");
+    const os = await getOS();
+    const dataDir = defaultDataDir(os);
+    await connection.connectToLocal(dataDir);
+    if (connection.state === CONNECTION_STATE.CONNECTED) {
+      emit("connected");
+      emit("close");
+    } else {
+      error.value = connection.error ?? t("selectComputer.connectionFailed");
+    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {

@@ -441,7 +441,8 @@
     "connect": "连接",
     "or": "或",
     "localInfo": "连接到本机上的 BOINC 客户端。数据目录将自动检测。",
-    "connectLocal": "连接本地"
+    "connectLocal": "连接本地",
+    "connectionFailed": "连接失败"
   },
   "activity": {
     "cpu": "CPU",

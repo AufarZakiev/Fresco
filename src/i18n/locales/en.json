@@ -441,7 +441,8 @@
     "connect": "Connect",
     "or": "or",
     "localInfo": "Connect to the BOINC client on this computer. The data directory will be auto-detected.",
-    "connectLocal": "Connect Local"
+    "connectLocal": "Connect Local",
+    "connectionFailed": "Connection failed"
   },
   "activity": {
     "cpu": "CPU",

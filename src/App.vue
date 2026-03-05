@@ -563,6 +563,7 @@ watch(
     <SelectComputerDialog
       :open="showSelectComputer"
       @close="showSelectComputer = false"
+      @connected="startAllPolling(); router.push('/tasks')"
     />
     <ExitConfirmDialog
       :open="showExitConfirm"
