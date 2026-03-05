@@ -35,7 +35,14 @@
     "graphics": "Gráficos",
     "abort": "Cancelar",
     "properties": "Propiedades",
+    "nTasks": "{count} tareas seleccionadas",
     "columns": "Columnas",
+    "tooltip": {
+      "suspend": "Suspender temporalmente las tareas seleccionadas",
+      "resume": "Reanudar las tareas seleccionadas",
+      "abort": "Eliminar permanentemente las tareas seleccionadas",
+      "properties": "Ver información detallada de la tarea"
+    },
     "loading": "Cargando tareas...",
     "emptyActive": "No hay tareas activas en este momento.",
     "emptyAll": "No hay tareas. Añada un proyecto para empezar a computar.",
@@ -151,7 +158,12 @@
     "title": "Transferencias",
     "retry": "Reintentar",
     "abort": "Cancelar",
+    "nTransfers": "{count} transferencias seleccionadas",
     "columns": "Columnas",
+    "tooltip": {
+      "retry": "Reintentar las transferencias seleccionadas",
+      "abort": "Cancelar las transferencias seleccionadas"
+    },
     "loading": "Cargando transferencias...",
     "empty": "No hay transferencias de archivos activas.",
     "col": {

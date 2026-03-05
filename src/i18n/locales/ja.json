@@ -35,7 +35,14 @@
     "graphics": "グラフィック",
     "abort": "中止",
     "properties": "プロパティ",
+    "nTasks": "{count}件のタスクを選択中",
     "columns": "列",
+    "tooltip": {
+      "suspend": "選択したタスクを一時停止",
+      "resume": "選択したタスクを再開",
+      "abort": "選択したタスクを完全に削除",
+      "properties": "タスクの詳細情報を表示"
+    },
     "loading": "タスクを読み込み中...",
     "emptyActive": "現在実行中のタスクはありません。",
     "emptyAll": "タスクがありません。プロジェクトを追加して計算を開始してください。",
@@ -151,7 +158,12 @@
     "title": "ファイル転送",
     "retry": "再試行",
     "abort": "中止",
+    "nTransfers": "{count}件の転送を選択中",
     "columns": "列",
+    "tooltip": {
+      "retry": "選択した転送を再試行",
+      "abort": "選択した転送を中止"
+    },
     "loading": "転送情報を読み込み中...",
     "empty": "進行中のファイル転送はありません。",
     "col": {
