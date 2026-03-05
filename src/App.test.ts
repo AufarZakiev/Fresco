@@ -222,6 +222,70 @@ describe("App", () => {
     expect(wrapper.find("#main-content").exists()).toBe(true);
   });
 
+  it("renders collapsible nav group as button with aria-expanded", async () => {
+    const router = createTestRouter();
+    await router.push("/tasks");
+    await router.isReady();
+
+    const conn = useConnectionStore();
+    conn.state = CONNECTION_STATE.CONNECTED;
+
+    const wrapper = await mountApp(router);
+
+    const groupButton = wrapper.find("button.nav-group-label");
+    expect(groupButton.exists()).toBe(true);
+    expect(groupButton.attributes("aria-expanded")).toBeDefined();
+  });
+
+  it("toggles aria-expanded on collapsible group click", async () => {
+    const router = createTestRouter();
+    await router.push("/tasks");
+    await router.isReady();
+
+    const conn = useConnectionStore();
+    conn.state = CONNECTION_STATE.CONNECTED;
+
+    const wrapper = await mountApp(router);
+
+    const groupButton = wrapper.find("button.nav-group-label");
+    const initial = groupButton.attributes("aria-expanded");
+
+    await groupButton.trigger("click");
+    const toggled = groupButton.attributes("aria-expanded");
+    expect(toggled).not.toBe(initial);
+  });
+
+  it("renders non-collapsible nav group as span", async () => {
+    const router = createTestRouter();
+    await router.push("/tasks");
+    await router.isReady();
+
+    const conn = useConnectionStore();
+    conn.state = CONNECTION_STATE.CONNECTED;
+
+    const wrapper = await mountApp(router);
+
+    const groupSpans = wrapper.findAll("span.nav-group-label");
+    expect(groupSpans.length).toBeGreaterThan(0);
+    expect(groupSpans[0].element.tagName).toBe("SPAN");
+  });
+
+  it("sidebar icon buttons have aria-label", async () => {
+    const router = createTestRouter();
+    await router.push("/tasks");
+    await router.isReady();
+
+    const conn = useConnectionStore();
+    conn.state = CONNECTION_STATE.CONNECTED;
+
+    const wrapper = await mountApp(router);
+
+    const actionBtns = wrapper.findAll(".sidebar-action-btn");
+    for (const btn of actionBtns) {
+      expect(btn.attributes("aria-label")).toBeTruthy();
+    }
+  });
+
   it("prevents Backspace on non-editable targets", async () => {
     const router = createTestRouter();
     await router.push("/tasks");
