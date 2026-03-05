@@ -16,7 +16,8 @@
     "lint:all": "pnpm lint && pnpm lint:rust",
     "i18n:check": "npx tsx scripts/check-i18n.ts",
     "format": "prettier --write src/",
-    "build:dev": "bash scripts/build-dev.sh"
+    "build:dev": "bash scripts/build-dev.sh",
+    "prepare": "husky"
   },
   "dependencies": {
     "@tanstack/vue-table": "^8.21.3",
@@ -39,12 +40,18 @@
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/test-utils": "^2.4.6",
     "happy-dom": "^20.6.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.2",
     "oxlint": "^1.47.0",
     "prettier": "^3.8.1",
     "typescript": "~5.6.2",
     "vite": "^6.0.3",
     "vitest": "^4.0.18",
     "vue-tsc": "^2.1.10"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,vue}": "oxlint",
+    "src/**/*.test.ts": "vitest related --run"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
