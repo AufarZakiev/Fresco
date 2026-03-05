@@ -6,7 +6,8 @@
       "startingBoinc": "Запуск BOINC, это может занять некоторое время...",
       "boincStarted": "BOINC запущен, подключение...",
       "cancel": "Отмена"
-    }
+    },
+    "skipToContent": "Перейти к содержимому"
   },
   "sidebar": {
     "computing": "Вычисления",

@@ -6,7 +6,8 @@
       "startingBoinc": "正在启动 BOINC，请稍候...",
       "boincStarted": "BOINC 已启动，正在连接...",
       "cancel": "取消"
-    }
+    },
+    "skipToContent": "跳转到内容"
   },
   "sidebar": {
     "computing": "正在计算",
