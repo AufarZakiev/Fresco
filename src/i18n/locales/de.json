@@ -6,7 +6,8 @@
       "startingBoinc": "BOINC wird gestartet, dies kann etwas dauern...",
       "boincStarted": "BOINC gestartet, Verbindung wird hergestellt...",
       "cancel": "Abbrechen"
-    }
+    },
+    "skipToContent": "Zum Inhalt springen"
   },
   "sidebar": {
     "computing": "Berechnung läuft",

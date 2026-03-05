@@ -6,7 +6,8 @@
       "startingBoinc": "BOINC を起動中です。しばらくお待ちください...",
       "boincStarted": "BOINC が起動しました。接続中...",
       "cancel": "キャンセル"
-    }
+    },
+    "skipToContent": "コンテンツへスキップ"
   },
   "sidebar": {
     "computing": "計算",

@@ -206,6 +206,22 @@ describe("App", () => {
     expect(texts).toContain("About");
   });
 
+  it("renders skip-to-content link targeting #main-content", async () => {
+    const router = createTestRouter();
+    await router.push("/tasks");
+    await router.isReady();
+
+    const conn = useConnectionStore();
+    conn.state = CONNECTION_STATE.CONNECTED;
+
+    const wrapper = await mountApp(router);
+
+    const skipLink = wrapper.find("a.skip-link");
+    expect(skipLink.exists()).toBe(true);
+    expect(skipLink.attributes("href")).toBe("#main-content");
+    expect(wrapper.find("#main-content").exists()).toBe(true);
+  });
+
   it("prevents Backspace on non-editable targets", async () => {
     const router = createTestRouter();
     await router.push("/tasks");

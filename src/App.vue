@@ -383,6 +383,7 @@ watch(
     </div>
   </div>
   <div v-else class="app" :class="{ 'has-sidebar': hasSidebar }">
+    <a href="#main-content" class="skip-link">{{ $t("app.skipToContent") }}</a>
     <button
       v-if="hasSidebar"
       class="hamburger-btn"
@@ -539,7 +540,7 @@ watch(
         </div>
       </div>
     </aside>
-    <main class="main-content" :style="{ '--status-bar-offset': hasStatusBar ? '28px' : '0px' }">
+    <main id="main-content" class="main-content" :style="{ '--status-bar-offset': hasStatusBar ? '28px' : '0px' }">
       <UpdateBanner v-if="updateAvailable && !dismissed" />
       <router-view />
     </main>
@@ -992,6 +993,27 @@ select {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ── Skip-to-content link (visible only on keyboard focus) ──── */
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 1000;
+  padding: 8px 16px;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+  top: 8px;
 }
 
 /* ── Hamburger button (mobile only) ─────────────────────────── */
