@@ -1,6 +1,9 @@
 # Normalize line endings to CRLF for all text files
 * text=auto eol=crlf
 
+# Git hooks must use LF (CRLF breaks shebang on Unix)
+.githooks/* text eol=lf
+
 # Explicitly declare binary files to prevent corruption
 *.png binary
 *.jpg binary

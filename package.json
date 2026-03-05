@@ -16,7 +16,8 @@
     "lint:all": "pnpm lint && pnpm lint:rust",
     "i18n:check": "npx tsx scripts/check-i18n.ts",
     "format": "prettier --write src/",
-    "build:dev": "bash scripts/build-dev.sh"
+    "build:dev": "bash scripts/build-dev.sh",
+    "prepare": "command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git config --local core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@tanstack/vue-table": "^8.21.3",
