@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
-import { ref } from "vue";
 import UpdateBanner from "./UpdateBanner.vue";
 
 const {
@@ -9,16 +8,13 @@ const {
   mockUpdateOnExit,
   mockReleaseDate,
   mockAssetUrl,
-} = vi.hoisted(() => {
-  const { ref } = require("vue");
-  return {
-    mockDismissUpdate: vi.fn(),
-    mockStartBackgroundDownload: vi.fn(),
-    mockUpdateOnExit: ref(false),
-    mockReleaseDate: ref("2025-12-01T10:00:00Z"),
-    mockAssetUrl: ref("https://example.com/update.dmg"),
-  };
-});
+} = vi.hoisted(() => ({
+  mockDismissUpdate: vi.fn(),
+  mockStartBackgroundDownload: vi.fn(),
+  mockUpdateOnExit: { value: false },
+  mockReleaseDate: { value: "2025-12-01T10:00:00Z" },
+  mockAssetUrl: { value: "https://example.com/update.dmg" },
+}));
 
 vi.mock("../composables/useUpdateCheck", () => ({
   useUpdateCheck: () => ({
