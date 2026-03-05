@@ -406,17 +406,22 @@ watch(
     <aside v-if="hasSidebar" class="sidebar" :class="{ open: sidebarOpen }">
       <nav class="sidebar-nav">
         <div v-for="group in navGroups" :key="group.key" class="nav-group">
-          <span
-            class="nav-group-label"
-            :class="{ clickable: group.collapsible }"
-            @click="group.collapsible && toggleCollapsed(group.key)"
+          <button
+            v-if="group.collapsible"
+            type="button"
+            class="nav-group-label clickable"
+            :aria-expanded="!isCollapsed(group.key)"
+            @click="toggleCollapsed(group.key)"
           >
             <span
-              v-if="group.collapsible"
               class="nav-group-chevron"
               :class="{ collapsed: isCollapsed(group.key) }"
+              aria-hidden="true"
               >&#9662;</span
             >
+            {{ group.label }}
+          </button>
+          <span v-else class="nav-group-label">
             {{ group.label }}
           </span>
           <router-link
@@ -498,6 +503,7 @@ watch(
             <Tooltip :text="$t('sidebar.preferences')">
               <button
                 class="sidebar-action-btn"
+                :aria-label="$t('sidebar.preferences')"
                 @click="
                   prefsInitialTab = 'computing';
                   showPreferences = true;
@@ -520,6 +526,7 @@ watch(
             <Tooltip :text="$t('statusBar.about')">
               <button
                 class="sidebar-action-btn"
+                :aria-label="$t('statusBar.about')"
                 @click="showAbout = true"
               >
                 <svg
@@ -751,6 +758,19 @@ select {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 2px;
+}
+
+button.nav-group-label {
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: left;
+  width: 100%;
+  padding: 0;
 }
 
 .nav-group-label.clickable {
