@@ -17,19 +17,36 @@ import { decimalHoursToTimeString } from "../utils/timeConversion";
 import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
 type TabName = "computing" | "network" | "storage" | "schedule" | "manager";
-const TAB_NAMES: TabName[] = ["computing", "network", "storage", "schedule", "manager"];
+const TAB_NAMES: TabName[] = [
+  "computing",
+  "network",
+  "storage",
+  "schedule",
+  "manager",
+];
 
-const props = withDefaults(defineProps<{ open: boolean; initialTab?: TabName }>(), {
-  initialTab: "computing",
-});
+const props = withDefaults(
+  defineProps<{ open: boolean; initialTab?: TabName }>(),
+  {
+    initialTab: "computing",
+  },
+);
 const emit = defineEmits<{ close: [] }>();
 
 const dialogRef = ref<HTMLElement | null>(null);
 const { activate, deactivate } = useFocusTrap(dialogRef);
-watch(() => props.open, async (isOpen) => {
-  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
-  else { deactivate(); }
-});
+watch(
+  () => props.open,
+  async (isOpen) => {
+    if (isOpen) {
+      await nextTick();
+      if (!props.open) return;
+      activate();
+    } else {
+      deactivate();
+    }
+  },
+);
 
 const { t, locale } = useI18n({ useScope: "global" });
 const store = usePreferencesStore();
@@ -39,7 +56,9 @@ const activeTab = ref<TabName>("computing");
 function switchTab(name: TabName) {
   activeTab.value = name;
   nextTick(() => {
-    const el = dialogRef.value?.querySelector(`#tab-${name}`) as HTMLElement | null;
+    const el = dialogRef.value?.querySelector(
+      `#tab-${name}`,
+    ) as HTMLElement | null;
     el?.focus();
   });
 }
@@ -47,8 +66,11 @@ function switchTab(name: TabName) {
 function onTabKeydown(event: KeyboardEvent) {
   const currentEl = event.currentTarget as HTMLElement | null;
   const currentId = currentEl?.id ?? "";
-  const fromName = currentId.startsWith("tab-") ? (currentId.slice(4) as TabName) : undefined;
-  const currentTab = fromName && TAB_NAMES.includes(fromName) ? fromName : activeTab.value;
+  const fromName = currentId.startsWith("tab-")
+    ? (currentId.slice(4) as TabName)
+    : undefined;
+  const currentTab =
+    fromName && TAB_NAMES.includes(fromName) ? fromName : activeTab.value;
   const idx = TAB_NAMES.indexOf(currentTab);
   let target: TabName | undefined;
 
@@ -76,13 +98,25 @@ const managerForm = ref({ ...managerStore.settings });
 const form = ref<GlobalPreferences | null>(null);
 const showProxy = ref(false);
 const showExclusiveApps = ref(false);
-const exclusiveAppsRef = ref<InstanceType<typeof ExclusiveAppsDialog> | null>(null);
-const dayEnabled = ref<boolean[]>([false, false, false, false, false, false, false]);
+const exclusiveAppsRef = ref<InstanceType<typeof ExclusiveAppsDialog> | null>(
+  null,
+);
+const dayEnabled = ref<boolean[]>([
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+]);
 const originalSnapshot = ref("");
 
 const hasChanges = computed(() => {
-  const prefsChanged = form.value && JSON.stringify(form.value) !== originalSnapshot.value;
-  const managerChanged = JSON.stringify(managerForm.value) !== JSON.stringify(managerStore.settings);
+  const prefsChanged =
+    form.value && JSON.stringify(form.value) !== originalSnapshot.value;
+  const managerChanged =
+    JSON.stringify(managerForm.value) !== JSON.stringify(managerStore.settings);
   return prefsChanged || managerChanged;
 });
 
@@ -122,7 +156,12 @@ function initForm(prefs: GlobalPreferences) {
   const enabled = [false, false, false, false, false, false, false];
   if (form.value!.day_prefs) {
     for (const dp of form.value!.day_prefs) {
-      if (dp.start_hour !== 0 || dp.end_hour !== 0 || dp.net_start_hour !== 0 || dp.net_end_hour !== 0) {
+      if (
+        dp.start_hour !== 0 ||
+        dp.end_hour !== 0 ||
+        dp.net_start_hour !== 0 ||
+        dp.net_end_hour !== 0
+      ) {
         enabled[dp.day_of_week] = true;
       }
     }
@@ -131,17 +170,34 @@ function initForm(prefs: GlobalPreferences) {
 }
 
 const dayNames = computed(() => [
-  t("prefs.dayNames.sunday"), t("prefs.dayNames.monday"), t("prefs.dayNames.tuesday"),
-  t("prefs.dayNames.wednesday"), t("prefs.dayNames.thursday"), t("prefs.dayNames.friday"),
+  t("prefs.dayNames.sunday"),
+  t("prefs.dayNames.monday"),
+  t("prefs.dayNames.tuesday"),
+  t("prefs.dayNames.wednesday"),
+  t("prefs.dayNames.thursday"),
+  t("prefs.dayNames.friday"),
   t("prefs.dayNames.saturday"),
 ]);
 
 function getDayPref(dayOfWeek: number) {
-  if (!form.value) return { day_of_week: dayOfWeek, start_hour: 0, end_hour: 0, net_start_hour: 0, net_end_hour: 0 };
+  if (!form.value)
+    return {
+      day_of_week: dayOfWeek,
+      start_hour: 0,
+      end_hour: 0,
+      net_start_hour: 0,
+      net_end_hour: 0,
+    };
   if (!form.value.day_prefs) form.value.day_prefs = [];
   let dp = form.value.day_prefs.find((d) => d.day_of_week === dayOfWeek);
   if (!dp) {
-    dp = { day_of_week: dayOfWeek, start_hour: 0, end_hour: 0, net_start_hour: 0, net_end_hour: 0 };
+    dp = {
+      day_of_week: dayOfWeek,
+      start_hour: 0,
+      end_hour: 0,
+      net_start_hour: 0,
+      net_end_hour: 0,
+    };
     form.value.day_prefs.push(dp);
   }
   return dp;
@@ -171,7 +227,11 @@ function defaultBadge(): string {
   return `CPU ${cpu} · Net ${net}`;
 }
 
-function setDayField(dayOfWeek: number, field: "start_hour" | "end_hour" | "net_start_hour" | "net_end_hour", value: number) {
+function setDayField(
+  dayOfWeek: number,
+  field: "start_hour" | "end_hour" | "net_start_hour" | "net_end_hour",
+  value: number,
+) {
   getDayPref(dayOfWeek)[field] = value;
 }
 
@@ -197,13 +257,23 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay">
-      <div ref="dialogRef" class="prefs-dialog" role="dialog" aria-modal="true" aria-labelledby="preferences-dialog-title">
+      <div
+        ref="dialogRef"
+        class="prefs-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="preferences-dialog-title"
+      >
         <div class="prefs-header">
-          <h3 id="preferences-dialog-title">{{ $t('prefs.title') }}</h3>
-          <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
+          <h3 id="preferences-dialog-title">{{ $t("prefs.title") }}</h3>
+          <button class="close-btn" aria-label="Close" @click="emit('close')">
+            &times;
+          </button>
         </div>
 
-        <div v-if="store.loading && !form" class="prefs-loading">{{ $t('prefs.loading') }}</div>
+        <div v-if="store.loading && !form" class="prefs-loading">
+          {{ $t("prefs.loading") }}
+        </div>
 
         <template v-else-if="form">
           <div class="tabs" role="tablist" :aria-label="$t('prefs.title')">
@@ -226,7 +296,14 @@ async function save() {
 
           <div class="prefs-body">
             <!-- Computing tab -->
-            <div v-show="activeTab === 'computing'" id="tabpanel-computing" role="tabpanel" aria-labelledby="tab-computing" class="prefs-section" tabindex="0">
+            <div
+              v-show="activeTab === 'computing'"
+              id="tabpanel-computing"
+              role="tabpanel"
+              aria-labelledby="tab-computing"
+              class="prefs-section"
+              tabindex="0"
+            >
               <PrefToggleSwitch
                 v-model="form.run_on_batteries"
                 :label="$t('prefs.computing.runOnBatteries')"
@@ -327,13 +404,28 @@ async function save() {
                 :min="0"
                 :step="1"
               />
-              <Tooltip :text="$t('prefs.computing.exclusiveAppsTooltip')" placement="bottom">
-                <button class="btn section-btn" @click="showExclusiveApps = true">{{ $t('prefs.computing.exclusiveApps') }}</button>
+              <Tooltip
+                :text="$t('prefs.computing.exclusiveAppsTooltip')"
+                placement="bottom"
+              >
+                <button
+                  class="btn section-btn"
+                  @click="showExclusiveApps = true"
+                >
+                  {{ $t("prefs.computing.exclusiveApps") }}
+                </button>
               </Tooltip>
             </div>
 
             <!-- Network tab -->
-            <div v-show="activeTab === 'network'" id="tabpanel-network" role="tabpanel" aria-labelledby="tab-network" class="prefs-section" tabindex="0">
+            <div
+              v-show="activeTab === 'network'"
+              id="tabpanel-network"
+              role="tabpanel"
+              aria-labelledby="tab-network"
+              class="prefs-section"
+              tabindex="0"
+            >
               <PrefNumericInput
                 v-model="form.max_bytes_sec_down"
                 :label="$t('prefs.network.maxDownload')"
@@ -370,11 +462,20 @@ async function save() {
                 field="net_end_hour"
                 :zero-label="$t('prefs.schedule.allDay')"
               />
-              <button class="btn section-btn" @click="showProxy = true">{{ $t('prefs.network.proxySettings') }}</button>
+              <button class="btn section-btn" @click="showProxy = true">
+                {{ $t("prefs.network.proxySettings") }}
+              </button>
             </div>
 
             <!-- Storage tab -->
-            <div v-show="activeTab === 'storage'" id="tabpanel-storage" role="tabpanel" aria-labelledby="tab-storage" class="prefs-section" tabindex="0">
+            <div
+              v-show="activeTab === 'storage'"
+              id="tabpanel-storage"
+              role="tabpanel"
+              aria-labelledby="tab-storage"
+              class="prefs-section"
+              tabindex="0"
+            >
               <PrefNumericInput
                 v-model="form.disk_max_used_gb"
                 :label="$t('prefs.storage.maxDiskGb')"
@@ -409,18 +510,36 @@ async function save() {
             </div>
 
             <!-- Schedule tab -->
-            <div v-show="activeTab === 'schedule'" id="tabpanel-schedule" role="tabpanel" aria-labelledby="tab-schedule" class="prefs-section" tabindex="0">
-              <p class="section-desc">{{ $t('prefs.schedule.desc') }}</p>
+            <div
+              v-show="activeTab === 'schedule'"
+              id="tabpanel-schedule"
+              role="tabpanel"
+              aria-labelledby="tab-schedule"
+              class="prefs-section"
+              tabindex="0"
+            >
+              <p class="section-desc">{{ $t("prefs.schedule.desc") }}</p>
               <div class="schedule-days">
                 <div v-for="(day, i) in dayNames" :key="i" class="schedule-day">
                   <div class="schedule-day-header">
                     <label class="day-toggle">
-                      <span class="toggle-switch toggle-sm" :class="{ on: dayEnabled[i] }" role="switch" :aria-checked="!!(dayEnabled[i])" tabindex="0" @click.prevent="toggleDay(i, !dayEnabled[i])" @keydown.enter.prevent="toggleDay(i, !dayEnabled[i])" @keydown.space.prevent="toggleDay(i, !dayEnabled[i])">
+                      <span
+                        class="toggle-switch toggle-sm"
+                        :class="{ on: dayEnabled[i] }"
+                        role="switch"
+                        :aria-checked="!!dayEnabled[i]"
+                        tabindex="0"
+                        @click.prevent="toggleDay(i, !dayEnabled[i])"
+                        @keydown.enter.prevent="toggleDay(i, !dayEnabled[i])"
+                        @keydown.space.prevent="toggleDay(i, !dayEnabled[i])"
+                      >
                         <span class="toggle-knob" />
                       </span>
                       <span class="day-name">{{ day }}</span>
                     </label>
-                    <span v-if="!dayEnabled[i]" class="uses-default-badge">{{ defaultBadge() }}</span>
+                    <span v-if="!dayEnabled[i]" class="uses-default-badge">{{
+                      defaultBadge()
+                    }}</span>
                   </div>
                   <div v-if="dayEnabled[i]" class="schedule-day-fields">
                     <TimeRangeSlider
@@ -434,7 +553,9 @@ async function save() {
                       :start-hour="getDayPref(i).net_start_hour"
                       :end-hour="getDayPref(i).net_end_hour"
                       label="Net"
-                      @update:start-hour="setDayField(i, 'net_start_hour', $event)"
+                      @update:start-hour="
+                        setDayField(i, 'net_start_hour', $event)
+                      "
                       @update:end-hour="setDayField(i, 'net_end_hour', $event)"
                     />
                   </div>
@@ -443,62 +564,174 @@ async function save() {
             </div>
 
             <!-- Manager tab -->
-            <div v-show="activeTab === 'manager'" id="tabpanel-manager" role="tabpanel" aria-labelledby="tab-manager" class="prefs-section" tabindex="0">
+            <div
+              v-show="activeTab === 'manager'"
+              id="tabpanel-manager"
+              role="tabpanel"
+              aria-labelledby="tab-manager"
+              class="prefs-section"
+              tabindex="0"
+            >
               <div class="manager-row">
-                <span class="manager-label">{{ $t('prefs.manager.appearance') }}</span>
+                <span class="manager-label">{{
+                  $t("prefs.manager.appearance")
+                }}</span>
                 <select v-model="managerForm.theme" class="manager-select">
-                  <option value="system">{{ $t('prefs.manager.themeSystem') }}</option>
-                  <option value="light">{{ $t('prefs.manager.themeLight') }}</option>
-                  <option value="dark">{{ $t('prefs.manager.themeDark') }}</option>
+                  <option value="system">
+                    {{ $t("prefs.manager.themeSystem") }}
+                  </option>
+                  <option value="light">
+                    {{ $t("prefs.manager.themeLight") }}
+                  </option>
+                  <option value="dark">
+                    {{ $t("prefs.manager.themeDark") }}
+                  </option>
                 </select>
               </div>
 
               <div class="manager-row">
-                <span class="manager-label">{{ $t('prefs.manager.language') }}</span>
+                <span class="manager-label">{{
+                  $t("prefs.manager.language")
+                }}</span>
                 <select v-model="managerForm.language" class="manager-select">
-                  <option value="auto">{{ $t('prefs.manager.langAuto') }}</option>
-                  <option v-for="loc in SUPPORTED_LOCALES" :key="loc.code" :value="loc.code">
+                  <option value="auto">
+                    {{ $t("prefs.manager.langAuto") }}
+                  </option>
+                  <option
+                    v-for="loc in SUPPORTED_LOCALES"
+                    :key="loc.code"
+                    :value="loc.code"
+                  >
                     {{ loc.name }}
                   </option>
                 </select>
               </div>
 
               <div class="manager-row">
-                <span class="manager-label">{{ $t('prefs.manager.noticeReminder') }}</span>
-                <select v-model="managerForm.reminderFrequency" class="manager-select">
-                  <option value="always">{{ $t('prefs.manager.reminderAlways') }}</option>
-                  <option value="1h">{{ $t('prefs.manager.reminder1h') }}</option>
-                  <option value="6h">{{ $t('prefs.manager.reminder6h') }}</option>
-                  <option value="1d">{{ $t('prefs.manager.reminder1d') }}</option>
-                  <option value="1w">{{ $t('prefs.manager.reminder1w') }}</option>
-                  <option value="never">{{ $t('prefs.manager.reminderNever') }}</option>
+                <span class="manager-label">{{
+                  $t("prefs.manager.noticeReminder")
+                }}</span>
+                <select
+                  v-model="managerForm.reminderFrequency"
+                  class="manager-select"
+                >
+                  <option value="always">
+                    {{ $t("prefs.manager.reminderAlways") }}
+                  </option>
+                  <option value="1h">
+                    {{ $t("prefs.manager.reminder1h") }}
+                  </option>
+                  <option value="6h">
+                    {{ $t("prefs.manager.reminder6h") }}
+                  </option>
+                  <option value="1d">
+                    {{ $t("prefs.manager.reminder1d") }}
+                  </option>
+                  <option value="1w">
+                    {{ $t("prefs.manager.reminder1w") }}
+                  </option>
+                  <option value="never">
+                    {{ $t("prefs.manager.reminderNever") }}
+                  </option>
                 </select>
               </div>
 
               <label class="pref-row">
-                <span>{{ $t('prefs.manager.showExitConfirm') }}</span>
-                <span class="toggle-switch" :class="{ on: managerForm.showExitConfirmation }" role="switch" :aria-checked="!!(managerForm.showExitConfirmation)" tabindex="0" @click.prevent="managerForm.showExitConfirmation = !managerForm.showExitConfirmation" @keydown.enter.prevent="managerForm.showExitConfirmation = !managerForm.showExitConfirmation" @keydown.space.prevent="managerForm.showExitConfirmation = !managerForm.showExitConfirmation">
+                <span>{{ $t("prefs.manager.showExitConfirm") }}</span>
+                <span
+                  class="toggle-switch"
+                  :class="{ on: managerForm.showExitConfirmation }"
+                  role="switch"
+                  :aria-checked="!!managerForm.showExitConfirmation"
+                  tabindex="0"
+                  @click.prevent="
+                    managerForm.showExitConfirmation =
+                      !managerForm.showExitConfirmation
+                  "
+                  @keydown.enter.prevent="
+                    managerForm.showExitConfirmation =
+                      !managerForm.showExitConfirmation
+                  "
+                  @keydown.space.prevent="
+                    managerForm.showExitConfirmation =
+                      !managerForm.showExitConfirmation
+                  "
+                >
                   <span class="toggle-knob" />
                 </span>
               </label>
 
               <label class="pref-row">
-                <span>{{ $t('prefs.manager.showShutdownConfirm') }}</span>
-                <span class="toggle-switch" :class="{ on: managerForm.showShutdownConfirmation }" role="switch" :aria-checked="!!(managerForm.showShutdownConfirmation)" tabindex="0" @click.prevent="managerForm.showShutdownConfirmation = !managerForm.showShutdownConfirmation" @keydown.enter.prevent="managerForm.showShutdownConfirmation = !managerForm.showShutdownConfirmation" @keydown.space.prevent="managerForm.showShutdownConfirmation = !managerForm.showShutdownConfirmation">
+                <span>{{ $t("prefs.manager.showShutdownConfirm") }}</span>
+                <span
+                  class="toggle-switch"
+                  :class="{ on: managerForm.showShutdownConfirmation }"
+                  role="switch"
+                  :aria-checked="!!managerForm.showShutdownConfirmation"
+                  tabindex="0"
+                  @click.prevent="
+                    managerForm.showShutdownConfirmation =
+                      !managerForm.showShutdownConfirmation
+                  "
+                  @keydown.enter.prevent="
+                    managerForm.showShutdownConfirmation =
+                      !managerForm.showShutdownConfirmation
+                  "
+                  @keydown.space.prevent="
+                    managerForm.showShutdownConfirmation =
+                      !managerForm.showShutdownConfirmation
+                  "
+                >
                   <span class="toggle-knob" />
                 </span>
               </label>
 
               <label class="pref-row">
-                <span>{{ $t('prefs.manager.minimizeToTray') }}</span>
-                <span class="toggle-switch" :class="{ on: managerForm.minimizeToTrayOnClose }" role="switch" :aria-checked="!!(managerForm.minimizeToTrayOnClose)" tabindex="0" @click.prevent="managerForm.minimizeToTrayOnClose = !managerForm.minimizeToTrayOnClose" @keydown.enter.prevent="managerForm.minimizeToTrayOnClose = !managerForm.minimizeToTrayOnClose" @keydown.space.prevent="managerForm.minimizeToTrayOnClose = !managerForm.minimizeToTrayOnClose">
+                <span>{{ $t("prefs.manager.minimizeToTray") }}</span>
+                <span
+                  class="toggle-switch"
+                  :class="{ on: managerForm.minimizeToTrayOnClose }"
+                  role="switch"
+                  :aria-checked="!!managerForm.minimizeToTrayOnClose"
+                  tabindex="0"
+                  @click.prevent="
+                    managerForm.minimizeToTrayOnClose =
+                      !managerForm.minimizeToTrayOnClose
+                  "
+                  @keydown.enter.prevent="
+                    managerForm.minimizeToTrayOnClose =
+                      !managerForm.minimizeToTrayOnClose
+                  "
+                  @keydown.space.prevent="
+                    managerForm.minimizeToTrayOnClose =
+                      !managerForm.minimizeToTrayOnClose
+                  "
+                >
                   <span class="toggle-knob" />
                 </span>
               </label>
 
               <label class="pref-row">
-                <span>{{ $t('prefs.manager.startMinimized') }}</span>
-                <span class="toggle-switch" :class="{ on: managerForm.startMinimizedToTray }" role="switch" :aria-checked="!!(managerForm.startMinimizedToTray)" tabindex="0" @click.prevent="managerForm.startMinimizedToTray = !managerForm.startMinimizedToTray" @keydown.enter.prevent="managerForm.startMinimizedToTray = !managerForm.startMinimizedToTray" @keydown.space.prevent="managerForm.startMinimizedToTray = !managerForm.startMinimizedToTray">
+                <span>{{ $t("prefs.manager.startMinimized") }}</span>
+                <span
+                  class="toggle-switch"
+                  :class="{ on: managerForm.startMinimizedToTray }"
+                  role="switch"
+                  :aria-checked="!!managerForm.startMinimizedToTray"
+                  tabindex="0"
+                  @click.prevent="
+                    managerForm.startMinimizedToTray =
+                      !managerForm.startMinimizedToTray
+                  "
+                  @keydown.enter.prevent="
+                    managerForm.startMinimizedToTray =
+                      !managerForm.startMinimizedToTray
+                  "
+                  @keydown.space.prevent="
+                    managerForm.startMinimizedToTray =
+                      !managerForm.startMinimizedToTray
+                  "
+                >
                   <span class="toggle-knob" />
                 </span>
               </label>
@@ -508,16 +741,26 @@ async function save() {
           <div v-if="store.error" class="prefs-error">{{ store.error }}</div>
 
           <div class="prefs-footer">
-            <button class="btn" @click="emit('close')">{{ $t('confirm.cancel') }}</button>
-            <button class="btn btn-primary" :disabled="store.saving || !hasChanges" @click="save">
-              {{ store.saving ? $t('prefs.saving') : $t('prefs.save') }}
+            <button class="btn" @click="emit('close')">
+              {{ $t("confirm.cancel") }}
+            </button>
+            <button
+              class="btn btn-primary"
+              :disabled="store.saving || !hasChanges"
+              @click="save"
+            >
+              {{ store.saving ? $t("prefs.saving") : $t("prefs.save") }}
             </button>
           </div>
         </template>
       </div>
     </div>
     <ProxySettingsDialog :open="showProxy" @close="showProxy = false" />
-    <ExclusiveAppsDialog ref="exclusiveAppsRef" :open="showExclusiveApps" @close="showExclusiveApps = false" />
+    <ExclusiveAppsDialog
+      ref="exclusiveAppsRef"
+      :open="showExclusiveApps"
+      @close="showExclusiveApps = false"
+    />
   </Teleport>
 </template>
 
@@ -648,7 +891,9 @@ async function save() {
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
-  transition: background 0.2s, opacity 0.2s;
+  transition:
+    background 0.2s,
+    opacity 0.2s;
 }
 
 .toggle-switch.on {

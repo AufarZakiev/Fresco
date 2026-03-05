@@ -59,13 +59,20 @@ export const useManagerSettingsStore = defineStore("managerSettings", () => {
 
   applyTheme(settings.value.theme);
 
-  watch(settings, (v) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(v));
-  }, { deep: true });
+  watch(
+    settings,
+    (v) => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(v));
+    },
+    { deep: true },
+  );
 
-  watch(() => settings.value.theme, (theme) => {
-    applyTheme(theme);
-  });
+  watch(
+    () => settings.value.theme,
+    (theme) => {
+      applyTheme(theme);
+    },
+  );
 
   function resetSettings() {
     settings.value = { ...defaults };

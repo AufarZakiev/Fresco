@@ -10,10 +10,18 @@ const emit = defineEmits<{ close: [] }>();
 
 const dialogRef = ref<HTMLElement | null>(null);
 const { activate, deactivate } = useFocusTrap(dialogRef);
-watch(() => props.open, async (isOpen) => {
-  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
-  else { deactivate(); }
-});
+watch(
+  () => props.open,
+  async (isOpen) => {
+    if (isOpen) {
+      await nextTick();
+      if (!props.open) return;
+      activate();
+    } else {
+      deactivate();
+    }
+  },
+);
 
 const loading = ref(false);
 const saving = ref(false);
@@ -119,17 +127,29 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div ref="dialogRef" class="exclusive-dialog" role="dialog" aria-modal="true" aria-labelledby="exclusive-apps-dialog-title">
+      <div
+        ref="dialogRef"
+        class="exclusive-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="exclusive-apps-dialog-title"
+      >
         <div class="exclusive-header">
-          <h3 id="exclusive-apps-dialog-title">{{ $t('exclusiveApps.title') }}</h3>
-          <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
+          <h3 id="exclusive-apps-dialog-title">
+            {{ $t("exclusiveApps.title") }}
+          </h3>
+          <button class="close-btn" aria-label="Close" @click="emit('close')">
+            &times;
+          </button>
         </div>
 
-        <div v-if="loading" class="exclusive-loading">{{ $t('exclusiveApps.loading') }}</div>
+        <div v-if="loading" class="exclusive-loading">
+          {{ $t("exclusiveApps.loading") }}
+        </div>
 
         <template v-else-if="config">
           <div class="exclusive-body">
-            <div class="section-title">{{ $t('exclusiveApps.cpuApps') }}</div>
+            <div class="section-title">{{ $t("exclusiveApps.cpuApps") }}</div>
             <div class="app-list">
               <div
                 v-for="(app, index) in config.exclusive_apps"
@@ -137,10 +157,12 @@ async function save() {
                 class="app-item"
               >
                 <span>{{ app }}</span>
-                <button class="remove-btn" @click="removeCpuApp(index)">&times;</button>
+                <button class="remove-btn" @click="removeCpuApp(index)">
+                  &times;
+                </button>
               </div>
               <div v-if="config.exclusive_apps.length === 0" class="app-empty">
-                {{ $t('exclusiveApps.noCpuApps') }}
+                {{ $t("exclusiveApps.noCpuApps") }}
               </div>
             </div>
             <div class="add-row">
@@ -150,10 +172,12 @@ async function save() {
                 :placeholder="$t('exclusiveApps.appPlaceholder')"
                 @keyup.enter="addCpuApp"
               />
-              <button class="btn btn-primary" @click="addCpuApp">{{ $t('exclusiveApps.add') }}</button>
+              <button class="btn btn-primary" @click="addCpuApp">
+                {{ $t("exclusiveApps.add") }}
+              </button>
             </div>
 
-            <div class="section-title">{{ $t('exclusiveApps.gpuApps') }}</div>
+            <div class="section-title">{{ $t("exclusiveApps.gpuApps") }}</div>
             <div class="app-list">
               <div
                 v-for="(app, index) in config.exclusive_gpu_apps"
@@ -161,10 +185,15 @@ async function save() {
                 class="app-item"
               >
                 <span>{{ app }}</span>
-                <button class="remove-btn" @click="removeGpuApp(index)">&times;</button>
+                <button class="remove-btn" @click="removeGpuApp(index)">
+                  &times;
+                </button>
               </div>
-              <div v-if="config.exclusive_gpu_apps.length === 0" class="app-empty">
-                {{ $t('exclusiveApps.noGpuApps') }}
+              <div
+                v-if="config.exclusive_gpu_apps.length === 0"
+                class="app-empty"
+              >
+                {{ $t("exclusiveApps.noGpuApps") }}
               </div>
             </div>
             <div class="add-row">
@@ -174,16 +203,22 @@ async function save() {
                 :placeholder="$t('exclusiveApps.appPlaceholder')"
                 @keyup.enter="addGpuApp"
               />
-              <button class="btn btn-primary" @click="addGpuApp">{{ $t('exclusiveApps.add') }}</button>
+              <button class="btn btn-primary" @click="addGpuApp">
+                {{ $t("exclusiveApps.add") }}
+              </button>
             </div>
           </div>
 
           <div v-if="error" class="exclusive-error">{{ error }}</div>
 
           <div class="exclusive-footer">
-            <button class="btn" @click="emit('close')">{{ $t('exclusiveApps.cancel') }}</button>
+            <button class="btn" @click="emit('close')">
+              {{ $t("exclusiveApps.cancel") }}
+            </button>
             <button class="btn btn-primary" :disabled="saving" @click="save">
-              {{ saving ? $t('exclusiveApps.saving') : $t('exclusiveApps.save') }}
+              {{
+                saving ? $t("exclusiveApps.saving") : $t("exclusiveApps.save")
+              }}
             </button>
           </div>
         </template>

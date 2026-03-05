@@ -22,17 +22,27 @@
     "eventLog": "Event Log",
     "selectComputer": "Select Computer",
     "preferences": "Preferences",
-    "toggleSidebar": "Toggle sidebar"
+    "toggleSidebar": "Toggle sidebar",
+    "addProject": "Add Project",
+    "accountManager": "Account Manager"
   },
   "tasks": {
     "title": "Tasks",
     "activeOnly": "Active Tasks Only",
+    "customizeColumns": "Show, hide, or reorder columns",
     "suspend": "Suspend",
     "resume": "Resume",
     "graphics": "Graphics",
     "abort": "Abort",
     "properties": "Properties",
+    "nTasks": "{count} tasks selected",
     "columns": "Columns",
+    "tooltip": {
+      "suspend": "Temporarily stop selected tasks",
+      "resume": "Resume selected tasks",
+      "abort": "Permanently discard selected tasks",
+      "properties": "View detailed task information"
+    },
     "loading": "Loading tasks...",
     "emptyActive": "No active tasks right now.",
     "emptyAll": "No tasks. Attach a project to start computing.",
@@ -148,7 +158,12 @@
     "title": "Transfers",
     "retry": "Retry",
     "abort": "Abort",
+    "nTransfers": "{count} transfers selected",
     "columns": "Columns",
+    "tooltip": {
+      "retry": "Retry selected transfers",
+      "abort": "Cancel selected transfers"
+    },
     "loading": "Loading transfers...",
     "empty": "No active file transfers.",
     "col": {
@@ -442,12 +457,17 @@
     "error": "Error",
     "tasksSuspended": "Tasks suspended: {reason}",
     "gpuSuspended": "GPU suspended: {reason}",
-    "about": "About"
+    "about": "About",
+    "clickToSwitch": "Click to switch computer"
   },
   "columns": {
     "title": "Columns",
     "cancel": "Cancel",
     "apply": "Apply"
+  },
+  "table": {
+    "hideColumn": "Hide column",
+    "reorderColumn": "Drag to reorder"
   },
   "properties": {
     "taskProperties": "Task Properties",

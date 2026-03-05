@@ -39,5 +39,12 @@ export const useStatisticsStore = defineStore("statistics", () => {
     }
   }
 
-  return { projectStats, loading, error, fetchStatistics, startPolling, stopPolling };
+  return {
+    projectStats,
+    loading,
+    error,
+    fetchStatistics,
+    startPolling,
+    stopPolling,
+  };
 });

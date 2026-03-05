@@ -86,7 +86,9 @@ describe("TransfersView", () => {
 
   it("progress bar has ARIA progressbar attributes", () => {
     const store = useTransfersStore();
-    store.transfers = [makeTransfer({ bytes_xferred: 524288, nbytes: 1048576 })]; // 50%
+    store.transfers = [
+      makeTransfer({ bytes_xferred: 524288, nbytes: 1048576 }),
+    ]; // 50%
 
     const wrapper = mount(TransfersView);
     const bar = wrapper.find(".progress-bar");

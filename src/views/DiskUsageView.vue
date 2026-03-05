@@ -24,7 +24,10 @@ const projectColors = [
 function formatBytes(bytes: number): string {
   if (bytes <= 0) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const i = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 }
 
@@ -111,7 +114,14 @@ const boincDoughnutPaths = computed(() => {
     if (seg.fraction <= 0) continue;
     const sweepAngle = seg.fraction * Math.PI * 2;
     paths.push({
-      d: doughnutPath(cx, cy, outerR, innerR, currentAngle, currentAngle + sweepAngle),
+      d: doughnutPath(
+        cx,
+        cy,
+        outerR,
+        innerR,
+        currentAngle,
+        currentAngle + sweepAngle,
+      ),
       color: seg.color,
       label: `${seg.label}: ${formatBytes(seg.value)}`,
     });
@@ -132,12 +142,12 @@ onUnmounted(() => {
 
 <template>
   <div class="disk-usage-view">
-    <PageHeader :title="$t('disk.title')" />
+    <PageHeader />
 
     <p v-if="store.error" class="error-text">{{ store.error }}</p>
 
     <div v-if="store.loading && store.usage.d_total === 0" class="loading-text">
-      {{ $t('disk.loading') }}
+      {{ $t("disk.loading") }}
     </div>
 
     <EmptyState
@@ -150,9 +160,14 @@ onUnmounted(() => {
       <div class="content-layout">
         <!-- BOINC Usage by Project (left on wide screens) -->
         <div class="breakdown-section">
-          <h3 class="section-title">{{ $t('disk.boincByProject') }}</h3>
+          <h3 class="section-title">{{ $t("disk.boincByProject") }}</h3>
           <div class="boinc-chart-card">
-            <svg width="240" height="240" viewBox="0 0 240 240" class="doughnut-svg">
+            <svg
+              width="240"
+              height="240"
+              viewBox="0 0 240 240"
+              class="doughnut-svg"
+            >
               <path
                 v-for="(seg, i) in boincDoughnutPaths"
                 :key="i"
@@ -163,7 +178,9 @@ onUnmounted(() => {
               >
                 <title>{{ seg.label }}</title>
               </path>
-              <text x="120" y="114" class="center-label" text-anchor="middle">{{ $t('disk.chartTotal') }}</text>
+              <text x="120" y="114" class="center-label" text-anchor="middle">
+                {{ $t("disk.chartTotal") }}
+              </text>
               <text x="120" y="134" class="center-value" text-anchor="middle">
                 {{ formatBytes(store.usage.d_boinc) }}
               </text>
@@ -175,11 +192,16 @@ onUnmounted(() => {
                 :key="i"
                 class="legend-item"
               >
-                <span class="legend-swatch" :style="{ background: seg.color }"></span>
+                <span
+                  class="legend-swatch"
+                  :style="{ background: seg.color }"
+                ></span>
                 <span class="legend-label">{{ seg.label }}</span>
                 <span class="legend-value">
                   {{ formatBytes(seg.value) }}
-                  <span class="legend-pct">({{ formatPercent(seg.fraction) }})</span>
+                  <span class="legend-pct"
+                    >({{ formatPercent(seg.fraction) }})</span
+                  >
                 </span>
               </div>
             </div>
@@ -189,20 +211,28 @@ onUnmounted(() => {
         <!-- Summary Cards (right on wide screens) -->
         <div class="summary-cards">
           <div class="summary-card">
-            <span class="summary-label">{{ $t('disk.totalDisk') }}</span>
-            <span class="summary-value">{{ formatBytes(store.usage.d_total) }}</span>
+            <span class="summary-label">{{ $t("disk.totalDisk") }}</span>
+            <span class="summary-value">{{
+              formatBytes(store.usage.d_total)
+            }}</span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">{{ $t('disk.boincUsage') }}</span>
-            <span class="summary-value">{{ formatBytes(store.usage.d_boinc) }}</span>
+            <span class="summary-label">{{ $t("disk.boincUsage") }}</span>
+            <span class="summary-value">{{
+              formatBytes(store.usage.d_boinc)
+            }}</span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">{{ $t('disk.freeSpace') }}</span>
-            <span class="summary-value">{{ formatBytes(store.usage.d_free) }}</span>
+            <span class="summary-label">{{ $t("disk.freeSpace") }}</span>
+            <span class="summary-value">{{
+              formatBytes(store.usage.d_free)
+            }}</span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">{{ $t('disk.allowed') }}</span>
-            <span class="summary-value">{{ formatBytes(store.usage.d_allowed) }}</span>
+            <span class="summary-label">{{ $t("disk.allowed") }}</span>
+            <span class="summary-value">{{
+              formatBytes(store.usage.d_allowed)
+            }}</span>
           </div>
         </div>
       </div>
@@ -212,7 +242,11 @@ onUnmounted(() => {
 
 <style scoped>
 .disk-usage-view {
-  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: auto;
+  padding: 0 var(--space-lg) var(--space-lg);
 }
 
 .error-text {
@@ -343,5 +377,4 @@ onUnmounted(() => {
   color: var(--color-text-tertiary);
   font-weight: 400;
 }
-
 </style>

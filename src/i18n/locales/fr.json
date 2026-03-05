@@ -22,17 +22,27 @@
     "eventLog": "Journal des événements",
     "selectComputer": "Choisir un ordinateur",
     "preferences": "Préférences",
-    "toggleSidebar": "Afficher/masquer la barre latérale"
+    "toggleSidebar": "Afficher/masquer la barre latérale",
+    "addProject": "Ajouter un projet",
+    "accountManager": "Gestionnaire de comptes"
   },
   "tasks": {
     "title": "Tâches",
     "activeOnly": "Tâches actives uniquement",
+    "customizeColumns": "Afficher, masquer ou réorganiser les colonnes",
     "suspend": "Suspendre",
     "resume": "Reprendre",
     "graphics": "Graphiques",
     "abort": "Abandonner",
     "properties": "Propriétés",
+    "nTasks": "{count} tâches sélectionnées",
     "columns": "Colonnes",
+    "tooltip": {
+      "suspend": "Suspendre temporairement les tâches sélectionnées",
+      "resume": "Reprendre les tâches sélectionnées",
+      "abort": "Supprimer définitivement les tâches sélectionnées",
+      "properties": "Afficher les informations détaillées de la tâche"
+    },
     "loading": "Chargement des tâches...",
     "emptyActive": "Aucune tâche active en ce moment.",
     "emptyAll": "Aucune tâche. Ajoutez un projet pour commencer les calculs.",
@@ -148,7 +158,12 @@
     "title": "Transferts",
     "retry": "Réessayer",
     "abort": "Abandonner",
+    "nTransfers": "{count} transferts sélectionnés",
     "columns": "Colonnes",
+    "tooltip": {
+      "retry": "Réessayer les transferts sélectionnés",
+      "abort": "Annuler les transferts sélectionnés"
+    },
     "loading": "Chargement des transferts...",
     "empty": "Aucun transfert de fichiers actif.",
     "col": {
@@ -442,7 +457,8 @@
     "error": "Erreur",
     "tasksSuspended": "Tâches suspendues : {reason}",
     "gpuSuspended": "GPU suspendu : {reason}",
-    "about": "À propos"
+    "about": "À propos",
+    "clickToSwitch": "Cliquer pour changer d'ordinateur"
   },
   "columns": {
     "title": "Colonnes",

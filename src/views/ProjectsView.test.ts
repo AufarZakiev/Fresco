@@ -164,14 +164,6 @@ describe("ProjectsView", () => {
     expect(classLists.some((c) => c.includes("source-user"))).toBe(true);
   });
 
-  it("shows Add Project and Account Manager buttons in header", () => {
-    const wrapper = mount(ProjectsView);
-    const buttons = wrapper.findAll("button");
-    const labels = buttons.map((b) => b.text());
-    expect(labels).toContain("Add Project");
-    expect(labels).toContain("Account Manager");
-  });
-
   it("hides drawer when no project is selected", () => {
     const store = useProjectsStore();
     store.projects = [makeProject()];
@@ -220,7 +212,10 @@ describe("ProjectsView", () => {
     const store = useProjectsStore();
     store.projects = [
       makeProject(),
-      makeProject({ master_url: "https://example2.com/", project_name: "Project 2" }),
+      makeProject({
+        master_url: "https://example2.com/",
+        project_name: "Project 2",
+      }),
     ];
 
     const wrapper = mount(ProjectsView);
@@ -245,11 +240,15 @@ describe("ProjectsView", () => {
     const wrapper = mount(ProjectsView);
     await wrapper.find("tbody tr").trigger("click");
 
-    const updateBtn = wrapper.findAll(".drawer-section .btn").find((b) => b.text() === "Update")!;
+    const updateBtn = wrapper
+      .findAll(".drawer-section .btn")
+      .find((b) => b.text() === "Update")!;
     await updateBtn.trigger("click");
     await wrapper.vm.$nextTick();
 
-    expect(store.updateProject).toHaveBeenCalledWith("https://example.com/project/");
+    expect(store.updateProject).toHaveBeenCalledWith(
+      "https://example.com/project/",
+    );
   });
 
   it("calls store.suspendProject when Suspend is clicked", async () => {
@@ -260,11 +259,15 @@ describe("ProjectsView", () => {
     const wrapper = mount(ProjectsView);
     await wrapper.find("tbody tr").trigger("click");
 
-    const suspendBtn = wrapper.findAll(".drawer-section .btn").find((b) => b.text() === "Suspend")!;
+    const suspendBtn = wrapper
+      .findAll(".drawer-section .btn")
+      .find((b) => b.text() === "Suspend")!;
     await suspendBtn.trigger("click");
     await wrapper.vm.$nextTick();
 
-    expect(store.suspendProject).toHaveBeenCalledWith("https://example.com/project/");
+    expect(store.suspendProject).toHaveBeenCalledWith(
+      "https://example.com/project/",
+    );
   });
 
   it("calls store.resumeProject when Resume is clicked", async () => {
@@ -275,11 +278,15 @@ describe("ProjectsView", () => {
     const wrapper = mount(ProjectsView);
     await wrapper.find("tbody tr").trigger("click");
 
-    const resumeBtn = wrapper.findAll(".drawer-section .btn").find((b) => b.text() === "Resume")!;
+    const resumeBtn = wrapper
+      .findAll(".drawer-section .btn")
+      .find((b) => b.text() === "Resume")!;
     await resumeBtn.trigger("click");
     await wrapper.vm.$nextTick();
 
-    expect(store.resumeProject).toHaveBeenCalledWith("https://example.com/project/");
+    expect(store.resumeProject).toHaveBeenCalledWith(
+      "https://example.com/project/",
+    );
   });
 
   it("calls store.noNewTasks when No new tasks is clicked", async () => {
@@ -290,11 +297,15 @@ describe("ProjectsView", () => {
     const wrapper = mount(ProjectsView);
     await wrapper.find("tbody tr").trigger("click");
 
-    const btn = wrapper.findAll(".drawer-section .btn").find((b) => b.text() === "No new tasks")!;
+    const btn = wrapper
+      .findAll(".drawer-section .btn")
+      .find((b) => b.text() === "No new tasks")!;
     await btn.trigger("click");
     await wrapper.vm.$nextTick();
 
-    expect(store.noNewTasks).toHaveBeenCalledWith("https://example.com/project/");
+    expect(store.noNewTasks).toHaveBeenCalledWith(
+      "https://example.com/project/",
+    );
   });
 
   it("calls store.allowNewTasks when Allow new tasks is clicked", async () => {
@@ -305,11 +316,15 @@ describe("ProjectsView", () => {
     const wrapper = mount(ProjectsView);
     await wrapper.find("tbody tr").trigger("click");
 
-    const btn = wrapper.findAll(".drawer-section .btn").find((b) => b.text() === "Allow new tasks")!;
+    const btn = wrapper
+      .findAll(".drawer-section .btn")
+      .find((b) => b.text() === "Allow new tasks")!;
     await btn.trigger("click");
     await wrapper.vm.$nextTick();
 
-    expect(store.allowNewTasks).toHaveBeenCalledWith("https://example.com/project/");
+    expect(store.allowNewTasks).toHaveBeenCalledWith(
+      "https://example.com/project/",
+    );
   });
 
   it("does not show a Web Page button in the drawer actions", async () => {
@@ -325,34 +340,30 @@ describe("ProjectsView", () => {
     const wrapper = mount(ProjectsView);
     await wrapper.find("tbody tr").trigger("click");
 
-    const sections = wrapper.findAll(".drawer-section:not(.drawer-links):not(.drawer-danger)");
+    const sections = wrapper.findAll(
+      ".drawer-section:not(.drawer-links):not(.drawer-danger)",
+    );
     const buttons = sections.flatMap((s) => s.findAll("button"));
     const labels = buttons.map((b) => b.text());
     expect(labels).not.toContain("Web Page");
   });
 
-  it("keeps header buttons visible regardless of selection", async () => {
+  it("keeps selection-dependent buttons in drawer only", async () => {
     const store = useProjectsStore();
     store.projects = [makeProject()];
 
     const wrapper = mount(ProjectsView);
 
-    // Before selection
-    let headerButtons = wrapper.find(".page-header").findAll("button");
-    let headerLabels = headerButtons.map((b) => b.text());
-    expect(headerLabels).toContain("Add Project");
-    expect(headerLabels).toContain("Account Manager");
+    // Before selection — no drawer, so no action buttons visible
+    expect(wrapper.find(".drawer-panel").exists()).toBe(false);
 
-    // After selection
+    // After selection — action buttons should be in the drawer
     await wrapper.find("tbody tr").trigger("click");
-    headerButtons = wrapper.find(".page-header").findAll("button");
-    headerLabels = headerButtons.map((b) => b.text());
-    expect(headerLabels).toContain("Add Project");
-    expect(headerLabels).toContain("Account Manager");
-    // Selection-dependent buttons should NOT be in the header
-    expect(headerLabels).not.toContain("Update");
-    expect(headerLabels).not.toContain("Suspend");
-    expect(headerLabels).not.toContain("Reset");
+    const drawerButtons = wrapper.find(".drawer-panel").findAll("button");
+    const drawerLabels = drawerButtons.map((b) => b.text());
+    expect(drawerLabels).toContain("Update");
+    expect(drawerLabels).toContain("Suspend");
+    expect(drawerLabels).toContain("Reset");
   });
 
   it("shows web links in drawer when project with gui_urls is selected", async () => {
@@ -361,8 +372,16 @@ describe("ProjectsView", () => {
       makeProject({
         gui_urls: [
           { name: "Home page", description: "", url: "https://example.com/" },
-          { name: "Your account", description: "", url: "https://example.com/account" },
-          { name: "Message boards", description: "", url: "https://example.com/forum" },
+          {
+            name: "Your account",
+            description: "",
+            url: "https://example.com/account",
+          },
+          {
+            name: "Message boards",
+            description: "",
+            url: "https://example.com/forum",
+          },
         ],
       }),
     ];

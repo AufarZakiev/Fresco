@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { getSuspendReasonText, getSuspendReasonList } from "./useSuspendReasons";
+import {
+  getSuspendReasonText,
+  getSuspendReasonList,
+} from "./useSuspendReasons";
 
 describe("useSuspendReasons", () => {
   it("returns empty string for reason 0", () => {

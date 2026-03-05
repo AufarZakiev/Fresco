@@ -70,7 +70,9 @@ describe("PrefToggleSwitch", () => {
 
   it("aria-checked reflects modelValue=true", () => {
     const wrapper = mountToggle(true);
-    expect(wrapper.find(".toggle-switch").attributes("aria-checked")).toBe("true");
+    expect(wrapper.find(".toggle-switch").attributes("aria-checked")).toBe(
+      "true",
+    );
   });
 
   describe("sourceType", () => {

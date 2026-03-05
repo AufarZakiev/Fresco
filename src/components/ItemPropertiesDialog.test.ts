@@ -66,7 +66,11 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     njobs_error: 3,
     venue: "home",
     gui_urls: [
-      { name: "Home Page", description: "Project home", url: "https://example.com/" },
+      {
+        name: "Home Page",
+        description: "Project home",
+        url: "https://example.com/",
+      },
     ],
     ...overrides,
   };
@@ -125,7 +129,9 @@ describe("ItemPropertiesDialog", () => {
       props: { open: true, type: "task", task },
     });
     const buttons = document.body.querySelectorAll("button");
-    const copyBtn = Array.from(buttons).find(b => b.textContent?.includes("Copy"));
+    const copyBtn = Array.from(buttons).find((b) =>
+      b.textContent?.includes("Copy"),
+    );
     expect(copyBtn).not.toBeUndefined();
   });
 
@@ -170,7 +176,9 @@ describe("ItemPropertiesDialog", () => {
     const dialog = document.body.querySelector("[role='dialog']");
     expect(dialog).not.toBeNull();
     expect(dialog!.getAttribute("aria-modal")).toBe("true");
-    expect(dialog!.getAttribute("aria-labelledby")).toBe("item-properties-dialog-title");
+    expect(dialog!.getAttribute("aria-labelledby")).toBe(
+      "item-properties-dialog-title",
+    );
     const title = document.body.querySelector("#item-properties-dialog-title");
     expect(title).not.toBeNull();
   });

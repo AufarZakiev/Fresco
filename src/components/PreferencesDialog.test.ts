@@ -32,7 +32,6 @@ vi.mock("@vueuse/integrations/useFocusTrap", () => ({
   useFocusTrap: () => ({ activate: vi.fn(), deactivate: vi.fn() }),
 }));
 
-
 const TAB_NAMES = ["computing", "network", "storage", "schedule", "manager"];
 
 function queryTabs(): HTMLElement[] {
@@ -44,7 +43,9 @@ function queryTabPanels(): HTMLElement[] {
 }
 
 function queryVisibleTabPanel(): HTMLElement | null {
-  return queryTabPanels().find((panel) => panel.style.display !== "none") ?? null;
+  return (
+    queryTabPanels().find((panel) => panel.style.display !== "none") ?? null
+  );
 }
 
 describe("PreferencesDialog ARIA tabs", () => {
@@ -88,8 +89,12 @@ describe("PreferencesDialog ARIA tabs", () => {
     const tabs = queryTabs();
     tabs.forEach((tab, i) => {
       expect(tab.id).toBe(`tab-${TAB_NAMES[i]}`);
-      expect(tab.getAttribute("aria-controls")).toBe(`tabpanel-${TAB_NAMES[i]}`);
-      expect(tab.getAttribute("aria-selected")).toBe(i === 0 ? "true" : "false");
+      expect(tab.getAttribute("aria-controls")).toBe(
+        `tabpanel-${TAB_NAMES[i]}`,
+      );
+      expect(tab.getAttribute("aria-selected")).toBe(
+        i === 0 ? "true" : "false",
+      );
     });
   });
 
@@ -133,7 +138,13 @@ describe("PreferencesDialog ARIA tabs", () => {
   it("ArrowRight moves to next tab", async () => {
     const tabs = queryTabs();
     tabs[0].focus();
-    tabs[0].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    tabs[0].dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "ArrowRight",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
     await flushPromises();
 
     const updatedTabs = queryTabs();
@@ -144,7 +155,13 @@ describe("PreferencesDialog ARIA tabs", () => {
   it("ArrowLeft wraps from first to last tab", async () => {
     const tabs = queryTabs();
     tabs[0].focus();
-    tabs[0].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true }));
+    tabs[0].dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "ArrowLeft",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
     await flushPromises();
 
     const updatedTabs = queryTabs();
@@ -158,7 +175,13 @@ describe("PreferencesDialog ARIA tabs", () => {
 
     const lastTab = queryTabs()[4];
     lastTab.focus();
-    lastTab.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    lastTab.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "ArrowRight",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
     await flushPromises();
 
     const updatedTabs = queryTabs();
@@ -172,7 +195,13 @@ describe("PreferencesDialog ARIA tabs", () => {
 
     const middleTab = queryTabs()[2];
     middleTab.focus();
-    middleTab.dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true, cancelable: true }));
+    middleTab.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Home",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
     await flushPromises();
 
     const updatedTabs = queryTabs();
@@ -182,7 +211,13 @@ describe("PreferencesDialog ARIA tabs", () => {
   it("End moves to last tab", async () => {
     const tabs = queryTabs();
     tabs[0].focus();
-    tabs[0].dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true, cancelable: true }));
+    tabs[0].dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "End",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
     await flushPromises();
 
     const updatedTabs = queryTabs();
@@ -195,9 +230,21 @@ describe("PreferencesDialog ARIA tabs", () => {
     tabs[0].focus();
 
     // ArrowRight twice -> storage
-    tabs[0].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    tabs[0].dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "ArrowRight",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
     await flushPromises();
-    queryTabs()[1].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    queryTabs()[1].dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "ArrowRight",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
     await flushPromises();
 
     expect(queryVisibleTabPanel()!.id).toBe("tabpanel-storage");

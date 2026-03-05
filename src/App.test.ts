@@ -199,9 +199,11 @@ describe("App", () => {
 
     const footer = wrapper.find(".sidebar-footer");
     const tooltips = footer.findAllComponents({ name: "Tooltip" });
-    const texts = tooltips.map((t: { props: (key: string) => string }) => t.props("text"));
-    expect(texts).toContain("Select Computer");
+    const texts = tooltips.map((t: { props: (key: string) => string }) =>
+      t.props("text"),
+    );
     expect(texts).toContain("Preferences");
+    expect(texts).toContain("About");
   });
 
   it("prevents Backspace on non-editable targets", async () => {
@@ -211,7 +213,10 @@ describe("App", () => {
 
     await mountApp(router);
 
-    const event = new KeyboardEvent("keydown", { key: "Backspace", bubbles: true });
+    const event = new KeyboardEvent("keydown", {
+      key: "Backspace",
+      bubbles: true,
+    });
     const spy = vi.spyOn(event, "preventDefault");
     document.body.dispatchEvent(event);
 
@@ -229,7 +234,10 @@ describe("App", () => {
     input.type = "text";
     document.body.appendChild(input);
 
-    const event = new KeyboardEvent("keydown", { key: "Backspace", bubbles: true });
+    const event = new KeyboardEvent("keydown", {
+      key: "Backspace",
+      bubbles: true,
+    });
     const spy = vi.spyOn(event, "preventDefault");
     input.dispatchEvent(event);
 

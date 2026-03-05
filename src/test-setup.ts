@@ -27,8 +27,7 @@ Object.defineProperty(globalThis, "localStorage", {
     get length(): number {
       return _storage.size;
     },
-    key: (index: number): string | null =>
-      [..._storage.keys()][index] ?? null,
+    key: (index: number): string | null => [..._storage.keys()][index] ?? null,
   },
   writable: true,
   configurable: true,

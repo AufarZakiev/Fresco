@@ -22,17 +22,27 @@
     "eventLog": "Ereignisprotokoll",
     "selectComputer": "Rechner auswählen",
     "preferences": "Einstellungen",
-    "toggleSidebar": "Seitenleiste ein-/ausblenden"
+    "toggleSidebar": "Seitenleiste ein-/ausblenden",
+    "addProject": "Projekt hinzufügen",
+    "accountManager": "Kontomanager"
   },
   "tasks": {
     "title": "Aufgaben",
     "activeOnly": "Nur aktive Aufgaben",
+    "customizeColumns": "Spalten ein-/ausblenden oder umsortieren",
     "suspend": "Anhalten",
     "resume": "Fortsetzen",
     "graphics": "Grafik",
     "abort": "Abbrechen",
     "properties": "Eigenschaften",
+    "nTasks": "{count} Aufgaben ausgewählt",
     "columns": "Spalten",
+    "tooltip": {
+      "suspend": "Ausgewählte Aufgaben vorübergehend anhalten",
+      "resume": "Ausgewählte Aufgaben fortsetzen",
+      "abort": "Ausgewählte Aufgaben unwiderruflich verwerfen",
+      "properties": "Detaillierte Aufgabeninformationen anzeigen"
+    },
     "loading": "Aufgaben werden geladen...",
     "emptyActive": "Derzeit keine aktiven Aufgaben.",
     "emptyAll": "Keine Aufgaben. Projekt hinzufügen, um mit dem Berechnen zu beginnen.",
@@ -148,7 +158,12 @@
     "title": "Übertragung",
     "retry": "Wiederholen",
     "abort": "Abbrechen",
+    "nTransfers": "{count} Übertragungen ausgewählt",
     "columns": "Spalten",
+    "tooltip": {
+      "retry": "Ausgewählte Übertragungen wiederholen",
+      "abort": "Ausgewählte Übertragungen abbrechen"
+    },
     "loading": "Übertragungen werden geladen...",
     "empty": "Keine aktiven Dateiübertragungen.",
     "col": {
@@ -442,7 +457,8 @@
     "error": "Fehler",
     "tasksSuspended": "Aufgaben angehalten: {reason}",
     "gpuSuspended": "GPU angehalten: {reason}",
-    "about": "Über"
+    "about": "Über",
+    "clickToSwitch": "Klicken, um Computer zu wechseln"
   },
   "columns": {
     "title": "Spalten",

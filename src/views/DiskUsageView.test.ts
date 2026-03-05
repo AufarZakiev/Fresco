@@ -44,7 +44,13 @@ describe("DiskUsageView", () => {
   it("shows empty state when d_total is 0 and not loading", () => {
     const store = useDiskUsageStore();
     store.loading = false;
-    store.usage = { projects: [], d_total: 0, d_free: 0, d_boinc: 0, d_allowed: 0 };
+    store.usage = {
+      projects: [],
+      d_total: 0,
+      d_free: 0,
+      d_boinc: 0,
+      d_allowed: 0,
+    };
 
     const wrapper = mount(DiskUsageView);
     expect(wrapper.find(".empty-state").exists()).toBe(true);
@@ -63,9 +69,9 @@ describe("DiskUsageView", () => {
     store.loading = false;
     store.usage = {
       projects: [],
-      d_total: 500 * 1073741824,  // 500 GB
-      d_free: 200 * 1073741824,   // 200 GB
-      d_boinc: 50 * 1073741824,   // 50 GB
+      d_total: 500 * 1073741824, // 500 GB
+      d_free: 200 * 1073741824, // 200 GB
+      d_boinc: 50 * 1073741824, // 50 GB
       d_allowed: 100 * 1073741824, // 100 GB
     };
 
@@ -82,12 +88,17 @@ describe("DiskUsageView", () => {
     const projStore = useProjectsStore();
 
     projStore.projects = [
-      { master_url: "https://example.com/proj1", project_name: "Project Alpha" },
+      {
+        master_url: "https://example.com/proj1",
+        project_name: "Project Alpha",
+      },
     ] as never[];
 
     diskStore.loading = false;
     diskStore.usage = {
-      projects: [{ master_url: "https://example.com/proj1", disk_usage: 1073741824 }],
+      projects: [
+        { master_url: "https://example.com/proj1", disk_usage: 1073741824 },
+      ],
       d_total: 500 * 1073741824,
       d_free: 200 * 1073741824,
       d_boinc: 1073741824,
@@ -119,8 +130,8 @@ describe("DiskUsageView", () => {
     store.loading = false;
     store.usage = {
       projects: [],
-      d_total: 1048576,   // 1 MB
-      d_free: 524288,     // 512 KB
+      d_total: 1048576, // 1 MB
+      d_free: 524288, // 512 KB
       d_boinc: 0,
       d_allowed: 1048576,
     };
@@ -137,7 +148,7 @@ describe("DiskUsageView", () => {
     store.usage = {
       projects: [],
       d_total: 2 * 1099511627776, // 2 TB
-      d_free: 1099511627776,      // 1 TB
+      d_free: 1099511627776, // 1 TB
       d_boinc: 0,
       d_allowed: 2 * 1099511627776,
     };

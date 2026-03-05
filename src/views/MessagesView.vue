@@ -1,17 +1,22 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch, nextTick } from "vue";
+import { computed, h, onMounted, onUnmounted, ref, watch, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { useScroll, onKeyStroke } from "@vueuse/core";
 import { useMessagesStore } from "../stores/messages";
-import { MSG_PRIORITY, SORT_DIR } from "../types/boinc";
-import type { Message, SortDir } from "../types/boinc";
+import { MSG_PRIORITY } from "../types/boinc";
+import type { Message } from "../types/boinc";
 import PageHeader from "../components/PageHeader.vue";
 import DataTable from "../components/DataTable.vue";
-import type { DataTableColumn } from "../components/DataTable.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import LogFlagsDialog from "../components/LogFlagsDialog.vue";
-import { useColumnState } from "../composables/useColumnState";
+import { useTableState } from "../composables/useTableState";
+import type { ColumnDef } from "@tanstack/vue-table";
+import {
+  useVueTable,
+  getCoreRowModel,
+  getSortedRowModel,
+} from "@tanstack/vue-table";
 
 const { t } = useI18n();
 const store = useMessagesStore();
@@ -24,22 +29,10 @@ const { y: scrollY } = useScroll(tableWrapper);
 type TypeFilter = "all" | "alerts" | "errors";
 const typeFilter = ref<TypeFilter>("all");
 
-const { sortKey, sortDir } = useColumnState(
+const { sorting, onSortingChange } = useTableState(
   "event-log",
   ["time", "project", "type", "message"],
   "time",
-  SORT_DIR.ASC,
-);
-
-const allColumns = computed<DataTableColumn[]>(() => [
-  { key: "time", label: t("messages.col.time"), sortable: true },
-  { key: "project", label: t("messages.col.project"), sortable: true },
-  { key: "type", label: t("messages.col.type"), sortable: true },
-  { key: "message", label: t("messages.col.message"), sortable: true },
-]);
-
-const columns = computed(() =>
-  allColumns.value.map((c) => ({ ...c, visible: true })),
 );
 
 function formatTimestamp(ts: number): string {
@@ -54,7 +47,8 @@ function priorityClass(priority: number): string {
 }
 
 function priorityLabel(priority: number): string {
-  if (priority === MSG_PRIORITY.INTERNAL_ERROR) return t("messages.priority.error");
+  if (priority === MSG_PRIORITY.INTERNAL_ERROR)
+    return t("messages.priority.error");
   if (priority === MSG_PRIORITY.USER_ALERT) return t("messages.priority.alert");
   return t("messages.priority.info");
 }
@@ -65,15 +59,40 @@ function priorityVariant(priority: number): "default" | "warning" | "danger" {
   return "default";
 }
 
-function getSortValue(msg: Message, key: string): number | string {
-  switch (key) {
-    case "time": return msg.timestamp;
-    case "project": return msg.project;
-    case "type": return msg.priority;
-    case "message": return msg.body;
-    default: return 0;
-  }
-}
+const columns: ColumnDef<Message, unknown>[] = [
+  {
+    id: "time",
+    accessorFn: (row) => row.timestamp,
+    header: () => t("messages.col.time"),
+    cell: (info) => formatTimestamp(info.getValue() as number),
+    meta: { class: "col-time" },
+  },
+  {
+    id: "project",
+    accessorFn: (row) => row.project,
+    header: () => t("messages.col.project"),
+    cell: (info) => (info.getValue() as string) || "---",
+    meta: { class: "col-project" },
+  },
+  {
+    id: "type",
+    accessorFn: (row) => row.priority,
+    header: () => t("messages.col.type"),
+    cell: (info) =>
+      h(
+        StatusBadge,
+        { variant: priorityVariant(info.getValue() as number) },
+        () => priorityLabel(info.getValue() as number),
+      ),
+    meta: { class: "col-type" },
+  },
+  {
+    id: "message",
+    accessorFn: (row) => row.body,
+    header: () => t("messages.col.message"),
+    meta: { class: "col-message" },
+  },
+];
 
 const filteredByType = computed(() => {
   const msgs = store.filteredMessages;
@@ -86,38 +105,37 @@ const filteredByType = computed(() => {
   return msgs;
 });
 
-const sortedMessages = computed(() => {
-  const msgs = [...filteredByType.value];
-  const key = sortKey.value;
-  const dir = sortDir.value === SORT_DIR.ASC ? 1 : -1;
-  return msgs.sort((a, b) => {
-    const va = getSortValue(a, key);
-    const vb = getSortValue(b, key);
-    if (typeof va === "string" && typeof vb === "string") {
-      return dir * va.localeCompare(vb);
-    }
-    return dir * ((va as number) - (vb as number));
-  });
+const table = useVueTable({
+  get data() {
+    return filteredByType.value;
+  },
+  columns,
+  state: {
+    get sorting() {
+      return sorting.value;
+    },
+  },
+  onSortingChange,
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
 });
 
-function handleSort(key: string, dir: SortDir) {
-  sortKey.value = key;
-  sortDir.value = dir;
+function isSelected(msg: Message): boolean {
+  return selectedSeqnos.value.has(msg.seqno);
 }
 
-function isSelected(seqno: number): boolean {
-  return selectedSeqnos.value.has(seqno);
-}
-
-function toggleSelect(seqno: number, event: MouseEvent) {
+function handleRowClick(msg: Message, _index: number, event: MouseEvent) {
+  const seqno = msg.seqno;
   const next = new Set(selectedSeqnos.value);
   if (event.shiftKey && next.size > 0) {
-    const seqnos = sortedMessages.value.map((m) => m.seqno);
+    const sortedMessages = table.getRowModel().rows.map((r) => r.original);
+    const seqnos = sortedMessages.map((m) => m.seqno);
     const lastSelected = Array.from(next).pop()!;
     const startIdx = seqnos.indexOf(lastSelected);
     const endIdx = seqnos.indexOf(seqno);
     if (startIdx >= 0 && endIdx >= 0) {
-      const [from, to] = startIdx < endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+      const [from, to] =
+        startIdx < endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
       for (let i = from; i <= to; i++) {
         next.add(seqnos[i]);
       }
@@ -129,24 +147,34 @@ function toggleSelect(seqno: number, event: MouseEvent) {
       next.add(seqno);
     }
   } else {
+    const isOnlySelected = next.size === 1 && next.has(seqno);
     next.clear();
-    next.add(seqno);
+    if (!isOnlySelected) {
+      next.add(seqno);
+    }
   }
   selectedSeqnos.value = next;
 }
 
 function selectAll() {
-  selectedSeqnos.value = new Set(sortedMessages.value.map((m) => m.seqno));
+  selectedSeqnos.value = new Set(
+    table.getRowModel().rows.map((r) => r.original.seqno),
+  );
 }
 
-function formatMessage(m: { timestamp: number; project: string; body: string }): string {
+function formatMessage(m: {
+  timestamp: number;
+  project: string;
+  body: string;
+}): string {
   return `[${formatTimestamp(m.timestamp)}] ${m.project ? m.project + ": " : ""}${m.body}`;
 }
 
 async function copySelectedToClipboard() {
-  const msgs = selectedSeqnos.value.size > 0
-    ? store.filteredMessages.filter((m) => selectedSeqnos.value.has(m.seqno))
-    : store.filteredMessages;
+  const msgs =
+    selectedSeqnos.value.size > 0
+      ? store.filteredMessages.filter((m) => selectedSeqnos.value.has(m.seqno))
+      : store.filteredMessages;
   const text = msgs.map(formatMessage).join("\n");
   try {
     await navigator.clipboard.writeText(text);
@@ -164,12 +192,16 @@ function scrollToBottom() {
 }
 
 watch(
-  () => sortedMessages.value.length,
+  () => table.getRowModel().rows.length,
   (newLen, oldLen) => {
     if (newLen <= oldLen) return;
 
-    // If new messages were appended (not prepended) and user is at bottom, auto-scroll
-    if (isAtBottom.value && sortKey.value === "time" && sortDir.value === SORT_DIR.ASC) {
+    if (
+      isAtBottom.value &&
+      sorting.value.length > 0 &&
+      sorting.value[0].id === "time" &&
+      !sorting.value[0].desc
+    ) {
       nextTick(scrollToBottom);
     }
   },
@@ -183,7 +215,8 @@ watch(
     if (!el) return;
 
     const threshold = 30;
-    isAtBottom.value = el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
+    isAtBottom.value =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
 
     // Load older messages when scrolled near top
     if (el.scrollTop < 100 && store.hasMore && !store.loadingMore) {
@@ -225,7 +258,9 @@ onKeyStroke("c", (e) => {
 onMounted(() => {
   store.startPolling(1000);
   nextTick(() => {
-    const wrapper = document.querySelector(".messages-view .data-table-wrapper") as HTMLElement | null;
+    const wrapper = document.querySelector(
+      ".messages-view .data-table-wrapper",
+    ) as HTMLElement | null;
     if (wrapper) {
       tableWrapper.value = wrapper;
       scrollToBottom();
@@ -239,12 +274,20 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="messages-view">
-    <PageHeader :title="$t('messages.title')">
-      <button class="btn" @click="showLogFlags = true">{{ $t('messages.logFlags') }}</button>
-      <button class="btn" @click="selectAll">{{ $t('messages.selectAll') }}</button>
+  <div class="messages-view" @click="selectedSeqnos = new Set()">
+    <PageHeader @click.stop>
+      <button class="btn" @click="showLogFlags = true">
+        {{ $t("messages.logFlags") }}
+      </button>
+      <button class="btn" @click="selectAll">
+        {{ $t("messages.selectAll") }}
+      </button>
       <button class="btn" @click="copySelectedToClipboard">
-        {{ selectedSeqnos.size > 0 ? $t('messages.copySelected', selectedSeqnos.size) : $t('messages.copyAll') }}
+        {{
+          selectedSeqnos.size > 0
+            ? $t("messages.copySelected", selectedSeqnos.size)
+            : $t("messages.copyAll")
+        }}
       </button>
     </PageHeader>
 
@@ -266,56 +309,40 @@ onUnmounted(() => {
           :class="['segment', { active: typeFilter === 'all' }]"
           @click="typeFilter = 'all'"
         >
-          {{ $t('messages.filterAll') }}
+          {{ $t("messages.filterAll") }}
         </button>
         <button
           :class="['segment', { active: typeFilter === 'alerts' }]"
           @click="typeFilter = 'alerts'"
         >
-          {{ $t('messages.filterAlerts') }}
+          {{ $t("messages.filterAlerts") }}
         </button>
         <button
           :class="['segment', { active: typeFilter === 'errors' }]"
           @click="typeFilter = 'errors'"
         >
-          {{ $t('messages.filterErrors') }}
+          {{ $t("messages.filterErrors") }}
         </button>
       </div>
     </div>
 
     <EmptyState
-      v-if="sortedMessages.length === 0 && !store.loading"
+      v-if="table.getRowModel().rows.length === 0 && !store.loading"
       icon="&#x1f4ac;"
       :message="$t('messages.empty')"
     />
 
     <template v-else>
       <div v-if="store.loadingMore" class="loading-more">
-        {{ $t('messages.loadingMore') }}
+        {{ $t("messages.loadingMore") }}
       </div>
 
       <DataTable
-        :columns="columns"
-        :sort-key="sortKey"
-        :sort-dir="sortDir"
-        @sort="handleSort"
-      >
-      <tr
-        v-for="msg in sortedMessages"
-        :key="msg.seqno"
-        :class="[priorityClass(msg.priority), { 'row-selected': isSelected(msg.seqno) }]"
-        @click="toggleSelect(msg.seqno, $event)"
-      >
-        <td class="col-time">{{ formatTimestamp(msg.timestamp) }}</td>
-        <td class="col-project">{{ msg.project || "---" }}</td>
-        <td class="col-type">
-          <StatusBadge :variant="priorityVariant(msg.priority)">
-            {{ priorityLabel(msg.priority) }}
-          </StatusBadge>
-        </td>
-        <td class="col-message">{{ msg.body }}</td>
-      </tr>
-      </DataTable>
+        :table="table"
+        :is-row-selected="isSelected"
+        :row-class="(msg: Message) => priorityClass(msg.priority)"
+        @row-click="handleRowClick"
+      />
     </template>
 
     <LogFlagsDialog :open="showLogFlags" @close="showLogFlags = false" />
@@ -324,7 +351,10 @@ onUnmounted(() => {
 
 <style scoped>
 .messages-view {
-  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
 .error-text {
@@ -337,8 +367,10 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  margin-bottom: var(--space-lg);
+  padding: 0 var(--space-lg);
+  margin-bottom: var(--space-sm);
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .filter-group {

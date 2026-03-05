@@ -22,11 +22,13 @@ export const usePreferencesStore = defineStore("preferences", () => {
     loading.value = true;
     error.value = null;
     try {
-      const [overridePrefs, effectivePrefs, filePrefResult] = await Promise.all([
-        getPreferences(),
-        getGlobalPrefsWorking(),
-        getGlobalPrefsFile().catch(() => null),
-      ]);
+      const [overridePrefs, effectivePrefs, filePrefResult] = await Promise.all(
+        [
+          getPreferences(),
+          getGlobalPrefsWorking(),
+          getGlobalPrefsFile().catch(() => null),
+        ],
+      );
       prefs.value = overridePrefs;
       workingPrefs.value = effectivePrefs;
       filePrefs.value = filePrefResult;
@@ -43,11 +45,13 @@ export const usePreferencesStore = defineStore("preferences", () => {
     if (prefetched.value) return;
     error.value = null;
     try {
-      const [overridePrefs, effectivePrefs, filePrefResult] = await Promise.all([
-        getPreferences(),
-        getGlobalPrefsWorking(),
-        getGlobalPrefsFile().catch(() => null),
-      ]);
+      const [overridePrefs, effectivePrefs, filePrefResult] = await Promise.all(
+        [
+          getPreferences(),
+          getGlobalPrefsWorking(),
+          getGlobalPrefsFile().catch(() => null),
+        ],
+      );
       prefs.value = overridePrefs;
       workingPrefs.value = effectivePrefs;
       filePrefs.value = filePrefResult;
@@ -79,7 +83,9 @@ export const usePreferencesStore = defineStore("preferences", () => {
   }
 
   /** Get the effective (working) value for a boolean field. */
-  function getBoolEffectiveValue(field: keyof GlobalPreferences): boolean | null {
+  function getBoolEffectiveValue(
+    field: keyof GlobalPreferences,
+  ): boolean | null {
     if (!workingPrefs.value) return null;
     const val = workingPrefs.value[field];
     return typeof val === "boolean" ? val : null;

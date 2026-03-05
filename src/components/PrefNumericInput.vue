@@ -31,11 +31,18 @@ const fileVal = computed(() => store.getFileValue(props.field));
 
 const initialVal = computed(() => BOINC_DEFAULTS[props.field] ?? 0);
 const hasFileVal = computed(
-  () => fileVal.value != null && fileVal.value !== 0 && fileVal.value !== initialVal.value,
+  () =>
+    fileVal.value != null &&
+    fileVal.value !== 0 &&
+    fileVal.value !== initialVal.value,
 );
 
 const sourceType = computed(() => {
-  if (hasOverride.value && (!hasFileVal.value || props.modelValue !== fileVal.value)) return "override";
+  if (
+    hasOverride.value &&
+    (!hasFileVal.value || props.modelValue !== fileVal.value)
+  )
+    return "override";
   if (hasFileVal.value) return "file";
   return "initial";
 });
@@ -65,8 +72,14 @@ let openTimeout: ReturnType<typeof setTimeout> | null = null;
 let closeTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function cancelTimers() {
-  if (openTimeout) { clearTimeout(openTimeout); openTimeout = null; }
-  if (closeTimeout) { clearTimeout(closeTimeout); closeTimeout = null; }
+  if (openTimeout) {
+    clearTimeout(openTimeout);
+    openTimeout = null;
+  }
+  if (closeTimeout) {
+    clearTimeout(closeTimeout);
+    closeTimeout = null;
+  }
 }
 
 function onDotEnter() {

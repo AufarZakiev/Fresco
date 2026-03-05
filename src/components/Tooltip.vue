@@ -54,8 +54,14 @@ async function show() {
     bubbleStyle.value = {
       position: "fixed",
       left: `${centerX}px`,
-      top: props.placement === "top" ? `${rect.top - 6}px` : `${rect.bottom + 6}px`,
-      transform: props.placement === "top" ? "translateX(-50%) translateY(-100%)" : "translateX(-50%)",
+      top:
+        props.placement === "top"
+          ? `${rect.top - 6}px`
+          : `${rect.bottom + 6}px`,
+      transform:
+        props.placement === "top"
+          ? "translateX(-50%) translateY(-100%)"
+          : "translateX(-50%)",
       zIndex: "9000",
       visibility: "hidden",
     };
@@ -73,12 +79,18 @@ async function show() {
 
     // Vertical flip: if clipped at top → show below, if clipped at bottom → show above
     let top = props.placement === "top" ? rect.top - 6 : rect.bottom + 6;
-    let transform = props.placement === "top" ? "translateX(-50%) translateY(-100%)" : "translateX(-50%)";
+    let transform =
+      props.placement === "top"
+        ? "translateX(-50%) translateY(-100%)"
+        : "translateX(-50%)";
 
     if (props.placement === "top" && br.top < MARGIN) {
       top = rect.bottom + 6;
       transform = "translateX(-50%)";
-    } else if (props.placement === "bottom" && br.bottom > window.innerHeight - MARGIN) {
+    } else if (
+      props.placement === "bottom" &&
+      br.bottom > window.innerHeight - MARGIN
+    ) {
       top = rect.top - 6;
       transform = "translateX(-50%) translateY(-100%)";
     }
@@ -163,7 +175,11 @@ onUnmounted(() => {
 }
 
 @keyframes tooltip-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 </style>

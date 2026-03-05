@@ -16,10 +16,18 @@ const emit = defineEmits<{ close: [] }>();
 
 const dialogRef = ref<HTMLElement | null>(null);
 const { activate, deactivate } = useFocusTrap(dialogRef);
-watch(() => props.open, async (isOpen) => {
-  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
-  else { deactivate(); }
-});
+watch(
+  () => props.open,
+  async (isOpen) => {
+    if (isOpen) {
+      await nextTick();
+      if (!props.open) return;
+      activate();
+    } else {
+      deactivate();
+    }
+  },
+);
 
 const { t } = useI18n();
 const step = ref<"form" | "processing" | "result">("form");
@@ -53,8 +61,10 @@ watch(
 async function loadCurrentInfo() {
   loading.value = true;
   try {
-    currentMgr.value = await acctMgrInfo();
-  } catch {
+    const info = await acctMgrInfo();
+    currentMgr.value = info;
+  } catch (e) {
+    console.error("Failed to load account manager info:", e);
     currentMgr.value = null;
   } finally {
     loading.value = false;
@@ -148,49 +158,58 @@ function close() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="close">
-      <div ref="dialogRef" class="wizard" role="dialog" aria-modal="true" aria-labelledby="account-manager-wizard-title">
+      <div
+        ref="dialogRef"
+        class="wizard"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="account-manager-wizard-title"
+      >
         <div class="wizard-header">
           <h3 id="account-manager-wizard-title">
             {{
               step === "form"
-                ? $t('accountManager.title')
+                ? $t("accountManager.title")
                 : step === "processing"
-                  ? $t('accountManager.processing')
-                  : $t('accountManager.done')
+                  ? $t("accountManager.processing")
+                  : $t("accountManager.done")
             }}
           </h3>
-          <button class="close-btn" aria-label="Close" @click="close">&times;</button>
+          <button class="close-btn" aria-label="Close" @click="close">
+            &times;
+          </button>
         </div>
 
         <!-- Step 1: Form -->
-        <div v-if="step === 'form'" class="wizard-body">
+        <div v-if="step === 'form' && loading" class="wizard-body wizard-center">
+          <div class="spinner"></div>
+        </div>
+        <div v-else-if="step === 'form'" class="wizard-body">
           <!-- Current manager info -->
           <div v-if="currentMgr?.have_credentials" class="current-mgr">
-            <div class="current-mgr-label">{{ $t('accountManager.currentlyAttached') }}</div>
+            <div class="current-mgr-label">
+              {{ $t("accountManager.currentlyAttached") }}
+            </div>
             <div class="current-mgr-name">{{ currentMgr.acct_mgr_name }}</div>
             <div class="current-mgr-url">{{ currentMgr.acct_mgr_url }}</div>
             <button class="btn btn-danger-outline detach-btn" @click="doDetach">
-              {{ $t('accountManager.detach') }}
+              {{ $t("accountManager.detach") }}
             </button>
           </div>
 
           <div v-if="currentMgr?.have_credentials" class="divider">
-            <span>{{ $t('accountManager.orAttachDifferent') }}</span>
+            <span>{{ $t("accountManager.orAttachDifferent") }}</span>
           </div>
 
           <div v-if="error" class="wizard-error">{{ error }}</div>
 
           <label class="field">
-            <span>{{ $t('accountManager.managerUrl') }}</span>
-            <input
-              v-model="mgrUrl"
-              type="text"
-              placeholder="https://..."
-            />
+            <span>{{ $t("accountManager.managerUrl") }}</span>
+            <input v-model="mgrUrl" type="text" placeholder="https://..." />
           </label>
 
           <label class="field">
-            <span>{{ $t('accountManager.userName') }}</span>
+            <span>{{ $t("accountManager.userName") }}</span>
             <input
               v-model="userName"
               type="text"
@@ -199,7 +218,7 @@ function close() {
           </label>
 
           <label class="field">
-            <span>{{ $t('accountManager.password') }}</span>
+            <span>{{ $t("accountManager.password") }}</span>
             <input
               v-model="password"
               type="password"
@@ -208,13 +227,15 @@ function close() {
           </label>
 
           <div class="wizard-actions">
-            <button class="btn" @click="close">{{ $t('accountManager.cancel') }}</button>
+            <button class="btn" @click="close">
+              {{ $t("accountManager.cancel") }}
+            </button>
             <button
               class="btn btn-primary"
               :disabled="!mgrUrl.trim()"
               @click="doAttach"
             >
-              {{ $t('accountManager.attach') }}
+              {{ $t("accountManager.attach") }}
             </button>
           </div>
         </div>
@@ -222,14 +243,16 @@ function close() {
         <!-- Step 2: Processing -->
         <div v-if="step === 'processing'" class="wizard-body wizard-center">
           <div class="spinner"></div>
-          <p>{{ $t('accountManager.communicating') }}</p>
+          <p>{{ $t("accountManager.communicating") }}</p>
         </div>
 
         <!-- Step 3: Result -->
         <div v-if="step === 'result'" class="wizard-body wizard-center">
           <div class="success-icon">&#10003;</div>
           <p>{{ resultMessage }}</p>
-          <button class="btn btn-primary" @click="close">{{ $t('accountManager.done') }}</button>
+          <button class="btn btn-primary" @click="close">
+            {{ $t("accountManager.done") }}
+          </button>
         </div>
       </div>
     </div>

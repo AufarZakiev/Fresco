@@ -5,7 +5,10 @@ import Tooltip from "./Tooltip.vue";
 import { usePreferencesStore } from "../stores/preferences";
 import type { GlobalPreferences } from "../types/boinc";
 import { decimalHoursToTimeString } from "../utils/timeConversion";
-import { BOINC_DEFAULTS, BOINC_BOOL_DEFAULTS } from "../constants/boincDefaults";
+import {
+  BOINC_DEFAULTS,
+  BOINC_BOOL_DEFAULTS,
+} from "../constants/boincDefaults";
 
 const props = defineProps<{
   open: boolean;
@@ -31,7 +34,9 @@ const popoverRef = ref<HTMLElement | null>(null);
 const popoverStyle = ref<Record<string, string>>({});
 
 const fileValue = computed(() =>
-  props.isBooleanField ? store.getBoolFileValue(props.field) : store.getFileValue(props.field),
+  props.isBooleanField
+    ? store.getBoolFileValue(props.field)
+    : store.getFileValue(props.field),
 );
 
 const initialValue = computed(() =>
@@ -44,19 +49,29 @@ const hasFileValue = computed(() => {
   if (props.isBooleanField) {
     return fileValue.value != null && fileValue.value !== initialValue.value;
   }
-  return fileValue.value != null && fileValue.value !== 0 && fileValue.value !== initialValue.value;
+  return (
+    fileValue.value != null &&
+    fileValue.value !== 0 &&
+    fileValue.value !== initialValue.value
+  );
 });
 
 const hasOverride = computed(() => {
   if (props.isBooleanField) {
-    return props.overrideValue !== initialValue.value
-      && (!hasFileValue.value || props.overrideValue !== fileValue.value);
+    return (
+      props.overrideValue !== initialValue.value &&
+      (!hasFileValue.value || props.overrideValue !== fileValue.value)
+    );
   }
-  return props.overrideValue !== 0 && (!hasFileValue.value || props.overrideValue !== fileValue.value);
+  return (
+    props.overrideValue !== 0 &&
+    (!hasFileValue.value || props.overrideValue !== fileValue.value)
+  );
 });
 
 function formatValue(val: number | boolean): string {
-  if (typeof val === "boolean") return val ? t("prefSource.on") : t("prefSource.off");
+  if (typeof val === "boolean")
+    return val ? t("prefSource.on") : t("prefSource.off");
   if (val === 0) return props.zeroLabel ?? t("prefSource.default");
   if (props.isTimeField) return decimalHoursToTimeString(val);
   return String(val);
@@ -129,12 +144,12 @@ onUnmounted(() => {
       @mouseenter="emit('popover-enter')"
       @mouseleave="emit('popover-leave')"
     >
-      <div class="popover-header">{{ $t('prefSource.title') }}</div>
+      <div class="popover-header">{{ $t("prefSource.title") }}</div>
 
       <!-- Your override -->
       <div v-if="hasOverride" class="source-row">
         <span class="source-dot override" />
-        <span class="source-label">{{ $t('prefSource.yourOverride') }}</span>
+        <span class="source-label">{{ $t("prefSource.yourOverride") }}</span>
         <span class="source-value">{{ formatValue(overrideValue) }}</span>
         <Tooltip :text="$t('prefSource.clearOverride')">
           <button class="source-action clear" @click="emit('clear-override')">
@@ -146,7 +161,7 @@ onUnmounted(() => {
       <!-- Project default -->
       <div v-if="hasFileValue" class="source-row">
         <span class="source-dot file" />
-        <span class="source-label">{{ $t('prefSource.accountManager') }}</span>
+        <span class="source-label">{{ $t("prefSource.accountManager") }}</span>
         <span class="source-value">{{ formatValue(fileValue!) }}</span>
         <Tooltip :text="$t('prefSource.useThisValue')">
           <button
@@ -161,7 +176,7 @@ onUnmounted(() => {
       <!-- Initial (hardcoded BOINC default) -->
       <div class="source-row">
         <span class="source-dot initial" />
-        <span class="source-label">{{ $t('prefSource.default') }}</span>
+        <span class="source-label">{{ $t("prefSource.default") }}</span>
         <span class="source-value">{{ formatValue(initialValue) }}</span>
       </div>
     </div>
@@ -243,7 +258,9 @@ onUnmounted(() => {
   font-size: 14px;
   line-height: 1;
   color: var(--color-text-tertiary);
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .source-action:hover {

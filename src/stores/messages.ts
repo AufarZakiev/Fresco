@@ -49,9 +49,7 @@ export const useMessagesStore = defineStore("messages", () => {
         const newMessages = await getMessages(lastSeqno.value);
         if (newMessages.length > 0) {
           messages.value = [...messages.value, ...newMessages];
-          lastSeqno.value = Math.max(
-            ...newMessages.map((m) => m.seqno),
-          );
+          lastSeqno.value = Math.max(...newMessages.map((m) => m.seqno));
         }
       }
     } catch (e) {

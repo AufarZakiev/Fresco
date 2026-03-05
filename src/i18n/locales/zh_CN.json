@@ -22,17 +22,27 @@
     "eventLog": "事件日志",
     "selectComputer": "选择计算机",
     "preferences": "设置",
-    "toggleSidebar": "切换侧边栏"
+    "toggleSidebar": "切换侧边栏",
+    "addProject": "添加项目",
+    "accountManager": "账户管理器"
   },
   "tasks": {
     "title": "任务",
     "activeOnly": "仅显示活动任务",
+    "customizeColumns": "显示、隐藏或重新排列列",
     "suspend": "暂停",
     "resume": "继续",
     "graphics": "图形",
     "abort": "中止",
     "properties": "属性",
+    "nTasks": "已选择 {count} 个任务",
     "columns": "列",
+    "tooltip": {
+      "suspend": "暂时停止选中的任务",
+      "resume": "恢复选中的任务",
+      "abort": "永久删除选中的任务",
+      "properties": "查看任务详细信息"
+    },
     "loading": "正在加载任务...",
     "emptyActive": "当前没有活动任务。",
     "emptyAll": "没有任务。请添加项目以开始计算。",
@@ -148,7 +158,12 @@
     "title": "传输",
     "retry": "重试",
     "abort": "中止",
+    "nTransfers": "已选择 {count} 个传输",
     "columns": "列",
+    "tooltip": {
+      "retry": "重试选中的传输",
+      "abort": "取消选中的传输"
+    },
     "loading": "正在加载传输...",
     "empty": "没有正在进行的文件传输。",
     "col": {
@@ -442,7 +457,8 @@
     "error": "错误",
     "tasksSuspended": "任务已暂停：{reason}",
     "gpuSuspended": "GPU 已暂停：{reason}",
-    "about": "关于"
+    "about": "关于",
+    "clickToSwitch": "点击切换计算机"
   },
   "columns": {
     "title": "列",

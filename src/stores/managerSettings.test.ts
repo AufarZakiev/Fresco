@@ -30,7 +30,10 @@ describe("useManagerSettingsStore", () => {
   });
 
   it("loads saved settings from localStorage", () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ language: "ru", theme: "dark" }));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ language: "ru", theme: "dark" }),
+    );
     const store = useManagerSettingsStore();
     expect(store.settings.language).toBe("ru");
     expect(store.settings.theme).toBe("dark");

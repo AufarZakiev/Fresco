@@ -37,7 +37,9 @@ function toPercent(hour: number): number {
 function hourFromX(e: MouseEvent): number {
   if (!trackRef.value) return 0;
   const rect = trackRef.value.getBoundingClientRect();
-  return snapToStep(clampValue(((e.clientX - rect.left) / rect.width) * MAX, 0, MAX));
+  return snapToStep(
+    clampValue(((e.clientX - rect.left) / rect.width) * MAX, 0, MAX),
+  );
 }
 
 function formatTime(hour: number): string {
@@ -47,8 +49,12 @@ function formatTime(hour: number): string {
 }
 
 const isAllDay = computed(() => props.startHour === 0 && props.endHour === 0);
-const startPct = computed(() => isAllDay.value ? 0 : toPercent(props.startHour));
-const endPct = computed(() => isAllDay.value ? 100 : toPercent(props.endHour));
+const startPct = computed(() =>
+  isAllDay.value ? 0 : toPercent(props.startHour),
+);
+const endPct = computed(() =>
+  isAllDay.value ? 100 : toPercent(props.endHour),
+);
 const rangeLabel = computed(() => {
   if (props.startHour === 0 && props.endHour === 0) return "All day";
   return `${formatTime(props.startHour)} – ${formatTime(props.endHour)}`;
@@ -112,7 +118,7 @@ function onTrackClick(e: MouseEvent) {
       <!-- Filled range -->
       <div
         class="range-fill"
-        :style="{ left: startPct + '%', width: (endPct - startPct) + '%' }"
+        :style="{ left: startPct + '%', width: endPct - startPct + '%' }"
       />
       <!-- Start handle -->
       <div
@@ -135,7 +141,8 @@ function onTrackClick(e: MouseEvent) {
         :key="t"
         class="range-tick"
         :style="{ left: toPercent(t) + '%' }"
-      >{{ t }}</span>
+        >{{ t }}</span
+      >
     </div>
   </div>
 </template>

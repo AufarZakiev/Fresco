@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, provide } from "vue";
 import { onKeyStroke, useEventListener } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
@@ -14,6 +14,8 @@ import SelectComputerDialog from "./components/SelectComputerDialog.vue";
 import ExitConfirmDialog from "./components/ExitConfirmDialog.vue";
 import ToastContainer from "./components/ToastContainer.vue";
 import UpdateBanner from "./components/UpdateBanner.vue";
+import ProjectAttachWizard from "./components/ProjectAttachWizard.vue";
+import AccountManagerWizard from "./components/AccountManagerWizard.vue";
 import Tooltip from "./components/Tooltip.vue";
 import { useWindowState } from "./composables/useWindowState";
 import { useUpdateCheck } from "./composables/useUpdateCheck";
@@ -23,6 +25,7 @@ import { useTasksStore } from "./stores/tasks";
 import { useProjectsStore } from "./stores/projects";
 import { useTransfersStore } from "./stores/transfers";
 import { useClientStore } from "./stores/client";
+import { getSuspendReasonText } from "./composables/useSuspendReasons";
 import { useStatisticsStore } from "./stores/statistics";
 import { useMessagesStore } from "./stores/messages";
 import { useNoticesStore } from "./stores/notices";
@@ -34,7 +37,6 @@ import {
   setGpuMode,
   shutdownClient,
   disconnect,
-  getHostInfo,
   startBoincClient,
 } from "./composables/useRpc";
 
@@ -55,14 +57,22 @@ useManagerSettingsStore(); // Initialize early to apply theme before ConnectView
 const showPreferences = ref(false);
 const showAbout = ref(false);
 const showSelectComputer = ref(false);
+const showAttachWizard = ref(false);
+const showAcctMgr = ref(false);
+provide("openAttachWizard", () => { showAttachWizard.value = true; });
+provide("openAcctMgr", () => { showAcctMgr.value = true; });
 const prefsInitialTab = ref<"computing" | "manager">("computing");
 const showExitConfirm = ref(false);
 const initializing = ref(true);
 const loadingStatus = ref(t("app.loading.connectingLocal"));
-const isDarkTheme = ref(window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false);
-window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-  isDarkTheme.value = e.matches;
-});
+const isDarkTheme = ref(
+  window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false,
+);
+window
+  .matchMedia?.("(prefers-color-scheme: dark)")
+  .addEventListener("change", (e) => {
+    isDarkTheme.value = e.matches;
+  });
 const sidebarOpen = ref(false);
 const collapsedGroups = ref<string[]>(["advanced"]);
 
@@ -78,12 +88,58 @@ function toggleCollapsed(key: string) {
   }
 }
 const hasSidebar = computed(
-  () => connection.state === CONNECTION_STATE.CONNECTED || connection.state === CONNECTION_STATE.RECONNECTING,
+  () =>
+    connection.state === CONNECTION_STATE.CONNECTED ||
+    connection.state === CONNECTION_STATE.RECONNECTING,
 );
+
+const hasStatusBar = computed(() => {
+  const client = useClientStore();
+  return !!(
+    getSuspendReasonText(client.status.task_suspend_reason) ||
+    getSuspendReasonText(client.status.gpu_suspend_reason)
+  );
+});
+
+const statusDotClass = computed(() => {
+  const state = connection.state;
+  if (state === CONNECTION_STATE.CONNECTED) return "status-dot-connected";
+  if (state === CONNECTION_STATE.RECONNECTING) return "status-dot-reconnecting";
+  if (
+    state === CONNECTION_STATE.AUTH_ERROR ||
+    (typeof state === "object" && "Error" in state)
+  )
+    return "status-dot-error";
+  return "status-dot-disconnected";
+});
+
+const statusText = computed(() => {
+  const state = connection.state;
+  if (state === CONNECTION_STATE.CONNECTED) return t("statusBar.connected");
+  if (state === CONNECTION_STATE.RECONNECTING)
+    return t("statusBar.reconnecting", {
+      attempt: connection.reconnectAttempt,
+      max: connection.maxReconnectAttempts,
+    });
+  if (state === CONNECTION_STATE.CONNECTING) return t("statusBar.connecting");
+  if (state === CONNECTION_STATE.AUTH_ERROR) return t("statusBar.authError");
+  if (state === CONNECTION_STATE.DISCONNECTED)
+    return t("statusBar.disconnected");
+  if (typeof state === "object" && "Error" in state)
+    return t("statusBar.error");
+  return t("statusBar.disconnected");
+});
 let autoConnectCancelled = false;
 
 useWindowState();
-const { updateAvailable, dismissed, updateOnExit, downloaded, downloading, checkForUpdates: doUpdateCheck } = useUpdateCheck();
+const {
+  updateAvailable,
+  dismissed,
+  updateOnExit,
+  downloaded,
+  downloading,
+  checkForUpdates: doUpdateCheck,
+} = useUpdateCheck();
 
 // ── Auto-connect to local BOINC client on startup ───────────────
 
@@ -105,7 +161,10 @@ async function autoConnect() {
   await connection.connectToLocal(dataDir);
 
   // If connection failed with a non-auth error, try auto-starting BOINC
-  if (connection.state !== CONNECTION_STATE.CONNECTED && connection.state !== CONNECTION_STATE.AUTH_ERROR) {
+  if (
+    connection.state !== CONNECTION_STATE.CONNECTED &&
+    connection.state !== CONNECTION_STATE.AUTH_ERROR
+  ) {
     loadingStatus.value = t("app.loading.startingBoinc");
     try {
       await startBoincClient(dataDir);
@@ -144,7 +203,15 @@ useEventListener(document, "contextmenu", (e) => e.preventDefault());
 
 // Prevent Backspace from triggering browser-like back navigation in the WebView.
 // Only allow Backspace in text-editable elements (text inputs, textareas, contenteditable).
-const TEXT_INPUT_TYPES = new Set(["text", "password", "search", "email", "url", "tel", "number"]);
+const TEXT_INPUT_TYPES = new Set([
+  "text",
+  "password",
+  "search",
+  "email",
+  "url",
+  "tel",
+  "number",
+]);
 
 function isTextEditable(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -224,9 +291,8 @@ async function doExit(doShutdownClient: boolean) {
     }
   }
   try {
-    const { getCurrentWebviewWindow } = await import(
-      "@tauri-apps/api/webviewWindow"
-    );
+    const { getCurrentWebviewWindow } =
+      await import("@tauri-apps/api/webviewWindow");
     await getCurrentWebviewWindow().destroy();
   } catch {
     // ignore
@@ -273,7 +339,9 @@ watch(
   (path) => {
     for (const group of navGroups.value) {
       if (group.collapsible && group.items.some((i) => i.path === path)) {
-        collapsedGroups.value = collapsedGroups.value.filter((l) => l !== group.key);
+        collapsedGroups.value = collapsedGroups.value.filter(
+          (l) => l !== group.key,
+        );
       }
     }
   },
@@ -285,18 +353,6 @@ watch(
   async (newState) => {
     if (newState === CONNECTION_STATE.CONNECTED) {
       wasConnected = true;
-      try {
-        const { getCurrentWebviewWindow } = await import(
-          "@tauri-apps/api/webviewWindow"
-        );
-        const win = getCurrentWebviewWindow();
-        const info = await getHostInfo();
-        if (info.domain_name) {
-          win.setTitle(`BOINC — ${info.domain_name}`);
-        }
-      } catch {
-        // ignore if not in Tauri environment
-      }
     } else if (newState === CONNECTION_STATE.RECONNECTING) {
       // Don't reset wasConnected — we're trying to reconnect
     } else if (wasConnected && newState !== CONNECTION_STATE.CONNECTING) {
@@ -305,16 +361,25 @@ watch(
     }
   },
 );
+
 </script>
 
 <template>
   <div v-if="initializing" class="loading-screen">
     <div class="loading-content">
-      <img class="loading-logo" :src="isDarkTheme ? '/icon-dark.png' : '/icon.png'" alt="Fresco" width="96" height="96" />
+      <img
+        class="loading-logo"
+        :src="isDarkTheme ? '/icon-dark.png' : '/icon.png'"
+        alt="Fresco"
+        width="96"
+        height="96"
+      />
       <span class="loading-app-title">Fresco</span>
       <div class="loading-spinner"></div>
       <span class="loading-text">{{ loadingStatus }}</span>
-      <button class="btn loading-cancel" @click="cancelAutoConnect">{{ $t('app.loading.cancel') }}</button>
+      <button class="btn loading-cancel" @click="cancelAutoConnect">
+        {{ $t("app.loading.cancel") }}
+      </button>
     </div>
   </div>
   <div v-else class="app" :class="{ 'has-sidebar': hasSidebar }">
@@ -325,11 +390,15 @@ watch(
       @click="sidebarOpen = !sidebarOpen"
     >
       <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
-        <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+        <path
+          fill-rule="evenodd"
+          d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+          clip-rule="evenodd"
+        />
       </svg>
     </button>
     <div
-      v-if="sidebarOpen && (hasSidebar)"
+      v-if="sidebarOpen && hasSidebar"
       class="sidebar-backdrop"
       @click="sidebarOpen = false"
     ></div>
@@ -341,7 +410,12 @@ watch(
             :class="{ clickable: group.collapsible }"
             @click="group.collapsible && toggleCollapsed(group.key)"
           >
-            <span v-if="group.collapsible" class="nav-group-chevron" :class="{ collapsed: isCollapsed(group.key) }">&#9662;</span>
+            <span
+              v-if="group.collapsible"
+              class="nav-group-chevron"
+              :class="{ collapsed: isCollapsed(group.key) }"
+              >&#9662;</span
+            >
             {{ group.label }}
           </span>
           <router-link
@@ -356,29 +430,53 @@ watch(
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
               <template v-if="item.icon === 'cpu'">
                 <path d="M13 7H7v6h6V7z" />
-                <path fill-rule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h1a2 2 0 012 2v1h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v1a2 2 0 01-2 2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H6a2 2 0 01-2-2v-1H3a1 1 0 110-2h1V8H3a1 1 0 010-2h1V5a2 2 0 012-2V2zm0 3h6a1 1 0 011 1v6a1 1 0 01-1 1H7a1 1 0 01-1-1V6a1 1 0 011-1z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h1a2 2 0 012 2v1h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v1a2 2 0 01-2 2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H6a2 2 0 01-2-2v-1H3a1 1 0 110-2h1V8H3a1 1 0 010-2h1V5a2 2 0 012-2V2zm0 3h6a1 1 0 011 1v6a1 1 0 01-1 1H7a1 1 0 01-1-1V6a1 1 0 011-1z"
+                  clip-rule="evenodd"
+                />
               </template>
               <template v-else-if="item.icon === 'folder'">
-                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                <path
+                  d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                />
               </template>
               <template v-else-if="item.icon === 'chart'">
                 <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
                 <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
               </template>
               <template v-else-if="item.icon === 'transfer'">
-                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                  clip-rule="evenodd"
+                />
               </template>
               <template v-else-if="item.icon === 'message'">
-                <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
+                  clip-rule="evenodd"
+                />
               </template>
               <template v-else-if="item.icon === 'bell'">
-                <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                <path
+                  d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"
+                />
               </template>
               <template v-else-if="item.icon === 'disk'">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                  clip-rule="evenodd"
+                />
               </template>
               <template v-else-if="item.icon === 'monitor'">
-                <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm11 1H6v3h8V6zM6 15a1 1 0 100 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M3 5a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm11 1H6v3h8V6zM6 15a1 1 0 100 2h8a1 1 0 100-2H6z"
+                  clip-rule="evenodd"
+                />
               </template>
             </svg>
             {{ item.label }}
@@ -389,29 +487,64 @@ watch(
       <div class="sidebar-footer">
         <ActivityControls />
         <div class="sidebar-actions">
-          <Tooltip :text="$t('sidebar.selectComputer')">
-            <button class="sidebar-action-btn" @click="showSelectComputer = true">
-              <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-                <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm11 1H6v3h8V6zM6 15a1 1 0 100 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-              </svg>
-            </button>
+          <Tooltip :text="$t('statusBar.clickToSwitch')" placement="top">
+            <div class="sidebar-status" @click="showSelectComputer = true">
+              <span class="status-dot" :class="statusDotClass" />
+              <span class="status-label">{{ statusText }}</span>
+            </div>
           </Tooltip>
-          <Tooltip :text="$t('sidebar.preferences')">
-            <button class="sidebar-action-btn" @click="prefsInitialTab = 'computing'; showPreferences = true">
-              <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-                <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
-              </svg>
-            </button>
-          </Tooltip>
+          <div class="sidebar-actions-btns">
+            <Tooltip :text="$t('sidebar.preferences')">
+              <button
+                class="sidebar-action-btn"
+                @click="
+                  prefsInitialTab = 'computing';
+                  showPreferences = true;
+                "
+              >
+                <svg
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  width="18"
+                  height="18"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </button>
+            </Tooltip>
+            <Tooltip :text="$t('statusBar.about')">
+              <button
+                class="sidebar-action-btn"
+                @click="showAbout = true"
+              >
+                <svg
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  width="18"
+                  height="18"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </button>
+            </Tooltip>
+          </div>
         </div>
       </div>
     </aside>
-    <main class="main-content">
+    <main class="main-content" :style="{ '--status-bar-offset': hasStatusBar ? '28px' : '0px' }">
       <UpdateBanner v-if="updateAvailable && !dismissed" />
       <router-view />
     </main>
 
-    <StatusBar v-if="hasSidebar" @show-about="showAbout = true" />
+    <StatusBar v-if="hasSidebar" />
 
     <PreferencesDialog
       :open="showPreferences"
@@ -427,6 +560,16 @@ watch(
       :open="showExitConfirm"
       @close="showExitConfirm = false"
       @confirm="doExit"
+    />
+    <ProjectAttachWizard
+      v-if="showAttachWizard"
+      :open="showAttachWizard"
+      @close="showAttachWizard = false"
+    />
+    <AccountManagerWizard
+      v-if="showAcctMgr"
+      :open="showAcctMgr"
+      @close="showAcctMgr = false"
     />
     <ToastContainer />
   </div>
@@ -507,15 +650,53 @@ body {
 }
 
 /* Global input dark mode support */
-input, textarea, select {
+input,
+textarea,
+select {
   color-scheme: light dark;
+}
+
+/* Global icon button style for drawer actions */
+.btn.icon-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding-left: 8px !important;
+}
+
+.icon-btn svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* Global dialog animations */
+.dialog-overlay {
+  animation: overlay-in 0.2s ease;
+}
+
+.dialog-overlay > * {
+  animation: dialog-in 0.2s cubic-bezier(0.2, 0, 0.13, 1.5);
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
 }
 </style>
 
 <style scoped>
 .app {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
+  overflow: hidden;
 }
 
 .app.has-sidebar .main-content {
@@ -526,7 +707,6 @@ input, textarea, select {
 
 .main-content {
   flex: 1;
-  padding-bottom: 28px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -545,14 +725,14 @@ input, textarea, select {
   display: flex;
   flex-direction: column;
   z-index: var(--z-sidebar-overlay);
-  overflow-y: auto;
 }
 
 /* ── Nav ──────────────────────────────────────────────────────── */
 
 .sidebar-nav {
   flex: 1;
-  padding: 4px 8px;
+  padding: 4px 0 4px 8px;
+  overflow-y: auto;
 }
 
 .nav-group {
@@ -599,12 +779,20 @@ input, textarea, select {
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
+  margin-right: 8px;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-md);
   text-decoration: none;
   color: var(--color-text-secondary);
-  transition: all var(--transition-fast);
   font-weight: 450;
+  clip-path: polygon(0 0, 100% 0, 100% 50%, 100% 100%, 0 100%);
+  transition:
+    background 0.25s ease,
+    color 0.25s ease,
+    clip-path 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-radius 0.3s ease;
 }
 
 .nav-item:hover {
@@ -613,9 +801,13 @@ input, textarea, select {
 }
 
 .nav-item.active {
-  background: var(--color-accent-light);
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
   color: var(--color-accent);
   font-weight: 550;
+  margin-right: 0;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  padding-right: 22px;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%);
 }
 
 .nav-icon {
@@ -625,6 +817,35 @@ input, textarea, select {
   opacity: 0.7;
 }
 
+.nav-item-add {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.nav-item:hover .nav-item-add {
+  opacity: 1;
+}
+
+.nav-item.active .nav-item-add {
+  margin-right: 8px;
+}
+
+.nav-item-add:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-accent);
+}
+
 .nav-item.active .nav-icon {
   opacity: 1;
 }
@@ -632,14 +853,72 @@ input, textarea, select {
 /* ── Footer ───────────────────────────────────────────────────── */
 
 .sidebar-footer {
-  padding: 12px;
-  border-top: 1px solid var(--color-border);
+  padding: 4px 12px 6px;
 }
 
 .sidebar-actions {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   margin-top: 8px;
+}
+
+.sidebar-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+  margin: -2px -4px;
+  transition: background var(--transition-fast);
+}
+
+.sidebar-status:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot-connected {
+  background: var(--color-success);
+}
+
+.status-dot-reconnecting {
+  background: var(--color-warning);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.status-dot-error {
+  background: var(--color-danger);
+}
+
+.status-dot-disconnected {
+  background: var(--color-text-tertiary);
+}
+
+.status-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-actions-btns {
+  display: flex;
+  gap: 2px;
 }
 
 .sidebar-action-btn {
@@ -710,7 +989,9 @@ input, textarea, select {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Hamburger button (mobile only) ─────────────────────────── */

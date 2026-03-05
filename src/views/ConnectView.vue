@@ -2,7 +2,13 @@
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import Tooltip from "../components/Tooltip.vue";
-import { getOS, defaultDataDir, defaultClientDir, detectClientDir, type OS } from "../composables/usePlatform";
+import {
+  getOS,
+  defaultDataDir,
+  defaultClientDir,
+  detectClientDir,
+  type OS,
+} from "../composables/usePlatform";
 import { useConnectionStore } from "../stores/connection";
 import { useTasksStore } from "../stores/tasks";
 import { useProjectsStore } from "../stores/projects";
@@ -56,10 +62,14 @@ const connecting = ref(false);
 const osLoading = ref(true);
 const statusMessage = ref<string | null>(null);
 const recentConnections = ref<RecentConnection[]>([]);
-const isDarkTheme = ref(window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false);
-window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-  isDarkTheme.value = e.matches;
-});
+const isDarkTheme = ref(
+  window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false,
+);
+window
+  .matchMedia?.("(prefers-color-scheme: dark)")
+  .addEventListener("change", (e) => {
+    isDarkTheme.value = e.matches;
+  });
 
 onMounted(async () => {
   loadRecent();
@@ -94,10 +104,12 @@ function loadRecent() {
 function saveRecent(entry: RecentConnection) {
   const existing = recentConnections.value.filter(
     (r) =>
-      !(r.mode === entry.mode &&
+      !(
+        r.mode === entry.mode &&
         r.dataDir === entry.dataDir &&
         r.host === entry.host &&
-        r.port === entry.port),
+        r.port === entry.port
+      ),
   );
   const updated = [entry, ...existing].slice(0, MAX_RECENT);
   recentConnections.value = updated;
@@ -112,8 +124,10 @@ function removeRecent(index: number) {
 function applyRecent(entry: RecentConnection) {
   mode.value = entry.mode;
   if (entry.mode === CONNECTION_MODE.LOCAL) {
-    dataDir.value = entry.dataDir ?? (osLoading.value ? "" : defaultDataDir(currentOS));
-    clientDir.value = entry.clientDir ?? (osLoading.value ? "" : defaultClientDir(currentOS));
+    dataDir.value =
+      entry.dataDir ?? (osLoading.value ? "" : defaultDataDir(currentOS));
+    clientDir.value =
+      entry.clientDir ?? (osLoading.value ? "" : defaultClientDir(currentOS));
   } else {
     host.value = entry.host ?? "localhost";
     port.value = entry.port ?? 31416;
@@ -147,7 +161,10 @@ async function handleConnect() {
     await connection.connectToLocal(dataDir.value);
 
     // If local connection failed with a non-auth error, try auto-starting BOINC
-    if (connection.state !== CONNECTION_STATE.CONNECTED && connection.state !== CONNECTION_STATE.AUTH_ERROR) {
+    if (
+      connection.state !== CONNECTION_STATE.CONNECTED &&
+      connection.state !== CONNECTION_STATE.AUTH_ERROR
+    ) {
       statusMessage.value = t("connect.startingBoinc");
       try {
         await startBoincClient(dataDir.value, clientDir.value);
@@ -199,8 +216,14 @@ function formatTimestamp(ts: number): string {
 <template>
   <div class="connect-view">
     <div class="connect-card">
-      <img class="connect-logo" :src="isDarkTheme ? '/icon-dark.png' : '/icon.png'" alt="Fresco" width="96" height="96" />
-      <h2 class="connect-title">{{ $t('connect.title') }}</h2>
+      <img
+        class="connect-logo"
+        :src="isDarkTheme ? '/icon-dark.png' : '/icon.png'"
+        alt="Fresco"
+        width="96"
+        height="96"
+      />
+      <h2 class="connect-title">{{ $t("connect.title") }}</h2>
 
       <div class="mode-toggle">
         <button
@@ -208,14 +231,14 @@ function formatTimestamp(ts: number): string {
           :class="{ active: mode === CONNECTION_MODE.LOCAL }"
           @click="mode = CONNECTION_MODE.LOCAL"
         >
-          {{ $t('connect.local') }}
+          {{ $t("connect.local") }}
         </button>
         <button
           class="toggle-btn"
           :class="{ active: mode === CONNECTION_MODE.REMOTE }"
           @click="mode = CONNECTION_MODE.REMOTE"
         >
-          {{ $t('connect.remote') }}
+          {{ $t("connect.remote") }}
         </button>
       </div>
 
@@ -223,7 +246,7 @@ function formatTimestamp(ts: number): string {
         <!-- Local mode -->
         <template v-if="mode === CONNECTION_MODE.LOCAL">
           <label class="field">
-            <span class="field-label">{{ $t('connect.dataDir') }}</span>
+            <span class="field-label">{{ $t("connect.dataDir") }}</span>
             <input
               v-model="dataDir"
               type="text"
@@ -233,7 +256,7 @@ function formatTimestamp(ts: number): string {
             />
           </label>
           <label class="field">
-            <span class="field-label">{{ $t('connect.clientDir') }}</span>
+            <span class="field-label">{{ $t("connect.clientDir") }}</span>
             <input
               v-model="clientDir"
               type="text"
@@ -247,7 +270,7 @@ function formatTimestamp(ts: number): string {
         <!-- Remote mode -->
         <template v-if="mode === CONNECTION_MODE.REMOTE">
           <label class="field">
-            <span class="field-label">{{ $t('connect.host') }}</span>
+            <span class="field-label">{{ $t("connect.host") }}</span>
             <input
               v-model="host"
               type="text"
@@ -257,7 +280,7 @@ function formatTimestamp(ts: number): string {
             />
           </label>
           <label class="field">
-            <span class="field-label">{{ $t('connect.port') }}</span>
+            <span class="field-label">{{ $t("connect.port") }}</span>
             <input
               v-model.number="port"
               type="number"
@@ -267,7 +290,7 @@ function formatTimestamp(ts: number): string {
             />
           </label>
           <label class="field">
-            <span class="field-label">{{ $t('connect.password') }}</span>
+            <span class="field-label">{{ $t("connect.password") }}</span>
             <input
               v-model="password"
               type="password"
@@ -280,18 +303,25 @@ function formatTimestamp(ts: number): string {
 
         <button
           class="btn btn-primary connect-btn"
-          :disabled="connecting || (mode === CONNECTION_MODE.LOCAL && osLoading)"
+          :disabled="
+            connecting || (mode === CONNECTION_MODE.LOCAL && osLoading)
+          "
           @click="handleConnect"
         >
-          {{ statusMessage ?? (connecting ? $t('connect.connecting') : $t('connect.connect')) }}
+          {{
+            statusMessage ??
+            (connecting ? $t("connect.connecting") : $t("connect.connect"))
+          }}
         </button>
 
-        <p v-if="connection.error && !statusMessage" class="error">{{ connection.error }}</p>
+        <p v-if="connection.error && !statusMessage" class="error">
+          {{ connection.error }}
+        </p>
       </div>
 
       <!-- Recent connections -->
       <div v-if="recentConnections.length > 0" class="recent-section">
-        <h3 class="recent-title">{{ $t('connect.recentConnections') }}</h3>
+        <h3 class="recent-title">{{ $t("connect.recentConnections") }}</h3>
         <ul class="recent-list">
           <li
             v-for="(entry, index) in recentConnections"
@@ -299,15 +329,18 @@ function formatTimestamp(ts: number): string {
             class="recent-item"
           >
             <button class="recent-btn" @click="applyRecent(entry)">
-              <span class="recent-mode-badge">{{ entry.mode === CONNECTION_MODE.LOCAL ? $t('connect.local') : $t('connect.remote') }}</span>
+              <span class="recent-mode-badge">{{
+                entry.mode === CONNECTION_MODE.LOCAL
+                  ? $t("connect.local")
+                  : $t("connect.remote")
+              }}</span>
               <span class="recent-label">{{ entry.label }}</span>
-              <span class="recent-time">{{ formatTimestamp(entry.timestamp) }}</span>
+              <span class="recent-time">{{
+                formatTimestamp(entry.timestamp)
+              }}</span>
             </button>
             <Tooltip :text="$t('connect.remove')">
-              <button
-                class="recent-remove"
-                @click.stop="removeRecent(index)"
-              >
+              <button class="recent-remove" @click.stop="removeRecent(index)">
                 &times;
               </button>
             </Tooltip>

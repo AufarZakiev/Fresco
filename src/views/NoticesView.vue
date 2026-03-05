@@ -11,7 +11,10 @@ const store = useNoticesStore();
 function sanitizeHtml(html: string): string {
   const clean = DOMPurify.sanitize(html);
   // Ensure all links open in a new tab without giving the target page window.opener access
-  return clean.replace(/<a\s/gi, '<a target="_blank" rel="noopener noreferrer" ');
+  return clean.replace(
+    /<a\s/gi,
+    '<a target="_blank" rel="noopener noreferrer" ',
+  );
 }
 
 function formatDate(timestamp: number): string {
@@ -43,12 +46,15 @@ onUnmounted(() => {
 
 <template>
   <div class="notices-view">
-    <PageHeader :title="$t('notices.title')" />
+    <PageHeader />
 
     <p v-if="store.error" class="error-text">{{ store.error }}</p>
 
-    <div v-if="store.loading && store.notices.length === 0" class="loading-text">
-      {{ $t('notices.loading') }}
+    <div
+      v-if="store.loading && store.notices.length === 0"
+      class="loading-text"
+    >
+      {{ $t("notices.loading") }}
     </div>
 
     <EmptyState
@@ -83,7 +89,10 @@ onUnmounted(() => {
             <StatusBadge v-if="notice.category" variant="default">
               {{ notice.category }}
             </StatusBadge>
-            <span class="notice-date" :title="formatDateTime(notice.create_time)">
+            <span
+              class="notice-date"
+              :title="formatDateTime(notice.create_time)"
+            >
               {{ formatDate(notice.create_time) }}
             </span>
           </div>
@@ -101,7 +110,11 @@ onUnmounted(() => {
 
 <style scoped>
 .notices-view {
-  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: auto;
+  padding: 0 var(--space-lg) var(--space-lg);
 }
 
 .error-text {

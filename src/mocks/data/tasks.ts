@@ -1,6 +1,10 @@
 import type { TaskResult } from "../../types/boinc";
 import { NOW, DAY, ROSETTA_URL, EINSTEIN_URL, CLIMATE_URL } from "./_shared";
-import { RESULT_STATE, ACTIVE_TASK_STATE, SCHEDULER_STATE } from "../../types/boinc";
+import {
+  RESULT_STATE,
+  ACTIVE_TASK_STATE,
+  SCHEDULER_STATE,
+} from "../../types/boinc";
 
 export const mockTasks: TaskResult[] = [
   // Running task — Rosetta

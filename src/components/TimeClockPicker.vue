@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
+import {
+  ref,
+  computed,
+  watch,
+  nextTick,
+  onMounted,
+  onBeforeUnmount,
+} from "vue";
 
 const props = withDefaults(
   defineProps<{
@@ -55,7 +62,10 @@ const outerHours = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 const innerHours = [0, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
 const minuteNums = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
-function getNumberPosition(index: number, radius: number): Record<string, string> {
+function getNumberPosition(
+  index: number,
+  radius: number,
+): Record<string, string> {
   const angle = (index * 30 - 90) * (Math.PI / 180);
   return {
     left: `${CENTER + radius * Math.cos(angle)}px`,
@@ -86,7 +96,8 @@ function onClockPointerDown(e: PointerEvent) {
 
   updateSelection(e.clientX, e.clientY, cx, cy);
 
-  const onMove = (ev: PointerEvent) => updateSelection(ev.clientX, ev.clientY, cx, cy);
+  const onMove = (ev: PointerEvent) =>
+    updateSelection(ev.clientX, ev.clientY, cx, cy);
   const onUp = (ev: PointerEvent) => {
     updateSelection(ev.clientX, ev.clientY, cx, cy);
     document.removeEventListener("pointermove", onMove);
@@ -143,7 +154,8 @@ function updateMenuPosition() {
   const menuHeight = 350;
   const menuWidth = 270;
   const spaceBelow = window.innerHeight - rect.bottom;
-  const top = spaceBelow >= menuHeight ? rect.bottom + 4 : rect.top - menuHeight - 4;
+  const top =
+    spaceBelow >= menuHeight ? rect.bottom + 4 : rect.top - menuHeight - 4;
   const left = Math.min(rect.left, window.innerWidth - menuWidth - 8);
   menuStyle.value = { top: `${top}px`, left: `${left}px` };
 }
@@ -198,13 +210,15 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
               class="time-seg"
               :class="{ active: phase === 'hours' }"
               @click="phase = 'hours'"
-            >{{ hourStr }}</span>
+              >{{ hourStr }}</span
+            >
             <span class="time-colon">:</span>
             <span
               class="time-seg"
               :class="{ active: phase === 'minutes' }"
               @click="phase = 'minutes'"
-            >{{ minuteStr }}</span>
+              >{{ minuteStr }}</span
+            >
           </div>
 
           <!-- Analog clock face -->
@@ -232,14 +246,16 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
                 class="clock-num"
                 :class="{ selected: selectedHour === h }"
                 :style="getNumberPosition(i, OUTER_R)"
-              >{{ h }}</span>
+                >{{ h }}</span
+              >
               <span
                 v-for="(h, i) in innerHours"
                 :key="'ih' + h"
                 class="clock-num inner"
                 :class="{ selected: selectedHour === h }"
                 :style="getNumberPosition(i, INNER_R)"
-              >{{ h }}</span>
+                >{{ h }}</span
+              >
             </template>
 
             <!-- Minute numbers -->
@@ -250,16 +266,27 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
                 class="clock-num"
                 :class="{ selected: selectedMinute === m }"
                 :style="getNumberPosition(i, OUTER_R)"
-              >{{ String(m).padStart(2, '0') }}</span>
+                >{{ String(m).padStart(2, "0") }}</span
+              >
             </template>
           </div>
 
           <!-- Actions -->
           <div class="clock-actions">
-            <button type="button" class="action-btn" @click="clear">{{ $t('timePicker.clear') }}</button>
-            <div style="flex:1" />
-            <button type="button" class="action-btn" @click="close">{{ $t('timePicker.cancel') }}</button>
-            <button type="button" class="action-btn primary" @click="confirmAndClose">{{ $t('timePicker.ok') }}</button>
+            <button type="button" class="action-btn" @click="clear">
+              {{ $t("timePicker.clear") }}
+            </button>
+            <div style="flex: 1" />
+            <button type="button" class="action-btn" @click="close">
+              {{ $t("timePicker.cancel") }}
+            </button>
+            <button
+              type="button"
+              class="action-btn primary"
+              @click="confirmAndClose"
+            >
+              {{ $t("timePicker.ok") }}
+            </button>
           </div>
         </div>
       </div>
@@ -340,7 +367,9 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
   border-radius: var(--radius-sm);
   cursor: pointer;
   color: var(--color-text-tertiary);
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .time-seg.active {
@@ -383,7 +412,9 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
   transform: translate(-50%, -50%);
   z-index: 1;
   pointer-events: none;
-  transition: background 100ms ease, color 100ms ease;
+  transition:
+    background 100ms ease,
+    color 100ms ease;
 }
 
 .clock-num.inner {
@@ -412,7 +443,9 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
   background: var(--color-accent);
   transform-origin: bottom center;
   z-index: 0;
-  transition: transform 150ms ease, height 150ms ease;
+  transition:
+    transform 150ms ease,
+    height 150ms ease;
 }
 
 /* small dot at the tip of the hand */
@@ -457,7 +490,9 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
   padding: 5px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .action-btn:hover {

@@ -168,9 +168,14 @@ describe("TasksView", () => {
     const store = useTasksStore();
     const projectsStore = useProjectsStore();
     projectsStore.projects = [
-      { master_url: "https://example.com/", project_name: "Climate Model" } as never,
+      {
+        master_url: "https://example.com/",
+        project_name: "Climate Model",
+      } as never,
     ];
-    store.tasks = [makeTask({ wu_name: "climate_sim_42", fraction_done: 0.456 })];
+    store.tasks = [
+      makeTask({ wu_name: "climate_sim_42", fraction_done: 0.456 }),
+    ];
 
     const wrapper = mount(TasksView);
     const bar = wrapper.find(".progress-bar");
@@ -182,60 +187,21 @@ describe("TasksView", () => {
     expect(bar.attributes("aria-valuetext")).toBe("45.60%");
   });
 
-  it("active-only switch has role=switch and aria-checked=false by default", () => {
-    const wrapper = mount(TasksView);
-    const toggle = wrapper.find('[role="switch"]');
-    expect(toggle.exists()).toBe(true);
-    expect(toggle.attributes("aria-checked")).toBe("false");
-  });
-
-  it("clicking active-only switch toggles aria-checked and filters tasks", async () => {
+  it("context menu includes active-only toggle", async () => {
     const store = useTasksStore();
-    store.tasks = [
-      makeTask({ wu_name: "active_task", active_task: true }),
-      makeTask({ name: "task_002_0", wu_name: "inactive_task", active_task: false, state: 1 }),
-    ];
+    store.tasks = [makeTask()];
 
     const wrapper = mount(TasksView);
-    expect(wrapper.findAll("tbody tr")).toHaveLength(2);
 
-    const toggle = wrapper.find('[role="switch"]');
-    await toggle.trigger("click");
+    // Open context menu via row right-click
+    await wrapper.find("tbody tr").trigger("contextmenu");
+    await wrapper.vm.$nextTick();
 
-    expect(toggle.attributes("aria-checked")).toBe("true");
-    expect(wrapper.findAll("tbody tr")).toHaveLength(1);
-    expect(wrapper.text()).toContain("active_task");
-    expect(wrapper.text()).not.toContain("inactive_task");
-  });
-
-  it("active-only switch responds to Enter key", async () => {
-    const store = useTasksStore();
-    store.tasks = [
-      makeTask({ active_task: true }),
-      makeTask({ name: "task_002_0", active_task: false, state: 1 }),
-    ];
-
-    const wrapper = mount(TasksView);
-    const toggle = wrapper.find('[role="switch"]');
-    await toggle.trigger("keydown.enter");
-
-    expect(toggle.attributes("aria-checked")).toBe("true");
-    expect(wrapper.findAll("tbody tr")).toHaveLength(1);
-  });
-
-  it("active-only switch responds to Space key", async () => {
-    const store = useTasksStore();
-    store.tasks = [
-      makeTask({ active_task: true }),
-      makeTask({ name: "task_002_0", active_task: false, state: 1 }),
-    ];
-
-    const wrapper = mount(TasksView);
-    const toggle = wrapper.find('[role="switch"]');
-    await toggle.trigger("keydown.space");
-
-    expect(toggle.attributes("aria-checked")).toBe("true");
-    expect(wrapper.findAll("tbody tr")).toHaveLength(1);
+    const menuItems = document.querySelectorAll("[role='menuitem']");
+    const activeItem = Array.from(menuItems).find((el) =>
+      el.textContent?.includes("Active Tasks Only"),
+    );
+    expect(activeItem).toBeTruthy();
   });
 
   it("opens abort confirmation when Backspace is pressed with selection", async () => {

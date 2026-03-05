@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, h, nextTick, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useTasksStore } from "../stores/tasks";
 import type { TaskResult } from "../types/boinc";
@@ -7,25 +7,28 @@ import {
   RESULT_STATE,
   ACTIVE_TASK_STATE,
   SCHEDULER_STATE,
-  SORT_DIR,
 } from "../types/boinc";
-import type { SortDir } from "../types/boinc";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
-import PageHeader from "../components/PageHeader.vue";
 import DataTable from "../components/DataTable.vue";
-import type { DataTableColumn } from "../components/DataTable.vue";
+import type { ColumnMeta } from "../components/DataTable.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import ContextMenu from "../components/ContextMenu.vue";
 import type { ContextMenuItem } from "../components/ContextMenu.vue";
-import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import ItemPropertiesDialog from "../components/ItemPropertiesDialog.vue";
+import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import Tooltip from "../components/Tooltip.vue";
 import { onKeyStroke } from "@vueuse/core";
-import { useColumnState } from "../composables/useColumnState";
+import { useTableState } from "../composables/useTableState";
 import { launchGraphics, launchRemoteDesktop } from "../composables/useRpc";
 import { useProjectsStore } from "../stores/projects";
 import { useToastStore } from "../stores/toast";
+import type { ColumnDef } from "@tanstack/vue-table";
+import {
+  useVueTable,
+  getCoreRowModel,
+  getSortedRowModel,
+} from "@tanstack/vue-table";
 
 const { t } = useI18n();
 const store = useTasksStore();
@@ -37,20 +40,32 @@ const selectedNames = ref<Set<string>>(new Set());
 const lastClickedIndex = ref<number | null>(null);
 const confirmAbort = ref(false);
 const activeTasksOnly = ref(false);
-const { sortKey, sortDir, visibleKeys } = useColumnState(
-  "tasks",
-  ["task", "project", "progress", "elapsed", "remaining", "status"],
+const allColumnKeys = [
+  "project",
   "progress",
-  SORT_DIR.DESC,
-);
-const showColumns = ref(false);
+  "elapsed",
+  "remaining",
+  "status",
+  "resources",
+  "task",
+];
+const {
+  sorting,
+  columnVisibility,
+  columnOrder,
+  onSortingChange,
+  onColumnVisibilityChange,
+  onColumnOrderChange,
+} = useTableState("tasks", allColumnKeys, "progress", true);
 const showProperties = ref(false);
+const showColumnDialog = ref(false);
 const propertiesTask = ref<TaskResult | null>(null);
 
 // Context menu state
 const ctxOpen = ref(false);
 const ctxX = ref(0);
 const ctxY = ref(0);
+const selectedViaContext = ref(false);
 
 const projectNameByUrl = computed(() => {
   const map = new Map<string, string>();
@@ -63,20 +78,6 @@ const projectNameByUrl = computed(() => {
 function projectName(url: string): string {
   return projectNameByUrl.value.get(url) || url;
 }
-
-const allColumns = computed<DataTableColumn[]>(() => [
-  { key: "project", label: t("tasks.col.project"), sortable: true },
-  { key: "progress", label: t("tasks.col.progress"), sortable: true },
-  { key: "elapsed", label: t("tasks.col.elapsed"), sortable: true, align: "right" },
-  { key: "remaining", label: t("tasks.col.remaining"), sortable: true, align: "right" },
-  { key: "status", label: t("tasks.col.status"), sortable: true },
-  { key: "resources", label: t("tasks.col.resources"), sortable: true },
-  { key: "task", label: t("tasks.col.task"), sortable: true },
-]);
-
-const columns = computed(() =>
-  allColumns.value.map((c) => ({ ...c, visible: visibleKeys.value.includes(c.key) })),
-);
 
 function formatTime(seconds: number): string {
   if (seconds <= 0) return "---";
@@ -100,9 +101,12 @@ function taskStatus(task: {
 }): string {
   if (task.ready_to_report) return t("tasks.status.readyToReport");
   if (task.suspended_via_gui) return t("tasks.status.suspended");
-  if (task.state === RESULT_STATE.FILES_DOWNLOADING) return t("tasks.status.downloading");
-  if (task.state === RESULT_STATE.FILES_UPLOADING) return t("tasks.status.uploading");
-  if (task.state === RESULT_STATE.COMPUTE_ERROR) return t("tasks.status.computeError");
+  if (task.state === RESULT_STATE.FILES_DOWNLOADING)
+    return t("tasks.status.downloading");
+  if (task.state === RESULT_STATE.FILES_UPLOADING)
+    return t("tasks.status.uploading");
+  if (task.state === RESULT_STATE.COMPUTE_ERROR)
+    return t("tasks.status.computeError");
   if (task.state === RESULT_STATE.ABORTED) return t("tasks.status.aborted");
   if (task.active_task) {
     if (task.active_task_state === ACTIVE_TASK_STATE.EXECUTING) {
@@ -116,32 +120,113 @@ function taskStatus(task: {
   return t("tasks.status.waiting");
 }
 
-function statusVariant(task: TaskResult): "default" | "success" | "warning" | "danger" | "info" {
+function statusVariant(
+  task: TaskResult,
+): "default" | "success" | "warning" | "danger" | "info" {
   if (task.ready_to_report) return "default";
   if (task.suspended_via_gui) return "warning";
-  if (task.state === RESULT_STATE.FILES_DOWNLOADING || task.state === RESULT_STATE.FILES_UPLOADING) return "info";
-  if (task.state === RESULT_STATE.COMPUTE_ERROR || task.state === RESULT_STATE.ABORTED) return "danger";
+  if (
+    task.state === RESULT_STATE.FILES_DOWNLOADING ||
+    task.state === RESULT_STATE.FILES_UPLOADING
+  )
+    return "info";
+  if (
+    task.state === RESULT_STATE.COMPUTE_ERROR ||
+    task.state === RESULT_STATE.ABORTED
+  )
+    return "danger";
   if (task.active_task) {
     if (task.active_task_state === ACTIVE_TASK_STATE.EXECUTING) {
-      return task.scheduler_state === SCHEDULER_STATE.SCHEDULED ? "success" : "info";
+      return task.scheduler_state === SCHEDULER_STATE.SCHEDULED
+        ? "success"
+        : "info";
     }
-    if (task.active_task_state === ACTIVE_TASK_STATE.SUSPENDED) return "warning";
+    if (task.active_task_state === ACTIVE_TASK_STATE.SUSPENDED)
+      return "warning";
   }
   return "default";
 }
 
-function getSortValue(task: TaskResult, key: string): number | string {
-  switch (key) {
-    case "task": return task.wu_name;
-    case "project": return projectName(task.project_url);
-    case "progress": return task.fraction_done;
-    case "elapsed": return task.elapsed_time;
-    case "remaining": return task.estimated_cpu_time_remaining;
-    case "status": return taskStatus(task);
-    case "resources": return task.resources;
-    default: return 0;
-  }
-}
+const columns: ColumnDef<TaskResult, unknown>[] = [
+  {
+    id: "project",
+    accessorFn: (row) => projectName(row.project_url),
+    header: () => t("tasks.col.project"),
+    meta: { class: "col-project" } satisfies ColumnMeta,
+  },
+  {
+    id: "progress",
+    accessorFn: (row) => row.fraction_done,
+    header: () => t("tasks.col.progress"),
+    cell: (info) => {
+      const fraction = info.getValue() as number;
+      const task = info.row.original;
+      return h(
+        "div",
+        {
+          class: "progress-bar",
+          role: "progressbar",
+          "aria-valuenow": Math.min(
+            100,
+            Math.max(0, Math.round(fraction * 100)),
+          ),
+          "aria-valuemin": 0,
+          "aria-valuemax": 100,
+          "aria-label": projectName(task.project_url),
+          "aria-valuetext": formatPercent(fraction),
+        },
+        [
+          h("div", { class: "progress-track" }, [
+            h("div", {
+              class: "progress-fill",
+              style: { width: formatPercent(fraction) },
+            }),
+          ]),
+          h("span", { class: "progress-text" }, formatPercent(fraction)),
+        ],
+      );
+    },
+    meta: { class: "col-progress" } satisfies ColumnMeta,
+  },
+  {
+    id: "elapsed",
+    accessorFn: (row) => row.elapsed_time,
+    header: () => t("tasks.col.elapsed"),
+    cell: (info) => formatTime(info.getValue() as number),
+    meta: { align: "right", class: "col-time" } satisfies ColumnMeta,
+  },
+  {
+    id: "remaining",
+    accessorFn: (row) => row.estimated_cpu_time_remaining,
+    header: () => t("tasks.col.remaining"),
+    cell: (info) => formatTime(info.getValue() as number),
+    meta: { align: "right", class: "col-time" } satisfies ColumnMeta,
+  },
+  {
+    id: "status",
+    accessorFn: (row) => taskStatus(row),
+    header: () => t("tasks.col.status"),
+    cell: (info) =>
+      h(
+        StatusBadge,
+        { variant: statusVariant(info.row.original) },
+        () => info.getValue() as string,
+      ),
+  },
+  {
+    id: "resources",
+    accessorFn: (row) => row.resources,
+    header: () => t("tasks.col.resources"),
+    cell: (info) =>
+      (info.getValue() as string) || t("tasks.defaultResources"),
+  },
+  {
+    id: "task",
+    accessorFn: (row) => row.wu_name,
+    header: () => t("tasks.col.task"),
+    meta: { class: "col-name" } satisfies ColumnMeta,
+  },
+];
 
 const filteredTasks = computed(() => {
   let tasks = store.tasks;
@@ -151,18 +236,27 @@ const filteredTasks = computed(() => {
   return tasks;
 });
 
-const sortedTasks = computed(() => {
-  const tasks = [...filteredTasks.value];
-  const key = sortKey.value;
-  const dir = sortDir.value === SORT_DIR.ASC ? 1 : -1;
-  return tasks.sort((a, b) => {
-    const va = getSortValue(a, key);
-    const vb = getSortValue(b, key);
-    if (typeof va === "string" && typeof vb === "string") {
-      return dir * va.localeCompare(vb);
-    }
-    return dir * ((va as number) - (vb as number));
-  });
+const table = useVueTable({
+  get data() {
+    return filteredTasks.value;
+  },
+  columns,
+  state: {
+    get sorting() {
+      return sorting.value;
+    },
+    get columnVisibility() {
+      return columnVisibility.value;
+    },
+    get columnOrder() {
+      return columnOrder.value;
+    },
+  },
+  onSortingChange,
+  onColumnVisibilityChange,
+  onColumnOrderChange,
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
 });
 
 const selectedTasks = computed(() =>
@@ -171,21 +265,31 @@ const selectedTasks = computed(() =>
 
 const hasSelection = computed(() => selectedNames.value.size > 0);
 
-const allSelectedSuspended = computed(() =>
-  selectedTasks.value.length > 0 &&
-  selectedTasks.value.every((t) => t.suspended_via_gui),
+const singleSelectedTask = computed(() =>
+  selectedTasks.value.length === 1 ? selectedTasks.value[0] : null,
+);
+
+const allSelectedSuspended = computed(
+  () =>
+    selectedTasks.value.length > 0 &&
+    selectedTasks.value.every((t) => t.suspended_via_gui),
 );
 
 const suspendResumeLabel = computed(() =>
   allSelectedSuspended.value ? t("tasks.resume") : t("tasks.suspend"),
 );
 
-const allSelected = computed(() =>
-  sortedTasks.value.length > 0 &&
-  sortedTasks.value.every((t) => selectedNames.value.has(t.name)),
-);
+const allSelected = computed(() => {
+  const rows = table.getRowModel().rows;
+  return (
+    rows.length > 0 &&
+    rows.every((r) => selectedNames.value.has(r.original.name))
+  );
+});
 
 function handleRowClick(task: TaskResult, index: number, event: MouseEvent) {
+  ctxOpen.value = false;
+  selectedViaContext.value = false;
   if (event.ctrlKey || event.metaKey) {
     const next = new Set(selectedNames.value);
     if (next.has(task.name)) {
@@ -195,22 +299,26 @@ function handleRowClick(task: TaskResult, index: number, event: MouseEvent) {
     }
     selectedNames.value = next;
   } else if (event.shiftKey && lastClickedIndex.value !== null) {
+    const rows = table.getRowModel().rows;
     const start = Math.min(lastClickedIndex.value, index);
     const end = Math.max(lastClickedIndex.value, index);
     const next = new Set(selectedNames.value);
     for (let i = start; i <= end; i++) {
-      next.add(sortedTasks.value[i].name);
+      next.add(rows[i].original.name);
     }
     selectedNames.value = next;
   } else {
-    selectedNames.value = new Set([task.name]);
+    const isOnlySelected = selectedNames.value.size === 1 && selectedNames.value.has(task.name);
+    selectedNames.value = isOnlySelected ? new Set() : new Set([task.name]);
   }
   lastClickedIndex.value = index;
 }
 
 function handleSelectAll(selected: boolean) {
   if (selected) {
-    selectedNames.value = new Set(sortedTasks.value.map((t) => t.name));
+    selectedNames.value = new Set(
+      table.getRowModel().rows.map((r) => r.original.name),
+    );
   } else {
     selectedNames.value = new Set();
   }
@@ -220,28 +328,47 @@ function isSelected(task: TaskResult): boolean {
   return selectedNames.value.has(task.name);
 }
 
-function handleSort(key: string, dir: SortDir) {
-  sortKey.value = key;
-  sortDir.value = dir;
-}
-
-function handleRowContext(event: MouseEvent, task: TaskResult, index: number) {
-  event.preventDefault();
+async function handleRowContext(event: MouseEvent, task: TaskResult, index: number) {
+  selectedViaContext.value = true;
   if (!selectedNames.value.has(task.name)) {
     selectedNames.value = new Set([task.name]);
     lastClickedIndex.value = index;
   }
+  ctxOpen.value = false;
+  await nextTick();
   ctxX.value = event.clientX;
   ctxY.value = event.clientY;
   ctxOpen.value = true;
 }
 
+async function handleTableContext(event: MouseEvent) {
+  selectedViaContext.value = true;
+  ctxOpen.value = false;
+  await nextTick();
+  ctxX.value = event.clientX;
+  ctxY.value = event.clientY;
+  ctxOpen.value = true;
+}
+
+function handleRowDblClick(task: TaskResult) {
+  propertiesTask.value = task;
+  showProperties.value = true;
+}
+
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
   const items: ContextMenuItem[] = [];
+  items.push({
+    label: t("tasks.activeOnly"),
+    action: "toggle-active",
+    checked: activeTasksOnly.value,
+  });
+  items.push({ label: "", action: "", divider: true });
+  const hasSelected = selectedNames.value.size > 0;
   const isSuspended = allSelectedSuspended.value;
   items.push({
     label: isSuspended ? t("tasks.resume") : t("tasks.suspend"),
     action: "suspend-resume",
+    disabled: !hasSelected,
   });
   items.push({
     label: t("tasks.context.showGraphics"),
@@ -258,6 +385,7 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
     label: t("tasks.abort"),
     action: "abort",
     danger: true,
+    disabled: !hasSelected,
   });
   items.push({ label: "", action: "", divider: true });
   items.push({
@@ -265,7 +393,12 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
     action: "properties",
     disabled: selectedNames.value.size !== 1,
   });
-  return items;
+  const filtered = items.filter((item) => !item.disabled);
+  return filtered.filter(
+    (item, i, arr) =>
+      !item.divider ||
+      (i > 0 && i < arr.length - 1 && !arr[i - 1].divider),
+  );
 });
 
 function openProperties() {
@@ -274,11 +407,6 @@ function openProperties() {
     propertiesTask.value = tasks[0];
     showProperties.value = true;
   }
-}
-
-function handleRowDblClick(task: TaskResult) {
-  propertiesTask.value = task;
-  showProperties.value = true;
 }
 
 async function handleShowGraphics() {
@@ -309,6 +437,9 @@ const hasVmConsole = computed(() => {
 
 async function handleContextAction(action: string) {
   switch (action) {
+    case "toggle-active":
+      activeTasksOnly.value = !activeTasksOnly.value;
+      break;
     case "suspend-resume":
       await handleSuspendResume();
       break;
@@ -337,7 +468,12 @@ async function handleSuspendResume() {
         await store.suspendTask(task.project_url, task.name);
       }
     }
-    toast.show(allSelectedSuspended.value ? t("tasks.toast.resumed") : t("tasks.toast.suspended"), "success");
+    toast.show(
+      allSelectedSuspended.value
+        ? t("tasks.toast.resumed")
+        : t("tasks.toast.suspended"),
+      "success",
+    );
   } catch (e) {
     toast.show(t("tasks.toast.actionFailed", { error: String(e) }), "error");
   } finally {
@@ -382,55 +518,10 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   if (isTypingInInput(e)) return;
   if (hasSelection.value) confirmAbort.value = true;
 });
-
-function isColVisible(key: string): boolean {
-  return visibleKeys.value.includes(key);
-}
 </script>
 
 <template>
-  <div class="tasks-view">
-    <PageHeader :title="$t('tasks.title')">
-      <label class="active-filter-toggle" @click.prevent="activeTasksOnly = !activeTasksOnly">
-        <span
-          class="toggle-switch"
-          :class="{ on: activeTasksOnly }"
-          role="switch"
-          :aria-checked="!!activeTasksOnly"
-          aria-labelledby="active-tasks-only-label"
-          tabindex="0"
-          @keydown.enter.prevent="activeTasksOnly = !activeTasksOnly"
-          @keydown.space.prevent="activeTasksOnly = !activeTasksOnly"
-        >
-          <span class="toggle-knob" />
-        </span>
-        <span id="active-tasks-only-label" class="toggle-label">{{ $t('tasks.activeOnly') }}</span>
-      </label>
-      <template v-if="hasSelection">
-        <button class="btn" :disabled="actionBusy" @click="handleSuspendResume">
-          {{ suspendResumeLabel }}
-        </button>
-        <button v-if="hasGraphics" class="btn" :disabled="actionBusy" @click="handleShowGraphics">
-          {{ $t('tasks.graphics') }}
-        </button>
-        <button class="btn btn-danger" :disabled="actionBusy" @click="confirmAbort = true">
-          {{ $t('tasks.abort') }}
-        </button>
-        <button v-if="selectedNames.size === 1" class="btn" @click="openProperties">
-          {{ $t('tasks.properties') }}
-        </button>
-      </template>
-      <Tooltip :text="$t('tasks.columns')">
-        <button class="btn-columns" @click="showColumns = true">
-          <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
-            <rect x="1" y="2" width="3" height="12" rx="0.5" />
-            <rect x="6.5" y="2" width="3" height="12" rx="0.5" />
-            <rect x="12" y="2" width="3" height="12" rx="0.5" />
-          </svg>
-        </button>
-      </Tooltip>
-    </PageHeader>
-
+  <div class="tasks-view" @click="selectedNames = new Set()">
     <p v-if="store.error" class="error">{{ store.error }}</p>
 
     <EmptyState
@@ -442,70 +533,95 @@ function isColVisible(key: string): boolean {
     <EmptyState
       v-else-if="filteredTasks.length === 0"
       icon="&#128203;"
-      :message="activeTasksOnly
-        ? $t('tasks.emptyActive')
-        : $t('tasks.emptyAll')"
+      :message="
+        activeTasksOnly ? $t('tasks.emptyActive') : $t('tasks.emptyAll')
+      "
     />
 
-    <DataTable
-      v-else
-      :columns="columns"
-      :sort-key="sortKey"
-      :sort-dir="sortDir"
-      selectable
-      :all-selected="allSelected"
-      @sort="handleSort"
-      @select-all="handleSelectAll"
-    >
-      <tr
-        v-for="(task, index) in sortedTasks"
-        :key="task.name"
-        :class="{ 'row-selected': isSelected(task) }"
-        @click="handleRowClick(task, index, $event)"
-        @dblclick="handleRowDblClick(task)"
-        @contextmenu="handleRowContext($event, task, index)"
-      >
-        <td class="col-checkbox">
-          <input
-            type="checkbox"
-            :checked="isSelected(task)"
-            @click.stop
-            @change="handleRowClick(task, index, { ctrlKey: true } as MouseEvent)"
-          />
-        </td>
-        <td v-if="isColVisible('project')" class="col-project" :title="task.project_url">{{ projectName(task.project_url) }}</td>
-        <td v-if="isColVisible('progress')" class="col-progress">
-          <div
-            class="progress-bar"
-            role="progressbar"
-            :aria-valuenow="Math.min(100, Math.max(0, Math.round(task.fraction_done * 100)))"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            :aria-label="projectName(task.project_url)"
-            :aria-valuetext="formatPercent(task.fraction_done)"
-          >
-            <div
-              class="progress-fill"
-              :style="{ width: formatPercent(task.fraction_done) }"
-            ></div>
-            <span class="progress-text">{{
-              formatPercent(task.fraction_done)
-            }}</span>
+    <div v-else class="content-row">
+      <div class="content-main" @contextmenu.self.prevent="handleTableContext">
+        <DataTable
+          :table="table"
+          selectable
+          reorderable
+          hideable
+          :all-selected="allSelected"
+          :is-row-selected="isSelected"
+          @row-click="handleRowClick"
+          @row-contextmenu="handleRowContext"
+          @row-dblclick="handleRowDblClick"
+          @select-all="handleSelectAll"
+        />
+      </div>
+
+      <Transition name="drawer">
+        <div v-if="hasSelection && !selectedViaContext" class="drawer-panel" @click.stop>
+          <div class="drawer-header">
+            <h3>
+              {{
+                singleSelectedTask?.wu_name ??
+                $t("tasks.nTasks", selectedNames.size)
+              }}
+            </h3>
           </div>
-        </td>
-        <td v-if="isColVisible('elapsed')" class="col-time">{{ formatTime(task.elapsed_time) }}</td>
-        <td v-if="isColVisible('remaining')" class="col-time">
-          {{ formatTime(task.estimated_cpu_time_remaining) }}
-        </td>
-        <td v-if="isColVisible('status')">
-          <StatusBadge :variant="statusVariant(task)">
-            {{ taskStatus(task) }}
-          </StatusBadge>
-        </td>
-        <td v-if="isColVisible('resources')">{{ task.resources || $t('tasks.defaultResources') }}</td>
-        <td v-if="isColVisible('task')" class="col-name" :title="task.name">{{ task.wu_name }}</td>
-      </tr>
-    </DataTable>
+
+          <div class="drawer-section">
+            <Tooltip
+              :text="
+                allSelectedSuspended
+                  ? $t('tasks.tooltip.resume')
+                  : $t('tasks.tooltip.suspend')
+              "
+            >
+              <button
+                class="btn icon-btn"
+                :disabled="actionBusy"
+                @click="handleSuspendResume"
+              >
+                <svg v-if="allSelectedSuspended" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" /></svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
+                {{ suspendResumeLabel }}
+              </button>
+            </Tooltip>
+            <Tooltip
+              v-if="hasGraphics"
+              :text="$t('tasks.context.showGraphics')"
+            >
+              <button
+                class="btn icon-btn"
+                :disabled="actionBusy"
+                @click="handleShowGraphics"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+                {{ $t("tasks.graphics") }}
+              </button>
+            </Tooltip>
+            <Tooltip
+              v-if="selectedNames.size === 1"
+              :text="$t('tasks.tooltip.properties')"
+            >
+              <button class="btn icon-btn" @click="openProperties">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>
+                {{ $t("tasks.properties") }}
+              </button>
+            </Tooltip>
+          </div>
+
+          <div class="drawer-section drawer-danger">
+            <Tooltip :text="$t('tasks.tooltip.abort')">
+              <button
+                class="btn btn-danger icon-btn"
+                :disabled="actionBusy"
+                @click="confirmAbort = true"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                {{ $t("tasks.abort") }}
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+      </Transition>
+    </div>
 
     <ContextMenu
       :open="ctxOpen"
@@ -525,42 +641,43 @@ function isColVisible(key: string): boolean {
       @cancel="confirmAbort = false"
     />
 
-    <ColumnCustomizationDialog
-      :open="showColumns"
-      :columns="allColumns"
-      :visible-keys="visibleKeys"
-      @update="visibleKeys = $event"
-      @close="showColumns = false"
-    />
-
     <ItemPropertiesDialog
       :open="showProperties"
       type="task"
       :task="propertiesTask ?? undefined"
       @close="showProperties = false"
     />
+
+    <ColumnCustomizationDialog
+      :open="showColumnDialog"
+      :table="table"
+      @update-visibility="onColumnVisibilityChange"
+      @update-order="onColumnOrderChange"
+      @close="showColumnDialog = false"
+    />
+
+    <Tooltip :text="$t('tasks.customizeColumns')">
+      <button class="fab" @click.stop="showColumnDialog = true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+        </svg>
+      </button>
+    </Tooltip>
   </div>
 </template>
 
 <style scoped>
 .tasks-view {
-  padding: var(--space-lg);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
 .error {
   color: var(--color-danger);
   font-size: var(--font-size-md);
-}
-
-.col-checkbox {
-  width: 36px;
-  text-align: center;
-  vertical-align: middle;
-}
-
-.col-checkbox input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
 }
 
 .col-name {
@@ -585,91 +702,148 @@ function isColVisible(key: string): boolean {
   text-align: right;
 }
 
-.progress-bar {
-  position: relative;
-  width: min(120px, 18vw);
-  height: 18px;
+:deep(.progress-bar) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+:deep(.progress-track) {
+  flex: 1;
+  height: 10px;
+  min-width: 80px;
   background: var(--color-bg-tertiary);
-  border-radius: var(--radius-sm);
+  border-radius: 5px;
   overflow: hidden;
 }
 
-.progress-fill {
+:deep(.progress-fill) {
   height: 100%;
   background: var(--color-accent);
+  border-radius: 5px;
   transition: width var(--transition-normal);
 }
 
-.progress-text {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  text-align: center;
+:deep(.progress-text) {
   font-size: var(--font-size-xs);
-  line-height: 18px;
-  color: var(--color-text-primary);
-}
-
-.active-filter-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  cursor: pointer;
-}
-
-.toggle-switch {
-  width: 36px;
-  height: 20px;
-  border-radius: 10px;
-  background: var(--color-text-tertiary);
-  opacity: 0.4;
-  cursor: pointer;
-  position: relative;
-  flex-shrink: 0;
-  transition: background 0.2s, opacity 0.2s;
-}
-
-.toggle-switch.on {
-  background: var(--color-accent);
-  opacity: 1;
-}
-
-.toggle-knob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: white;
-  transition: left 0.2s;
-}
-
-.toggle-switch.on .toggle-knob {
-  left: 18px;
-}
-
-.toggle-label {
-  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  user-select: none;
+  white-space: nowrap;
+  min-width: 32px;
+  text-align: right;
 }
 
-.btn-columns {
+/* Content layout */
+.content-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+}
+
+.content-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Side drawer */
+.drawer-panel {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--color-bg);
+  border-left: 1px solid var(--color-border);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  overflow-y: auto;
+  overflow-x: visible;
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawer-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.drawer-section .btn {
+  width: 100%;
+  text-align: left;
+}
+
+.drawer-section .icon-btn {
+  padding-left: 8px;
+}
+
+.drawer-danger {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--space-md);
+}
+
+/* Drawer transition */
+.drawer-enter-active,
+.drawer-leave-active {
+  transition:
+    width 0.2s ease,
+    opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.drawer-enter-from,
+.drawer-leave-to {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
+}
+
+.fab {
+  position: absolute;
+  right: 24px;
+  bottom: calc(24px + var(--status-bar-offset, 0px));
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated, var(--color-bg));
+  color: var(--color-text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
-  border: none;
-  background: none;
-  color: var(--color-text-tertiary);
-  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: color 0.15s;
+  box-shadow:
+    0 3px 5px -1px rgba(0, 0, 0, 0.2),
+    0 6px 10px 0 rgba(0, 0, 0, 0.14),
+    0 1px 18px 0 rgba(0, 0, 0, 0.12);
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
-.btn-columns:hover {
-  color: var(--color-text-primary);
+.fab:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  box-shadow:
+    0 5px 5px -3px rgba(0, 0, 0, 0.2),
+    0 8px 10px 1px rgba(0, 0, 0, 0.14),
+    0 3px 14px 2px rgba(0, 0, 0, 0.12);
+  transform: scale(1.05);
+}
+
+.fab:active {
+  transform: scale(0.97);
 }
 </style>

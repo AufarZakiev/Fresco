@@ -1,43 +1,54 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, h, inject, nextTick, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useProjectsStore } from "../stores/projects";
-import type { Project, SortDir } from "../types/boinc";
-import { SORT_DIR } from "../types/boinc";
+import type { Project } from "../types/boinc";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
-import ProjectAttachWizard from "../components/ProjectAttachWizard.vue";
-import PageHeader from "../components/PageHeader.vue";
 import DataTable from "../components/DataTable.vue";
-import type { DataTableColumn } from "../components/DataTable.vue";
+import type { ColumnMeta } from "../components/DataTable.vue";
 import EmptyState from "../components/EmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import ContextMenu from "../components/ContextMenu.vue";
 import type { ContextMenuItem } from "../components/ContextMenu.vue";
-import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import ItemPropertiesDialog from "../components/ItemPropertiesDialog.vue";
-import AccountManagerWizard from "../components/AccountManagerWizard.vue";
 import Tooltip from "../components/Tooltip.vue";
 import { onKeyStroke } from "@vueuse/core";
-import { useColumnState } from "../composables/useColumnState";
+import { useTableState } from "../composables/useTableState";
 import { useToastStore } from "../stores/toast";
+import type { ColumnDef } from "@tanstack/vue-table";
+import {
+  useVueTable,
+  getCoreRowModel,
+  getSortedRowModel,
+} from "@tanstack/vue-table";
 
 const { t } = useI18n();
 const store = useProjectsStore();
 const toast = useToastStore();
 const actionBusy = ref(false);
+const openAttachWizard = inject<() => void>("openAttachWizard", () => {});
+const openAcctMgr = inject<() => void>("openAcctMgr", () => {});
 
 const selectedUrls = ref<Set<string>>(new Set());
 const lastClickedIndex = ref<number | null>(null);
-const showAttachWizard = ref(false);
-const { sortKey, sortDir, visibleKeys } = useColumnState(
-  "projects",
-  ["project", "account", "team", "totalCredit", "avgCredit", "source", "status"],
+const allColumnKeys = [
   "project",
-  SORT_DIR.ASC,
-);
-const showColumns = ref(false);
+  "account",
+  "team",
+  "totalCredit",
+  "avgCredit",
+  "status",
+  "source",
+];
+const {
+  sorting,
+  columnVisibility,
+  columnOrder,
+  onSortingChange,
+  onColumnVisibilityChange,
+  onColumnOrderChange,
+} = useTableState("projects", allColumnKeys, "project");
 const showProperties = ref(false);
-const showAcctMgr = ref(false);
 const propertiesProject = ref<Project | null>(null);
 const confirmAction = ref<{
   title: string;
@@ -49,20 +60,7 @@ const confirmAction = ref<{
 const ctxOpen = ref(false);
 const ctxX = ref(0);
 const ctxY = ref(0);
-
-const allColumns = computed<DataTableColumn[]>(() => [
-  { key: "project", label: t("projects.col.project"), sortable: true },
-  { key: "account", label: t("projects.col.account"), sortable: true },
-  { key: "team", label: t("projects.col.team"), sortable: true },
-  { key: "totalCredit", label: t("projects.col.totalCredit"), sortable: true, align: "right" },
-  { key: "avgCredit", label: t("projects.col.avgCredit"), sortable: true, align: "right" },
-  { key: "status", label: t("projects.col.status"), sortable: true },
-  { key: "source", label: t("projects.col.source"), sortable: true },
-]);
-
-const columns = computed(() =>
-  allColumns.value.map((c) => ({ ...c, visible: visibleKeys.value.includes(c.key) })),
-);
+const selectedViaContext = ref(false);
 
 function formatCredit(credit: number): string {
   return credit.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -74,37 +72,104 @@ function projectStatus(project: Project): string {
   return t("projects.status.active");
 }
 
-function statusVariant(project: Project): "default" | "success" | "warning" | "danger" | "info" {
+function statusVariant(
+  project: Project,
+): "default" | "success" | "warning" | "danger" | "info" {
   if (project.suspended_via_gui) return "warning";
   if (project.dont_request_more_work) return "info";
   return "success";
 }
 
-function getSortValue(project: Project, key: string): number | string {
-  switch (key) {
-    case "project": return project.project_name;
-    case "account": return project.user_name;
-    case "team": return project.team_name;
-    case "totalCredit": return project.user_total_credit;
-    case "avgCredit": return project.user_expavg_credit;
-    case "source": return project.attached_via_acct_mgr ? t("projects.source.manager") : t("projects.source.user");
-    case "status": return projectStatus(project);
-    default: return 0;
-  }
-}
+const columns: ColumnDef<Project, unknown>[] = [
+  {
+    id: "project",
+    accessorFn: (row) => row.project_name,
+    header: () => t("projects.col.project"),
+    meta: { class: "col-name" } satisfies ColumnMeta,
+  },
+  {
+    id: "account",
+    accessorFn: (row) => row.user_name,
+    header: () => t("projects.col.account"),
+  },
+  {
+    id: "team",
+    accessorFn: (row) => row.team_name,
+    header: () => t("projects.col.team"),
+    cell: (info) => (info.getValue() as string) || "---",
+  },
+  {
+    id: "totalCredit",
+    accessorFn: (row) => row.user_total_credit,
+    header: () => t("projects.col.totalCredit"),
+    cell: (info) => formatCredit(info.getValue() as number),
+    meta: { align: "right", class: "col-number" } satisfies ColumnMeta,
+  },
+  {
+    id: "avgCredit",
+    accessorFn: (row) => row.user_expavg_credit,
+    header: () => t("projects.col.avgCredit"),
+    cell: (info) => formatCredit(info.getValue() as number),
+    meta: { align: "right", class: "col-number" } satisfies ColumnMeta,
+  },
+  {
+    id: "status",
+    accessorFn: (row) => projectStatus(row),
+    header: () => t("projects.col.status"),
+    cell: (info) =>
+      h(
+        StatusBadge,
+        { variant: statusVariant(info.row.original) },
+        () => info.getValue() as string,
+      ),
+  },
+  {
+    id: "source",
+    accessorFn: (row) =>
+      row.attached_via_acct_mgr
+        ? t("projects.source.manager")
+        : t("projects.source.user"),
+    header: () => t("projects.col.source"),
+    cell: (info) => {
+      const project = info.row.original;
+      const isManager = project.attached_via_acct_mgr;
+      return h(
+        "span",
+        {
+          class: [
+            "source-badge",
+            isManager ? "source-manager" : "source-user",
+          ],
+          title: info.getValue() as string,
+        },
+        h("span", { class: "source-label" }, info.getValue() as string),
+      );
+    },
+    meta: { class: "col-source" } satisfies ColumnMeta,
+  },
+];
 
-const sortedProjects = computed(() => {
-  const projects = [...store.projects];
-  const key = sortKey.value;
-  const dir = sortDir.value === SORT_DIR.ASC ? 1 : -1;
-  return projects.sort((a, b) => {
-    const va = getSortValue(a, key);
-    const vb = getSortValue(b, key);
-    if (typeof va === "string" && typeof vb === "string") {
-      return dir * va.localeCompare(vb);
-    }
-    return dir * ((va as number) - (vb as number));
-  });
+const table = useVueTable({
+  get data() {
+    return store.projects;
+  },
+  columns,
+  state: {
+    get sorting() {
+      return sorting.value;
+    },
+    get columnVisibility() {
+      return columnVisibility.value;
+    },
+    get columnOrder() {
+      return columnOrder.value;
+    },
+  },
+  onSortingChange,
+  onColumnVisibilityChange,
+  onColumnOrderChange,
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
 });
 
 const selectedProjects = computed(() =>
@@ -116,12 +181,17 @@ const singleSelected = computed(() =>
   selectedProjects.value.length === 1 ? selectedProjects.value[0] : null,
 );
 
-const allSelected = computed(() =>
-  sortedProjects.value.length > 0 &&
-  sortedProjects.value.every((p) => selectedUrls.value.has(p.master_url)),
-);
+const allSelected = computed(() => {
+  const rows = table.getRowModel().rows;
+  return (
+    rows.length > 0 &&
+    rows.every((r) => selectedUrls.value.has(r.original.master_url))
+  );
+});
 
 function handleRowClick(project: Project, index: number, event: MouseEvent) {
+  ctxOpen.value = false;
+  selectedViaContext.value = false;
   if (event.ctrlKey || event.metaKey) {
     const next = new Set(selectedUrls.value);
     if (next.has(project.master_url)) {
@@ -131,22 +201,26 @@ function handleRowClick(project: Project, index: number, event: MouseEvent) {
     }
     selectedUrls.value = next;
   } else if (event.shiftKey && lastClickedIndex.value !== null) {
+    const rows = table.getRowModel().rows;
     const start = Math.min(lastClickedIndex.value, index);
     const end = Math.max(lastClickedIndex.value, index);
     const next = new Set(selectedUrls.value);
     for (let i = start; i <= end; i++) {
-      next.add(sortedProjects.value[i].master_url);
+      next.add(rows[i].original.master_url);
     }
     selectedUrls.value = next;
   } else {
-    selectedUrls.value = new Set([project.master_url]);
+    const isOnlySelected = selectedUrls.value.size === 1 && selectedUrls.value.has(project.master_url);
+    selectedUrls.value = isOnlySelected ? new Set() : new Set([project.master_url]);
   }
   lastClickedIndex.value = index;
 }
 
 function handleSelectAll(selected: boolean) {
   if (selected) {
-    selectedUrls.value = new Set(sortedProjects.value.map((p) => p.master_url));
+    selectedUrls.value = new Set(
+      table.getRowModel().rows.map((r) => r.original.master_url),
+    );
   } else {
     selectedUrls.value = new Set();
   }
@@ -156,13 +230,18 @@ function isSelected(project: Project): boolean {
   return selectedUrls.value.has(project.master_url);
 }
 
-function handleSort(key: string, dir: SortDir) {
-  sortKey.value = key;
-  sortDir.value = dir;
-}
-
-function handleRowContext(event: MouseEvent, _project: Project, _index: number) {
-  event.preventDefault();
+async function handleRowContext(
+  event: MouseEvent,
+  project: Project,
+  index: number,
+) {
+  selectedViaContext.value = true;
+  if (!selectedUrls.value.has(project.master_url)) {
+    selectedUrls.value = new Set([project.master_url]);
+    lastClickedIndex.value = index;
+  }
+  ctxOpen.value = false;
+  await nextTick();
   ctxX.value = event.clientX;
   ctxY.value = event.clientY;
   ctxOpen.value = true;
@@ -173,11 +252,15 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
   const p = singleSelected.value;
   items.push({ label: t("projects.context.update"), action: "update" });
   items.push({
-    label: p?.suspended_via_gui ? t("projects.drawer.resume") : t("projects.drawer.suspend"),
+    label: p?.suspended_via_gui
+      ? t("projects.drawer.resume")
+      : t("projects.drawer.suspend"),
     action: "suspend-resume",
   });
   items.push({
-    label: p?.dont_request_more_work ? t("projects.drawer.allowNewTasks") : t("projects.drawer.noNewTasks"),
+    label: p?.dont_request_more_work
+      ? t("projects.drawer.allowNewTasks")
+      : t("projects.drawer.noNewTasks"),
     action: "no-new-allow",
   });
   if (p && p.gui_urls && p.gui_urls.length > 1) {
@@ -195,15 +278,28 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
     });
   }
   items.push({ label: "", action: "", divider: true });
-  items.push({ label: t("projects.context.reset"), action: "reset", danger: true });
-  items.push({ label: t("projects.context.detach"), action: "detach", danger: true });
+  items.push({
+    label: t("projects.context.reset"),
+    action: "reset",
+    danger: true,
+  });
+  items.push({
+    label: t("projects.context.detach"),
+    action: "detach",
+    danger: true,
+  });
   items.push({ label: "", action: "", divider: true });
   items.push({
     label: t("projects.context.properties"),
     action: "properties",
     disabled: selectedUrls.value.size !== 1,
   });
-  return items;
+  const filtered = items.filter((item) => !item.disabled);
+  return filtered.filter(
+    (item, i, arr) =>
+      !item.divider ||
+      (i > 0 && i < arr.length - 1 && !arr[i - 1].divider),
+  );
 });
 
 function openProperties() {
@@ -371,28 +467,10 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   if (isTypingInInput(e)) return;
   if (hasSelection.value) handleDetach();
 });
-
-function isColVisible(key: string): boolean {
-  return visibleKeys.value.includes(key);
-}
 </script>
 
 <template>
-  <div class="projects-view">
-    <PageHeader :title="$t('projects.title')">
-      <button class="btn btn-primary" @click="showAttachWizard = true">{{ $t('projects.addProject') }}</button>
-      <button class="btn" @click="showAcctMgr = true">{{ $t('projects.accountManager') }}</button>
-      <Tooltip :text="$t('projects.columns')">
-        <button class="btn-columns" @click="showColumns = true">
-          <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
-            <rect x="1" y="2" width="3" height="12" rx="0.5" />
-            <rect x="6.5" y="2" width="3" height="12" rx="0.5" />
-            <rect x="12" y="2" width="3" height="12" rx="0.5" />
-          </svg>
-        </button>
-      </Tooltip>
-    </PageHeader>
-
+  <div class="projects-view" @click="selectedUrls = new Set()">
     <div class="content-row">
       <div class="content-main">
         <p v-if="store.error" class="error">{{ store.error }}</p>
@@ -411,88 +489,111 @@ function isColVisible(key: string): boolean {
 
         <DataTable
           v-if="store.projects.length > 0"
-          :columns="columns"
-          :sort-key="sortKey"
-          :sort-dir="sortDir"
+          :table="table"
           selectable
+          reorderable
+          hideable
           :all-selected="allSelected"
-          @sort="handleSort"
+          :is-row-selected="isSelected"
+          @row-click="handleRowClick"
+          @row-contextmenu="handleRowContext"
           @select-all="handleSelectAll"
-        >
-          <tr
-            v-for="(project, index) in sortedProjects"
-            :key="project.master_url"
-            :class="{ 'row-selected': isSelected(project) }"
-            @click="handleRowClick(project, index, $event)"
-                @contextmenu="handleRowContext($event, project, index)"
-          >
-            <td class="col-checkbox">
-              <input
-                type="checkbox"
-                :checked="isSelected(project)"
-                @click.stop
-                @change="handleRowClick(project, index, { ctrlKey: true } as MouseEvent)"
-              />
-            </td>
-            <td v-if="isColVisible('project')" class="col-name">{{ project.project_name }}</td>
-            <td v-if="isColVisible('account')">{{ project.user_name }}</td>
-            <td v-if="isColVisible('team')">{{ project.team_name || "---" }}</td>
-            <td v-if="isColVisible('totalCredit')" class="col-number">{{ formatCredit(project.user_total_credit) }}</td>
-            <td v-if="isColVisible('avgCredit')" class="col-number">{{ formatCredit(project.user_expavg_credit) }}</td>
-            <td v-if="isColVisible('status')">
-              <StatusBadge :variant="statusVariant(project)">
-                {{ projectStatus(project) }}
-              </StatusBadge>
-            </td>
-            <td v-if="isColVisible('source')" class="col-source">
-              <span
-                class="source-badge"
-                :class="project.attached_via_acct_mgr ? 'source-manager' : 'source-user'"
-                :title="project.attached_via_acct_mgr ? $t('projects.source.manager') : $t('projects.source.user')"
-              >
-                <span class="source-label">{{ project.attached_via_acct_mgr ? $t('projects.source.manager') : $t('projects.source.user') }}</span>
-              </span>
-            </td>
-          </tr>
-        </DataTable>
+        />
       </div>
 
       <Transition name="drawer">
-        <div v-if="hasSelection" class="drawer-panel">
+        <div v-if="hasSelection && !selectedViaContext" class="drawer-panel" @click.stop>
           <div class="drawer-header">
-            <h3>{{ singleSelected?.project_name ?? $t('projects.nProjects', selectedUrls.size) }}</h3>
+            <h3>
+              {{
+                singleSelected?.project_name ??
+                $t("projects.nProjects", selectedUrls.size)
+              }}
+            </h3>
           </div>
 
           <div class="drawer-section">
             <Tooltip :text="$t('projects.tooltip.update')">
-              <button class="btn" :disabled="actionBusy" @click="handleUpdate">{{ $t('projects.drawer.update') }}</button>
-            </Tooltip>
-            <Tooltip :text="singleSelected?.suspended_via_gui ? $t('projects.tooltip.resume') : $t('projects.tooltip.suspend')">
-              <button class="btn" :disabled="actionBusy" @click="handleSuspendResume">
-                {{ singleSelected?.suspended_via_gui ? $t('projects.drawer.resume') : $t('projects.drawer.suspend') }}
+              <button class="btn icon-btn" :disabled="actionBusy" @click="handleUpdate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
+                {{ $t("projects.drawer.update") }}
               </button>
             </Tooltip>
-            <Tooltip :text="singleSelected?.dont_request_more_work ? $t('projects.tooltip.allowNewTasks') : $t('projects.tooltip.noNewTasks')">
-              <button class="btn" :disabled="actionBusy" @click="handleNoNewAllowTasks">
-                {{ singleSelected?.dont_request_more_work ? $t('projects.drawer.allowNewTasks') : $t('projects.drawer.noNewTasks') }}
+            <Tooltip
+              :text="
+                singleSelected?.suspended_via_gui
+                  ? $t('projects.tooltip.resume')
+                  : $t('projects.tooltip.suspend')
+              "
+            >
+              <button
+                class="btn icon-btn"
+                :disabled="actionBusy"
+                @click="handleSuspendResume"
+              >
+                <svg v-if="singleSelected?.suspended_via_gui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" /></svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
+                {{
+                  singleSelected?.suspended_via_gui
+                    ? $t("projects.drawer.resume")
+                    : $t("projects.drawer.suspend")
+                }}
               </button>
             </Tooltip>
-            <Tooltip v-if="selectedUrls.size === 1" :text="$t('projects.tooltip.properties')">
-              <button class="btn" @click="openProperties">{{ $t('projects.drawer.properties') }}</button>
+            <Tooltip
+              :text="
+                singleSelected?.dont_request_more_work
+                  ? $t('projects.tooltip.allowNewTasks')
+                  : $t('projects.tooltip.noNewTasks')
+              "
+            >
+              <button
+                class="btn icon-btn"
+                :disabled="actionBusy"
+                @click="handleNoNewAllowTasks"
+              >
+                <svg v-if="singleSelected?.dont_request_more_work" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                {{
+                  singleSelected?.dont_request_more_work
+                    ? $t("projects.drawer.allowNewTasks")
+                    : $t("projects.drawer.noNewTasks")
+                }}
+              </button>
+            </Tooltip>
+            <Tooltip
+              v-if="selectedUrls.size === 1"
+              :text="$t('projects.tooltip.properties')"
+            >
+              <button class="btn icon-btn" @click="openProperties">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>
+                {{ $t("projects.drawer.properties") }}
+              </button>
             </Tooltip>
           </div>
 
           <div class="drawer-section drawer-danger">
             <Tooltip :text="$t('projects.tooltip.reset')">
-              <button class="btn btn-danger" @click="handleReset">{{ $t('projects.drawer.reset') }}</button>
+              <button class="btn btn-danger icon-btn" @click="handleReset">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
+                {{ $t("projects.drawer.reset") }}
+              </button>
             </Tooltip>
             <Tooltip :text="$t('projects.tooltip.detach')">
-              <button class="btn btn-danger" @click="handleDetach">{{ $t('projects.drawer.detach') }}</button>
+              <button class="btn btn-danger icon-btn" @click="handleDetach">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                {{ $t("projects.drawer.detach") }}
+              </button>
             </Tooltip>
           </div>
 
-          <div v-if="singleSelected?.gui_urls?.length" class="drawer-section drawer-links">
-            <div class="drawer-section-label">{{ $t('projects.drawer.webLinks') }}</div>
+          <div
+            v-if="singleSelected?.gui_urls?.length"
+            class="drawer-section drawer-links"
+          >
+            <div class="drawer-section-label">
+              {{ $t("projects.drawer.webLinks") }}
+            </div>
             <a
               v-for="(gu, i) in singleSelected.gui_urls"
               :key="gu.url"
@@ -500,7 +601,7 @@ function isColVisible(key: string): boolean {
               href="#"
               @click.prevent="openWebPage(i)"
             >
-              {{ gu.name || $t('projects.drawer.webPage') }}
+              {{ gu.name || $t("projects.drawer.webPage") }}
             </a>
           </div>
         </div>
@@ -524,40 +625,43 @@ function isColVisible(key: string): boolean {
       @cancel="confirmAction = null"
     />
 
-    <ProjectAttachWizard
-      :open="showAttachWizard"
-      @close="showAttachWizard = false"
-    />
-
-    <AccountManagerWizard
-      :open="showAcctMgr"
-      @close="showAcctMgr = false"
-    />
-
-    <ColumnCustomizationDialog
-      :open="showColumns"
-      :columns="allColumns"
-      :visible-keys="visibleKeys"
-      @update="visibleKeys = $event"
-      @close="showColumns = false"
-    />
-
     <ItemPropertiesDialog
       :open="showProperties"
       type="project"
       :project="propertiesProject ?? undefined"
       @close="showProperties = false"
     />
+
+    <div class="fab-group">
+      <Tooltip :text="$t('sidebar.accountManager')">
+        <button class="fab fab-small" @click.stop="openAcctMgr">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+          </svg>
+        </button>
+      </Tooltip>
+      <Tooltip :text="$t('sidebar.addProject')">
+        <button class="fab" @click.stop="openAttachWizard">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+            <path
+              fill-rule="evenodd"
+              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+      </Tooltip>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .projects-view {
-  padding: var(--space-lg);
+  position: relative;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   flex: 1;
+  overflow: hidden;
 }
 
 .error {
@@ -608,16 +712,6 @@ function isColVisible(key: string): boolean {
   color: var(--color-text-secondary);
 }
 
-/* Collapse to dot when column is narrow */
-@container (max-width: 0px) {
-  .source-label { display: none; }
-}
-
-/* Use a resize-aware approach: hide label when table is tight */
-.data-table-wrapper:has(.col-source) .source-label {
-  /* label always visible by default */
-}
-
 @media (max-width: 900px) {
   .source-label {
     display: none;
@@ -641,23 +735,6 @@ function isColVisible(key: string): boolean {
   text-align: right;
 }
 
-.btn-columns {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border: none;
-  background: none;
-  color: var(--color-text-tertiary);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: color 0.15s;
-}
-
-.btn-columns:hover {
-  color: var(--color-text-primary);
-}
-
 /* Content layout */
 .content-row {
   display: flex;
@@ -669,8 +746,9 @@ function isColVisible(key: string): boolean {
 .content-main {
   flex: 1;
   min-width: 0;
-  overflow: auto;
-  margin-right: var(--space-md);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Side drawer */
@@ -705,6 +783,10 @@ function isColVisible(key: string): boolean {
 .drawer-section .btn {
   width: 100%;
   text-align: left;
+}
+
+.drawer-section .icon-btn {
+  padding-left: 8px;
 }
 
 .drawer-danger {
@@ -743,7 +825,9 @@ function isColVisible(key: string): boolean {
 /* Drawer transition */
 .drawer-enter-active,
 .drawer-leave-active {
-  transition: width 0.2s ease, opacity 0.2s ease;
+  transition:
+    width 0.2s ease,
+    opacity 0.2s ease;
   overflow: hidden;
 }
 
@@ -753,5 +837,63 @@ function isColVisible(key: string): boolean {
   padding-left: 0;
   padding-right: 0;
   opacity: 0;
+}
+
+.fab-group {
+  position: absolute;
+  right: 24px;
+  bottom: calc(24px + var(--status-bar-offset, 0px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fab {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: none;
+  background: var(--color-accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow:
+    0 3px 5px -1px rgba(0, 0, 0, 0.2),
+    0 6px 10px 0 rgba(0, 0, 0, 0.14),
+    0 1px 18px 0 rgba(0, 0, 0, 0.12);
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fab-small {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--color-bg-elevated, var(--color-bg));
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.fab:hover {
+  background: var(--color-accent-hover);
+  box-shadow:
+    0 5px 5px -3px rgba(0, 0, 0, 0.2),
+    0 8px 10px 1px rgba(0, 0, 0, 0.14),
+    0 3px 14px 2px rgba(0, 0, 0, 0.12);
+  transform: scale(1.05);
+}
+
+.fab-small:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.fab:active {
+  transform: scale(0.97);
 }
 </style>

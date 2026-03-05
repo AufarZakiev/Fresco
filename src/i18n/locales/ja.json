@@ -22,17 +22,27 @@
     "eventLog": "イベントログ",
     "selectComputer": "コンピュータの選択",
     "preferences": "設定",
-    "toggleSidebar": "サイドバーの切り替え"
+    "toggleSidebar": "サイドバーの切り替え",
+    "addProject": "プロジェクトを追加",
+    "accountManager": "アカウントマネージャ"
   },
   "tasks": {
     "title": "タスク",
     "activeOnly": "実行中のタスクのみ",
+    "customizeColumns": "列の表示・非表示・並び替え",
     "suspend": "一時停止",
     "resume": "再開",
     "graphics": "グラフィック",
     "abort": "中止",
     "properties": "プロパティ",
+    "nTasks": "{count}件のタスクを選択中",
     "columns": "列",
+    "tooltip": {
+      "suspend": "選択したタスクを一時停止",
+      "resume": "選択したタスクを再開",
+      "abort": "選択したタスクを完全に削除",
+      "properties": "タスクの詳細情報を表示"
+    },
     "loading": "タスクを読み込み中...",
     "emptyActive": "現在実行中のタスクはありません。",
     "emptyAll": "タスクがありません。プロジェクトを追加して計算を開始してください。",
@@ -148,7 +158,12 @@
     "title": "ファイル転送",
     "retry": "再試行",
     "abort": "中止",
+    "nTransfers": "{count}件の転送を選択中",
     "columns": "列",
+    "tooltip": {
+      "retry": "選択した転送を再試行",
+      "abort": "選択した転送を中止"
+    },
     "loading": "転送情報を読み込み中...",
     "empty": "進行中のファイル転送はありません。",
     "col": {
@@ -442,7 +457,8 @@
     "error": "エラー",
     "tasksSuspended": "タスク一時停止中: {reason}",
     "gpuSuspended": "GPU一時停止中: {reason}",
-    "about": "バージョン情報"
+    "about": "バージョン情報",
+    "clickToSwitch": "クリックしてコンピュータを切り替え"
   },
   "columns": {
     "title": "列",

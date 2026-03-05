@@ -7,6 +7,7 @@ export interface ContextMenuItem {
   danger?: boolean;
   disabled?: boolean;
   divider?: boolean;
+  checked?: boolean;
 }
 
 const props = defineProps<{
@@ -38,7 +39,9 @@ const enabledIndices = computed(() =>
 
 function getMenuItemButtons(): HTMLElement[] {
   if (!menuRef.value) return [];
-  return Array.from(menuRef.value.querySelectorAll<HTMLElement>("[role='menuitem']"));
+  return Array.from(
+    menuRef.value.querySelectorAll<HTMLElement>("[role='menuitem']"),
+  );
 }
 
 function focusActionableAt(actionablePos: number) {
@@ -75,7 +78,9 @@ function focusNextEnabled() {
 function focusPrevEnabled() {
   const currentItemIdx = actionableIndices.value[focusedIndex.value];
   const currentEnabledPos = enabledIndices.value.indexOf(currentItemIdx);
-  const prevPos = (currentEnabledPos - 1 + enabledIndices.value.length) % enabledIndices.value.length;
+  const prevPos =
+    (currentEnabledPos - 1 + enabledIndices.value.length) %
+    enabledIndices.value.length;
   focusActionableAt(findActionablePos(enabledIndices.value[prevPos]));
 }
 
@@ -134,14 +139,12 @@ watch(
     if (isOpen) {
       focusedIndex.value = -1;
       document.addEventListener("keydown", handleKeydown);
-      // Delay click listener to avoid the opening click from immediately closing
-      setTimeout(() => {
-        document.addEventListener("click", handleClickOutside);
-      }, 0);
+      // Use mousedown so @click.stop on table rows doesn't block outside detection
+      document.addEventListener("mousedown", handleClickOutside);
       await nextTick();
       focusFirstEnabled();
     } else {
-      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeydown);
     }
   },
@@ -150,12 +153,12 @@ watch(
 onMounted(() => {
   if (props.open) {
     document.addEventListener("keydown", handleKeydown);
-    document.addEventListener("click", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
   }
 });
 
 onUnmounted(() => {
-  document.removeEventListener("click", handleClickOutside);
+  document.removeEventListener("mousedown", handleClickOutside);
   document.removeEventListener("keydown", handleKeydown);
 });
 </script>
@@ -181,6 +184,7 @@ onUnmounted(() => {
           :tabindex="getTabIndex(idx)"
           @click="handleAction(item)"
         >
+          <span v-if="item.checked !== undefined" class="context-check">{{ item.checked ? "&#x2713;" : "" }}</span>
           {{ item.label }}
         </button>
       </template>
@@ -233,6 +237,13 @@ onUnmounted(() => {
 .context-item.disabled {
   color: var(--color-text-tertiary);
   cursor: default;
+}
+
+.context-check {
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+  margin-right: 4px;
 }
 
 .context-divider {

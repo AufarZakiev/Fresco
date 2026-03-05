@@ -32,11 +32,6 @@ describe("NoticesView", () => {
     setActivePinia(createPinia());
   });
 
-  it("shows page title", () => {
-    const wrapper = mount(NoticesView);
-    expect(wrapper.text()).toContain("Notices");
-  });
-
   it("renders notices from store", () => {
     const store = useNoticesStore();
     store.notices = [
@@ -77,7 +72,11 @@ describe("NoticesView", () => {
   it("shows notice title as link when link is present", () => {
     const store = useNoticesStore();
     store.notices = [
-      makeNotice({ seqno: 1, title: "Linked notice", link: "https://example.com" }),
+      makeNotice({
+        seqno: 1,
+        title: "Linked notice",
+        link: "https://example.com",
+      }),
     ];
 
     const wrapper = mount(NoticesView);
@@ -108,7 +107,10 @@ describe("NoticesView", () => {
     it("removes script tags from notice description", () => {
       const store = useNoticesStore();
       store.notices = [
-        makeNotice({ seqno: 1, description: 'Hello <script>alert("xss")</script> World' }),
+        makeNotice({
+          seqno: 1,
+          description: 'Hello <script>alert("xss")</script> World',
+        }),
       ];
 
       const wrapper = mount(NoticesView);
@@ -120,7 +122,10 @@ describe("NoticesView", () => {
     it("removes on* event handler attributes", () => {
       const store = useNoticesStore();
       store.notices = [
-        makeNotice({ seqno: 1, description: '<img src="x" onerror="alert(1)">' }),
+        makeNotice({
+          seqno: 1,
+          description: '<img src="x" onerror="alert(1)">',
+        }),
       ];
 
       const wrapper = mount(NoticesView);
@@ -132,7 +137,10 @@ describe("NoticesView", () => {
     it("removes javascript: href", () => {
       const store = useNoticesStore();
       store.notices = [
-        makeNotice({ seqno: 1, description: '<a href="javascript:alert(1)">click</a>' }),
+        makeNotice({
+          seqno: 1,
+          description: '<a href="javascript:alert(1)">click</a>',
+        }),
       ];
 
       const wrapper = mount(NoticesView);
@@ -143,7 +151,10 @@ describe("NoticesView", () => {
     it("removes SVG-based XSS vectors (not covered by custom regex)", () => {
       const store = useNoticesStore();
       store.notices = [
-        makeNotice({ seqno: 1, description: '<svg><animate onbegin="alert(1)"/></svg>' }),
+        makeNotice({
+          seqno: 1,
+          description: '<svg><animate onbegin="alert(1)"/></svg>',
+        }),
       ];
 
       const wrapper = mount(NoticesView);
@@ -155,7 +166,10 @@ describe("NoticesView", () => {
     it("adds target=_blank and rel=noopener to links", () => {
       const store = useNoticesStore();
       store.notices = [
-        makeNotice({ seqno: 1, description: '<a href="https://example.com">visit</a>' }),
+        makeNotice({
+          seqno: 1,
+          description: '<a href="https://example.com">visit</a>',
+        }),
       ];
 
       const wrapper = mount(NoticesView);
@@ -168,7 +182,10 @@ describe("NoticesView", () => {
     it("preserves safe HTML content", () => {
       const store = useNoticesStore();
       store.notices = [
-        makeNotice({ seqno: 1, description: "<p>Safe <strong>content</strong> here.</p>" }),
+        makeNotice({
+          seqno: 1,
+          description: "<p>Safe <strong>content</strong> here.</p>",
+        }),
       ];
 
       const wrapper = mount(NoticesView);

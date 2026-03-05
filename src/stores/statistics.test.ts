@@ -16,7 +16,13 @@ const sampleStats: ProjectStatistics[] = [
   {
     master_url: "https://example.com/",
     daily_statistics: [
-      { day: 1700000000, user_total_credit: 1000, user_expavg_credit: 100, host_total_credit: 500, host_expavg_credit: 50 },
+      {
+        day: 1700000000,
+        user_total_credit: 1000,
+        user_expavg_credit: 100,
+        host_total_credit: 500,
+        host_expavg_credit: 50,
+      },
     ],
   },
 ];

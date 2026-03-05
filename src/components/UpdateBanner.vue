@@ -3,7 +3,10 @@ import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import Tooltip from "./Tooltip.vue";
-import { useUpdateCheck, startBackgroundDownload } from "../composables/useUpdateCheck";
+import {
+  useUpdateCheck,
+  startBackgroundDownload,
+} from "../composables/useUpdateCheck";
 
 const { t } = useI18n();
 const { releaseDate, assetUrl, updateOnExit, dismissUpdate } = useUpdateCheck();
@@ -59,13 +62,13 @@ function setUpdateOnExit() {
   <Teleport to="body">
     <div class="update-notification">
       <div class="update-header">
-        <span class="update-title">{{ $t('updateBanner.title') }}</span>
+        <span class="update-title">{{ $t("updateBanner.title") }}</span>
         <Tooltip :text="$t('updateBanner.dismiss')">
           <button class="close-btn" @click="dismissUpdate">&times;</button>
         </Tooltip>
       </div>
       <p class="update-text">
-        {{ $t('updateBanner.text', { date: formatDate(releaseDate) }) }}
+        {{ $t("updateBanner.text", { date: formatDate(releaseDate) }) }}
       </p>
       <p v-if="updateError" class="update-error">{{ updateError }}</p>
       <div class="update-actions">
@@ -74,13 +77,17 @@ function setUpdateOnExit() {
           :disabled="updating || !assetUrl"
           @click="updateNow"
         >
-          {{ updating ? $t('updateBanner.updating') : $t('updateBanner.updateNow') }}
+          {{
+            updating
+              ? $t("updateBanner.updating")
+              : $t("updateBanner.updateNow")
+          }}
         </button>
         <button class="btn" :disabled="updating" @click="setUpdateOnExit">
-          {{ $t('updateBanner.updateOnExit') }}
+          {{ $t("updateBanner.updateOnExit") }}
         </button>
         <button class="btn" :disabled="updating" @click="dismissUpdate">
-          {{ $t('updateBanner.remindLater') }}
+          {{ $t("updateBanner.remindLater") }}
         </button>
       </div>
     </div>

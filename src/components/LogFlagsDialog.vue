@@ -11,10 +11,18 @@ const emit = defineEmits<{ close: [] }>();
 
 const dialogRef = ref<HTMLElement | null>(null);
 const { activate, deactivate } = useFocusTrap(dialogRef);
-watch(() => props.open, async (isOpen) => {
-  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
-  else { deactivate(); }
-});
+watch(
+  () => props.open,
+  async (isOpen) => {
+    if (isOpen) {
+      await nextTick();
+      if (!props.open) return;
+      activate();
+    } else {
+      deactivate();
+    }
+  },
+);
 
 const { t } = useI18n();
 const loading = ref(false);
@@ -81,13 +89,23 @@ async function save() {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('close')">
-      <div ref="dialogRef" class="logflags-dialog" role="dialog" aria-modal="true" aria-labelledby="log-flags-dialog-title">
+      <div
+        ref="dialogRef"
+        class="logflags-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="log-flags-dialog-title"
+      >
         <div class="logflags-header">
-          <h3 id="log-flags-dialog-title">{{ $t('logFlags.title') }}</h3>
-          <button class="close-btn" aria-label="Close" @click="emit('close')">&times;</button>
+          <h3 id="log-flags-dialog-title">{{ $t("logFlags.title") }}</h3>
+          <button class="close-btn" aria-label="Close" @click="emit('close')">
+            &times;
+          </button>
         </div>
 
-        <div v-if="loading" class="logflags-loading">{{ $t('logFlags.loading') }}</div>
+        <div v-if="loading" class="logflags-loading">
+          {{ $t("logFlags.loading") }}
+        </div>
 
         <template v-else-if="config">
           <div class="logflags-body">
@@ -96,18 +114,26 @@ async function save() {
                 v-for="flag in flagLabels"
                 :key="flag.key"
                 class="pref-row"
-                @click="config.log_flags[flag.key] = !config.log_flags[flag.key]"
+                @click="
+                  config.log_flags[flag.key] = !config.log_flags[flag.key]
+                "
               >
                 <span>{{ flag.label }}</span>
                 <span
                   class="toggle-switch"
                   :class="{ on: config.log_flags[flag.key] }"
                   role="switch"
-                  :aria-checked="!!(config.log_flags[flag.key])"
+                  :aria-checked="!!config.log_flags[flag.key]"
                   tabindex="0"
-                  @click.stop="config.log_flags[flag.key] = !config.log_flags[flag.key]"
-                  @keydown.enter.prevent="config.log_flags[flag.key] = !config.log_flags[flag.key]"
-                  @keydown.space.prevent="config.log_flags[flag.key] = !config.log_flags[flag.key]"
+                  @click.stop="
+                    config.log_flags[flag.key] = !config.log_flags[flag.key]
+                  "
+                  @keydown.enter.prevent="
+                    config.log_flags[flag.key] = !config.log_flags[flag.key]
+                  "
+                  @keydown.space.prevent="
+                    config.log_flags[flag.key] = !config.log_flags[flag.key]
+                  "
                 >
                   <span class="toggle-knob" />
                 </span>
@@ -118,7 +144,7 @@ async function save() {
 
             <div class="logflags-section">
               <label class="pref-row">
-                <span>{{ $t('logFlags.maxFileTransfers') }}</span>
+                <span>{{ $t("logFlags.maxFileTransfers") }}</span>
                 <input
                   v-model.number="config.max_file_xfers"
                   type="number"
@@ -127,7 +153,7 @@ async function save() {
                 />
               </label>
               <label class="pref-row">
-                <span>{{ $t('logFlags.maxCpus') }}</span>
+                <span>{{ $t("logFlags.maxCpus") }}</span>
                 <input
                   v-model.number="config.max_ncpus"
                   type="number"
@@ -135,17 +161,32 @@ async function save() {
                   step="1"
                 />
               </label>
-              <label class="pref-row" @click="config.report_results_immediately = !config.report_results_immediately">
-                <span>{{ $t('logFlags.reportImmediately') }}</span>
+              <label
+                class="pref-row"
+                @click="
+                  config.report_results_immediately =
+                    !config.report_results_immediately
+                "
+              >
+                <span>{{ $t("logFlags.reportImmediately") }}</span>
                 <span
                   class="toggle-switch"
                   :class="{ on: config.report_results_immediately }"
                   role="switch"
-                  :aria-checked="!!(config.report_results_immediately)"
+                  :aria-checked="!!config.report_results_immediately"
                   tabindex="0"
-                  @click.stop="config.report_results_immediately = !config.report_results_immediately"
-                  @keydown.enter.prevent="config.report_results_immediately = !config.report_results_immediately"
-                  @keydown.space.prevent="config.report_results_immediately = !config.report_results_immediately"
+                  @click.stop="
+                    config.report_results_immediately =
+                      !config.report_results_immediately
+                  "
+                  @keydown.enter.prevent="
+                    config.report_results_immediately =
+                      !config.report_results_immediately
+                  "
+                  @keydown.space.prevent="
+                    config.report_results_immediately =
+                      !config.report_results_immediately
+                  "
                 >
                   <span class="toggle-knob" />
                 </span>
@@ -156,9 +197,11 @@ async function save() {
           <div v-if="error" class="logflags-error">{{ error }}</div>
 
           <div class="logflags-footer">
-            <button class="btn" @click="emit('close')">{{ $t('logFlags.cancel') }}</button>
+            <button class="btn" @click="emit('close')">
+              {{ $t("logFlags.cancel") }}
+            </button>
             <button class="btn btn-primary" :disabled="saving" @click="save">
-              {{ saving ? $t('logFlags.saving') : $t('logFlags.save') }}
+              {{ saving ? $t("logFlags.saving") : $t("logFlags.save") }}
             </button>
           </div>
         </template>
@@ -285,7 +328,9 @@ async function save() {
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
-  transition: background 0.2s, opacity 0.2s;
+  transition:
+    background 0.2s,
+    opacity 0.2s;
 }
 
 .toggle-switch.on {

@@ -4,7 +4,10 @@ import { usePreferencesStore } from "../stores/preferences";
 import { useManagerSettingsStore } from "../stores/managerSettings";
 import type { GlobalPreferences } from "../types/boinc";
 import { BOINC_DEFAULTS } from "../constants/boincDefaults";
-import { decimalHoursToTimeString, timeStringToDecimalHours } from "../utils/timeConversion";
+import {
+  decimalHoursToTimeString,
+  timeStringToDecimalHours,
+} from "../utils/timeConversion";
 import TimeClockPicker from "./TimeClockPicker.vue";
 import PrefSourcePopover from "./PrefSourcePopover.vue";
 
@@ -26,7 +29,7 @@ const isDark = computed(() => {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 });
 
-const accentColor = computed(() => isDark.value ? "#60a5fa" : "#3b82f6");
+const accentColor = computed(() => (isDark.value ? "#60a5fa" : "#3b82f6"));
 
 const hasOverride = computed(() => props.modelValue !== 0);
 
@@ -34,11 +37,18 @@ const fileVal = computed(() => store.getFileValue(props.field));
 
 const initialVal = computed(() => BOINC_DEFAULTS[props.field] ?? 0);
 const hasFileVal = computed(
-  () => fileVal.value != null && fileVal.value !== 0 && fileVal.value !== initialVal.value,
+  () =>
+    fileVal.value != null &&
+    fileVal.value !== 0 &&
+    fileVal.value !== initialVal.value,
 );
 
 const sourceType = computed(() => {
-  if (hasOverride.value && (!hasFileVal.value || props.modelValue !== fileVal.value)) return "override";
+  if (
+    hasOverride.value &&
+    (!hasFileVal.value || props.modelValue !== fileVal.value)
+  )
+    return "override";
   if (hasFileVal.value) return "file";
   return "initial";
 });
@@ -51,7 +61,9 @@ const effectiveValue = computed(() => {
   return BOINC_DEFAULTS[props.field] ?? 0;
 });
 
-const timeString = computed(() => decimalHoursToTimeString(effectiveValue.value));
+const timeString = computed(() =>
+  decimalHoursToTimeString(effectiveValue.value),
+);
 
 const placeholder = computed(() => {
   if (effectiveValue.value === 0 && props.zeroLabel) return props.zeroLabel;
@@ -65,8 +77,14 @@ let openTimeout: ReturnType<typeof setTimeout> | null = null;
 let closeTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function cancelTimers() {
-  if (openTimeout) { clearTimeout(openTimeout); openTimeout = null; }
-  if (closeTimeout) { clearTimeout(closeTimeout); closeTimeout = null; }
+  if (openTimeout) {
+    clearTimeout(openTimeout);
+    openTimeout = null;
+  }
+  if (closeTimeout) {
+    clearTimeout(closeTimeout);
+    closeTimeout = null;
+  }
 }
 
 function onDotEnter() {

@@ -17,10 +17,18 @@ const emit = defineEmits<{
 
 const dialogRef = ref<HTMLElement | null>(null);
 const { activate, deactivate } = useFocusTrap(dialogRef);
-watch(() => props.open, async (isOpen) => {
-  if (isOpen) { await nextTick(); if (!props.open) return; activate(); }
-  else { deactivate(); }
-});
+watch(
+  () => props.open,
+  async (isOpen) => {
+    if (isOpen) {
+      await nextTick();
+      if (!props.open) return;
+      activate();
+    } else {
+      deactivate();
+    }
+  },
+);
 
 onKeyStroke("Escape", () => {
   if (!props.open) return;
@@ -31,13 +39,21 @@ onKeyStroke("Escape", () => {
 <template>
   <Teleport to="body">
     <div v-if="open" class="dialog-overlay" @click.self="emit('cancel')">
-      <div ref="dialogRef" class="dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+      <div
+        ref="dialogRef"
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
+      >
         <h3 id="confirm-dialog-title">{{ title }}</h3>
         <p>{{ message }}</p>
         <div class="dialog-actions">
-          <button class="btn" @click="emit('cancel')">{{ $t('confirm.cancel') }}</button>
+          <button class="btn" @click="emit('cancel')">
+            {{ $t("confirm.cancel") }}
+          </button>
           <button class="btn btn-danger-fill" @click="emit('confirm')">
-            {{ confirmLabel ?? $t('confirm.confirm') }}
+            {{ confirmLabel ?? $t("confirm.confirm") }}
           </button>
         </div>
       </div>

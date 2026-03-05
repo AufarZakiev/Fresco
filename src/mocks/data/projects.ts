@@ -27,8 +27,16 @@ export const mockProjects: Project[] = [
     sched_priority: -1.04,
     hostid: 9876543,
     gui_urls: [
-      { name: "Home", description: "Project home page", url: "https://boinc.bakerlab.org/rosetta/" },
-      { name: "Your account", description: "View your account", url: "https://boinc.bakerlab.org/rosetta/home.php" },
+      {
+        name: "Home",
+        description: "Project home page",
+        url: "https://boinc.bakerlab.org/rosetta/",
+      },
+      {
+        name: "Your account",
+        description: "View your account",
+        url: "https://boinc.bakerlab.org/rosetta/home.php",
+      },
     ],
     venue: "",
   },
@@ -57,7 +65,11 @@ export const mockProjects: Project[] = [
     sched_priority: -2.15,
     hostid: 1234567,
     gui_urls: [
-      { name: "Home", description: "Project home page", url: "https://einstein.phys.uwm.edu/" },
+      {
+        name: "Home",
+        description: "Project home page",
+        url: "https://einstein.phys.uwm.edu/",
+      },
     ],
     venue: "",
   },

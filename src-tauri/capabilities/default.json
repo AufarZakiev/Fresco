@@ -10,6 +10,7 @@
     "notification:default",
     "process:default",
     "core:window:allow-set-theme",
+    "core:window:allow-set-title",
     "autostart:allow-enable",
     "autostart:allow-disable",
     "autostart:allow-is-enabled"

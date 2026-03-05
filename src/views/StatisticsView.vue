@@ -59,7 +59,9 @@ const projectOptions = computed(() =>
   store.projectStats
     .filter((p) => hasRecentActivity(p.daily_statistics))
     .map((p) => {
-      const project = projectsStore.projects.find((proj) => proj.master_url === p.master_url);
+      const project = projectsStore.projects.find(
+        (proj) => proj.master_url === p.master_url,
+      );
       return {
         url: p.master_url,
         label: project?.project_name || p.master_url,
@@ -71,7 +73,9 @@ const activeProject = computed(() => {
   if (!selectedProjectUrl.value && projectOptions.value.length > 0) {
     selectedProjectUrl.value = projectOptions.value[0].url;
   }
-  return store.projectStats.find((p) => p.master_url === selectedProjectUrl.value);
+  return store.projectStats.find(
+    (p) => p.master_url === selectedProjectUrl.value,
+  );
 });
 
 function mergeAllProjects(): DailyStats[] {
@@ -155,12 +159,15 @@ onKeyStroke("h", (e) => {
 
 <template>
   <div class="statistics-view">
-    <PageHeader :title="$t('statistics.title')" />
+    <PageHeader />
 
     <p v-if="store.error" class="error-text">{{ store.error }}</p>
 
-    <div v-if="store.loading && store.projectStats.length === 0" class="loading-text">
-      {{ $t('statistics.loading') }}
+    <div
+      v-if="store.loading && store.projectStats.length === 0"
+      class="loading-text"
+    >
+      {{ $t("statistics.loading") }}
     </div>
 
     <EmptyState
@@ -177,19 +184,19 @@ onKeyStroke("h", (e) => {
             :class="['segment', { active: viewMode === 'single' }]"
             @click="viewMode = 'single'"
           >
-            {{ $t('statistics.singleProject') }}
+            {{ $t("statistics.singleProject") }}
           </button>
           <button
             :class="['segment', { active: viewMode === 'all' }]"
             @click="viewMode = 'all'"
           >
-            {{ $t('statistics.allTogether') }}
+            {{ $t("statistics.allTogether") }}
           </button>
           <button
             :class="['segment', { active: viewMode === 'separate' }]"
             @click="viewMode = 'separate'"
           >
-            {{ $t('statistics.allSeparate') }}
+            {{ $t("statistics.allSeparate") }}
           </button>
         </div>
 
@@ -212,8 +219,11 @@ onKeyStroke("h", (e) => {
             :checked="enabledActors.has('user')"
             @change="toggleActor('user')"
           />
-          <span class="series-swatch" :style="{ background: actorColors.user }"></span>
-          <span class="series-label">{{ $t('statistics.user') }}</span>
+          <span
+            class="series-swatch"
+            :style="{ background: actorColors.user }"
+          ></span>
+          <span class="series-label">{{ $t("statistics.user") }}</span>
         </label>
         <label class="series-toggle">
           <input
@@ -221,8 +231,11 @@ onKeyStroke("h", (e) => {
             :checked="enabledActors.has('host')"
             @change="toggleActor('host')"
           />
-          <span class="series-swatch" :style="{ background: actorColors.host }"></span>
-          <span class="series-label">{{ $t('statistics.host') }}</span>
+          <span
+            class="series-swatch"
+            :style="{ background: actorColors.host }"
+          ></span>
+          <span class="series-label">{{ $t("statistics.host") }}</span>
         </label>
       </div>
 
@@ -266,7 +279,11 @@ onKeyStroke("h", (e) => {
 
 <style scoped>
 .statistics-view {
-  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: auto;
+  padding: 0 var(--space-lg) var(--space-lg);
 }
 
 .error-text {
