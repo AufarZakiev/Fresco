@@ -225,7 +225,8 @@
     "totalDisk": "Total Disk",
     "boincUsage": "BOINC Usage",
     "freeSpace": "Free Space",
-    "allowed": "Allowed"
+    "allowed": "Allowed",
+    "chartLabel": "Disk usage chart"
   },
   "host": {
     "title": "Host Information",
@@ -281,7 +282,8 @@
     "user": "User",
     "host": "Host",
     "totalCredit": "Total Credit",
-    "avgCredit": "Average Credit"
+    "avgCredit": "Average Credit",
+    "chartLabel": "Statistics chart"
   },
   "notices": {
     "title": "Notices",
@@ -447,7 +449,10 @@
     "net": "Net",
     "always": "Always",
     "auto": "Auto",
-    "suspend": "Suspend"
+    "suspend": "Suspend",
+    "cpuModeLabel": "CPU mode",
+    "gpuModeLabel": "GPU mode",
+    "netModeLabel": "Network mode"
   },
   "statusBar": {
     "connected": "Connected",

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import DiskUsageView from "./DiskUsageView.vue";
 import { useDiskUsageStore } from "../stores/diskUsage";
@@ -178,6 +178,29 @@ describe("DiskUsageView", () => {
     // Project A: 1000/4000 = 25.0%, Project B: 3000/4000 = 75.0%
     expect(text).toContain("25.0%");
     expect(text).toContain("75.0%");
+  });
+
+  it("doughnut SVG has role='img' and aria-label", async () => {
+    const { getDiskUsage } = await import("../composables/useRpc");
+    const mockData = {
+      projects: [{ master_url: "https://a.org/", disk_usage: 500 }],
+      d_total: 1000,
+      d_free: 500,
+      d_boinc: 500,
+      d_allowed: 1000,
+    };
+    vi.mocked(getDiskUsage).mockResolvedValueOnce(mockData);
+
+    const diskStore = useDiskUsageStore();
+    diskStore.loading = false;
+    diskStore.usage = mockData;
+
+    const wrapper = mount(DiskUsageView);
+    await flushPromises();
+
+    const svg = wrapper.find("svg.doughnut-svg");
+    expect(svg.attributes("role")).toBe("img");
+    expect(svg.attributes("aria-label")).toBeTruthy();
   });
 
   it("renders SVG doughnut chart paths for projects", () => {

@@ -225,7 +225,8 @@
     "totalDisk": "磁盘总量",
     "boincUsage": "BOINC 使用量",
     "freeSpace": "可用空间",
-    "allowed": "允许使用"
+    "allowed": "允许使用",
+    "chartLabel": "磁盘使用图表"
   },
   "host": {
     "title": "主机信息",
@@ -281,7 +282,8 @@
     "user": "用户",
     "host": "主机",
     "totalCredit": "总积分",
-    "avgCredit": "平均积分"
+    "avgCredit": "平均积分",
+    "chartLabel": "统计图表"
   },
   "notices": {
     "title": "通知",
@@ -447,7 +449,10 @@
     "net": "网络",
     "always": "总是提醒",
     "auto": "自动",
-    "suspend": "暂停"
+    "suspend": "暂停",
+    "cpuModeLabel": "CPU 模式",
+    "gpuModeLabel": "GPU 模式",
+    "netModeLabel": "网络模式"
   },
   "statusBar": {
     "connected": "已连接",

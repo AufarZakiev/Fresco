@@ -225,7 +225,8 @@
     "totalDisk": "Общий объём диска",
     "boincUsage": "Использовано BOINC",
     "freeSpace": "Свободно",
-    "allowed": "Разрешено"
+    "allowed": "Разрешено",
+    "chartLabel": "Диаграмма использования диска"
   },
   "host": {
     "title": "Информация о компьютере",
@@ -281,7 +282,8 @@
     "user": "Участник",
     "host": "Компьютер (хост)",
     "totalCredit": "Общий кредит",
-    "avgCredit": "Средний кредит"
+    "avgCredit": "Средний кредит",
+    "chartLabel": "График статистики"
   },
   "notices": {
     "title": "Уведомления",
@@ -447,7 +449,10 @@
     "net": "Сеть",
     "always": "всегда",
     "auto": "Авто",
-    "suspend": "Приостановить"
+    "suspend": "Приостановить",
+    "cpuModeLabel": "Режим CPU",
+    "gpuModeLabel": "Режим GPU",
+    "netModeLabel": "Режим сети"
   },
   "statusBar": {
     "connected": "Соединение установлено",
