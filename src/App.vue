@@ -25,6 +25,7 @@ import { useTasksStore } from "./stores/tasks";
 import { useProjectsStore } from "./stores/projects";
 import { useTransfersStore } from "./stores/transfers";
 import { useClientStore } from "./stores/client";
+import { getSuspendReasonText } from "./composables/useSuspendReasons";
 import { useStatisticsStore } from "./stores/statistics";
 import { useMessagesStore } from "./stores/messages";
 import { useNoticesStore } from "./stores/notices";
@@ -59,6 +60,7 @@ const showSelectComputer = ref(false);
 const showAttachWizard = ref(false);
 const showAcctMgr = ref(false);
 provide("openAttachWizard", () => { showAttachWizard.value = true; });
+provide("openAcctMgr", () => { showAcctMgr.value = true; });
 const prefsInitialTab = ref<"computing" | "manager">("computing");
 const showExitConfirm = ref(false);
 const initializing = ref(true);
@@ -90,6 +92,14 @@ const hasSidebar = computed(
     connection.state === CONNECTION_STATE.CONNECTED ||
     connection.state === CONNECTION_STATE.RECONNECTING,
 );
+
+const hasStatusBar = computed(() => {
+  const client = useClientStore();
+  return !!(
+    getSuspendReasonText(client.status.task_suspend_reason) ||
+    getSuspendReasonText(client.status.gpu_suspend_reason)
+  );
+});
 
 const statusDotClass = computed(() => {
   const state = connection.state;
@@ -470,34 +480,6 @@ watch(
               </template>
             </svg>
             {{ item.label }}
-            <Tooltip v-if="item.path === '/projects'" :text="$t('sidebar.accountManager')" placement="bottom">
-              <button
-                class="nav-item-add"
-                @click.prevent.stop="showAcctMgr = true"
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </button>
-            </Tooltip>
-            <Tooltip v-if="item.path === '/host'" :text="$t('sidebar.selectComputer')" placement="bottom">
-              <button
-                class="nav-item-add"
-                @click.prevent.stop="showSelectComputer = true"
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-                  <path
-                    fill-rule="evenodd"
-                    d="M3 5a2 2 0 012-2h10a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm11 1H6v3h8V6zM6 15a1 1 0 100 2h8a1 1 0 100-2H6z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </button>
-            </Tooltip>
           </router-link>
         </div>
       </nav>
@@ -505,10 +487,12 @@ watch(
       <div class="sidebar-footer">
         <ActivityControls />
         <div class="sidebar-actions">
-          <div class="sidebar-status">
-            <span class="status-dot" :class="statusDotClass" />
-            <span class="status-label">{{ statusText }}</span>
-          </div>
+          <Tooltip :text="$t('statusBar.clickToSwitch')" placement="top">
+            <div class="sidebar-status" @click="showSelectComputer = true">
+              <span class="status-dot" :class="statusDotClass" />
+              <span class="status-label">{{ statusText }}</span>
+            </div>
+          </Tooltip>
           <div class="sidebar-actions-btns">
             <Tooltip :text="$t('sidebar.preferences')">
               <button
@@ -555,7 +539,7 @@ watch(
         </div>
       </div>
     </aside>
-    <main class="main-content">
+    <main class="main-content" :style="{ '--status-bar-offset': hasStatusBar ? '28px' : '0px' }">
       <UpdateBanner v-if="updateAvailable && !dismissed" />
       <router-view />
     </main>
@@ -870,7 +854,6 @@ select {
 
 .sidebar-footer {
   padding: 4px 12px 6px;
-  border-top: 1px solid var(--color-border);
 }
 
 .sidebar-actions {
@@ -886,6 +869,16 @@ select {
   gap: 6px;
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+  margin: -2px -4px;
+  transition: background var(--transition-fast);
+}
+
+.sidebar-status:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
 }
 
 .status-dot {

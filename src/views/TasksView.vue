@@ -16,6 +16,7 @@ import StatusBadge from "../components/StatusBadge.vue";
 import ContextMenu from "../components/ContextMenu.vue";
 import type { ContextMenuItem } from "../components/ContextMenu.vue";
 import ItemPropertiesDialog from "../components/ItemPropertiesDialog.vue";
+import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import Tooltip from "../components/Tooltip.vue";
 import { onKeyStroke } from "@vueuse/core";
 import { useTableState } from "../composables/useTableState";
@@ -57,6 +58,7 @@ const {
   onColumnOrderChange,
 } = useTableState("tasks", allColumnKeys, "progress", true);
 const showProperties = ref(false);
+const showColumnDialog = ref(false);
 const propertiesTask = ref<TaskResult | null>(null);
 
 // Context menu state
@@ -174,10 +176,12 @@ const columns: ColumnDef<TaskResult, unknown>[] = [
           "aria-valuetext": formatPercent(fraction),
         },
         [
-          h("div", {
-            class: "progress-fill",
-            style: { width: formatPercent(fraction) },
-          }),
+          h("div", { class: "progress-track" }, [
+            h("div", {
+              class: "progress-fill",
+              style: { width: formatPercent(fraction) },
+            }),
+          ]),
           h("span", { class: "progress-text" }, formatPercent(fraction)),
         ],
       );
@@ -643,11 +647,28 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       :task="propertiesTask ?? undefined"
       @close="showProperties = false"
     />
+
+    <ColumnCustomizationDialog
+      :open="showColumnDialog"
+      :table="table"
+      @update-visibility="onColumnVisibilityChange"
+      @update-order="onColumnOrderChange"
+      @close="showColumnDialog = false"
+    />
+
+    <Tooltip :text="$t('tasks.customizeColumns')">
+      <button class="fab" @click.stop="showColumnDialog = true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+        </svg>
+      </button>
+    </Tooltip>
   </div>
 </template>
 
 <style scoped>
 .tasks-view {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -681,30 +702,34 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   text-align: right;
 }
 
-.progress-bar {
-  position: relative;
-  width: min(120px, 18vw);
-  height: 18px;
+:deep(.progress-bar) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+:deep(.progress-track) {
+  flex: 1;
+  height: 10px;
+  min-width: 80px;
   background: var(--color-bg-tertiary);
-  border-radius: var(--radius-sm);
+  border-radius: 5px;
   overflow: hidden;
 }
 
-.progress-fill {
+:deep(.progress-fill) {
   height: 100%;
   background: var(--color-accent);
+  border-radius: 5px;
   transition: width var(--transition-normal);
 }
 
-.progress-text {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  text-align: center;
+:deep(.progress-text) {
   font-size: var(--font-size-xs);
-  line-height: 18px;
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  min-width: 32px;
+  text-align: right;
 }
 
 /* Content layout */
@@ -781,5 +806,44 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   padding-left: 0;
   padding-right: 0;
   opacity: 0;
+}
+
+.fab {
+  position: absolute;
+  right: 24px;
+  bottom: calc(24px + var(--status-bar-offset, 0px));
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated, var(--color-bg));
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow:
+    0 3px 5px -1px rgba(0, 0, 0, 0.2),
+    0 6px 10px 0 rgba(0, 0, 0, 0.14),
+    0 1px 18px 0 rgba(0, 0, 0, 0.12);
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fab:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  box-shadow:
+    0 5px 5px -3px rgba(0, 0, 0, 0.2),
+    0 8px 10px 1px rgba(0, 0, 0, 0.14),
+    0 3px 14px 2px rgba(0, 0, 0, 0.12);
+  transform: scale(1.05);
+}
+
+.fab:active {
+  transform: scale(0.97);
 }
 </style>

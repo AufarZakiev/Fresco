@@ -29,6 +29,7 @@
   "tasks": {
     "title": "Задания",
     "activeOnly": "Только активные задания",
+    "customizeColumns": "Настроить отображение столбцов",
     "suspend": "Приостановить",
     "resume": "Запустить",
     "graphics": "Графика",
@@ -444,7 +445,8 @@
     "error": "Ошибка",
     "tasksSuspended": "Задания приостановлены: {reason}",
     "gpuSuspended": "GPU приостановлен: {reason}",
-    "about": "О программе"
+    "about": "О программе",
+    "clickToSwitch": "Нажмите, чтобы сменить компьютер"
   },
   "columns": {
     "title": "Столбцы",

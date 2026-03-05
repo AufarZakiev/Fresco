@@ -29,6 +29,7 @@
   "tasks": {
     "title": "タスク",
     "activeOnly": "実行中のタスクのみ",
+    "customizeColumns": "列の表示・非表示・並び替え",
     "suspend": "一時停止",
     "resume": "再開",
     "graphics": "グラフィック",
@@ -444,7 +445,8 @@
     "error": "エラー",
     "tasksSuspended": "タスク一時停止中: {reason}",
     "gpuSuspended": "GPU一時停止中: {reason}",
-    "about": "バージョン情報"
+    "about": "バージョン情報",
+    "clickToSwitch": "クリックしてコンピュータを切り替え"
   },
   "columns": {
     "title": "列",

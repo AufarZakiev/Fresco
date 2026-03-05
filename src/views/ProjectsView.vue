@@ -27,6 +27,7 @@ const store = useProjectsStore();
 const toast = useToastStore();
 const actionBusy = ref(false);
 const openAttachWizard = inject<() => void>("openAttachWizard", () => {});
+const openAcctMgr = inject<() => void>("openAcctMgr", () => {});
 
 const selectedUrls = ref<Set<string>>(new Set());
 const lastClickedIndex = ref<number | null>(null);
@@ -631,17 +632,26 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       @close="showProperties = false"
     />
 
-    <Tooltip :text="$t('sidebar.addProject')">
-      <button class="fab" @click.stop="openAttachWizard">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
-          <path
-            fill-rule="evenodd"
-            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-            clip-rule="evenodd"
-          />
-        </svg>
-      </button>
-    </Tooltip>
+    <div class="fab-group">
+      <Tooltip :text="$t('sidebar.accountManager')">
+        <button class="fab fab-small" @click.stop="openAcctMgr">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+          </svg>
+        </button>
+      </Tooltip>
+      <Tooltip :text="$t('sidebar.addProject')">
+        <button class="fab" @click.stop="openAttachWizard">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+            <path
+              fill-rule="evenodd"
+              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+      </Tooltip>
+    </div>
   </div>
 </template>
 
@@ -829,10 +839,16 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   opacity: 0;
 }
 
-.fab {
+.fab-group {
   position: absolute;
   right: 24px;
-  bottom: 24px;
+  bottom: calc(24px + var(--status-bar-offset, 0px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fab {
   width: 48px;
   height: 48px;
   border-radius: 14px;
@@ -853,6 +869,15 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
     transform 0.2s ease;
 }
 
+.fab-small {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--color-bg-elevated, var(--color-bg));
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
 .fab:hover {
   background: var(--color-accent-hover);
   box-shadow:
@@ -860,6 +885,12 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
     0 8px 10px 1px rgba(0, 0, 0, 0.14),
     0 3px 14px 2px rgba(0, 0, 0, 0.12);
   transform: scale(1.05);
+}
+
+.fab-small:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 .fab:active {

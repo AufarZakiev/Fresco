@@ -29,6 +29,7 @@
   "tasks": {
     "title": "Aufgaben",
     "activeOnly": "Nur aktive Aufgaben",
+    "customizeColumns": "Spalten ein-/ausblenden oder umsortieren",
     "suspend": "Anhalten",
     "resume": "Fortsetzen",
     "graphics": "Grafik",
@@ -444,7 +445,8 @@
     "error": "Fehler",
     "tasksSuspended": "Aufgaben angehalten: {reason}",
     "gpuSuspended": "GPU angehalten: {reason}",
-    "about": "Über"
+    "about": "Über",
+    "clickToSwitch": "Klicken, um Computer zu wechseln"
   },
   "columns": {
     "title": "Spalten",

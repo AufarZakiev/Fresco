@@ -29,6 +29,7 @@
   "tasks": {
     "title": "Tâches",
     "activeOnly": "Tâches actives uniquement",
+    "customizeColumns": "Afficher, masquer ou réorganiser les colonnes",
     "suspend": "Suspendre",
     "resume": "Reprendre",
     "graphics": "Graphiques",
@@ -444,7 +445,8 @@
     "error": "Erreur",
     "tasksSuspended": "Tâches suspendues : {reason}",
     "gpuSuspended": "GPU suspendu : {reason}",
-    "about": "À propos"
+    "about": "À propos",
+    "clickToSwitch": "Cliquer pour changer d'ordinateur"
   },
   "columns": {
     "title": "Colonnes",

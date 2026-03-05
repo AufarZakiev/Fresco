@@ -297,7 +297,7 @@ function save() {
 }
 
 .dialog-body {
-  padding: 8px 20px;
+  padding: 8px 20px 8px 12px;
   display: flex;
   flex-direction: column;
   gap: 0;
