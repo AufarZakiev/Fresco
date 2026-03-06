@@ -441,7 +441,8 @@
     "connect": "Connecter",
     "or": "ou",
     "localInfo": "Se connecter au client BOINC sur cet ordinateur. Le répertoire de données sera détecté automatiquement.",
-    "connectLocal": "Connexion locale"
+    "connectLocal": "Connexion locale",
+    "connectionFailed": "Échec de la connexion"
   },
   "activity": {
     "cpu": "Processeur",

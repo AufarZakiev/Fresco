@@ -441,7 +441,8 @@
     "connect": "Verbinden",
     "or": "oder",
     "localInfo": "Verbindung zum BOINC-Client auf diesem Rechner herstellen. Das Datenverzeichnis wird automatisch erkannt.",
-    "connectLocal": "Lokal verbinden"
+    "connectLocal": "Lokal verbinden",
+    "connectionFailed": "Verbindung fehlgeschlagen"
   },
   "activity": {
     "cpu": "Prozessor",
