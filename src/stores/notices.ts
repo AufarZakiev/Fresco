@@ -14,7 +14,7 @@ export const useNoticesStore = defineStore("notices", () => {
   const lastSeqno = ref(0);
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   let generation = 0;
-  let catchingUp = false;
+  let catchingUp = true;
 
   async function fetchNotices() {
     loading.value = true;
