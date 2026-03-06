@@ -193,8 +193,13 @@ function cancelAutoConnect() {
 type UnlistenFn = () => void;
 const unlisteners: UnlistenFn[] = [];
 
-// Disable right-click context menu in the entire app
-useEventListener(document, "contextmenu", (e) => e.preventDefault());
+// Disable right-click context menu in the entire app,
+// but allow native context menu in editable elements (input, textarea, contenteditable)
+useEventListener(document, "contextmenu", (e) => {
+  if (!isTextEditable(e.target)) {
+    e.preventDefault();
+  }
+});
 
 // Prevent Backspace from triggering browser-like back navigation in the WebView.
 // Only allow Backspace in text-editable elements (text inputs, textareas, contenteditable).
