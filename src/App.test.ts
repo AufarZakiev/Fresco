@@ -343,6 +343,76 @@ describe("App", () => {
     expect(router.currentRoute.value.path).toBe("/tasks");
   });
 
+  it("prevents context menu on non-editable elements", async () => {
+    const router = createTestRouter();
+    await router.push("/tasks");
+    await router.isReady();
+
+    await mountApp(router);
+
+    const event = new MouseEvent("contextmenu", { bubbles: true });
+    const spy = vi.spyOn(event, "preventDefault");
+    document.body.dispatchEvent(event);
+
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it("allows native context menu on text input", async () => {
+    const router = createTestRouter();
+    await router.push("/tasks");
+    await router.isReady();
+
+    await mountApp(router);
+
+    const input = document.createElement("input");
+    input.type = "text";
+    document.body.appendChild(input);
+
+    const event = new MouseEvent("contextmenu", { bubbles: true });
+    const spy = vi.spyOn(event, "preventDefault");
+    input.dispatchEvent(event);
+
+    expect(spy).not.toHaveBeenCalled();
+    input.remove();
+  });
+
+  it("allows native context menu on textarea", async () => {
+    const router = createTestRouter();
+    await router.push("/tasks");
+    await router.isReady();
+
+    await mountApp(router);
+
+    const textarea = document.createElement("textarea");
+    document.body.appendChild(textarea);
+
+    const event = new MouseEvent("contextmenu", { bubbles: true });
+    const spy = vi.spyOn(event, "preventDefault");
+    textarea.dispatchEvent(event);
+
+    expect(spy).not.toHaveBeenCalled();
+    textarea.remove();
+  });
+
+  it("allows native context menu on contenteditable element", async () => {
+    const router = createTestRouter();
+    await router.push("/tasks");
+    await router.isReady();
+
+    await mountApp(router);
+
+    const div = document.createElement("div");
+    div.contentEditable = "true";
+    document.body.appendChild(div);
+
+    const event = new MouseEvent("contextmenu", { bubbles: true });
+    const spy = vi.spyOn(event, "preventDefault");
+    div.dispatchEvent(event);
+
+    expect(spy).not.toHaveBeenCalled();
+    div.remove();
+  });
+
   it("allows Backspace inside text input", async () => {
     const router = createTestRouter();
     await router.push("/tasks");
