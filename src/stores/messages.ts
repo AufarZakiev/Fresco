@@ -17,6 +17,7 @@ export const useMessagesStore = defineStore("messages", () => {
   const loadingMore = ref(false);
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   let initialized = false;
+  let generation = 0;
 
   const filteredMessages = computed(() => {
     let result = messages.value;
@@ -34,11 +35,14 @@ export const useMessagesStore = defineStore("messages", () => {
   async function fetchMessages() {
     loading.value = true;
     error.value = null;
+    const fetchGeneration = generation;
     try {
       if (!initialized) {
         const count = await getMessageCount();
+        if (fetchGeneration !== generation) return;
         const startSeqno = Math.max(0, count - PAGE_SIZE);
         const initial = await getMessages(startSeqno);
+        if (fetchGeneration !== generation) return;
         if (initial.length > 0) {
           messages.value = initial;
           lastSeqno.value = Math.max(...initial.map((m) => m.seqno));
@@ -47,17 +51,21 @@ export const useMessagesStore = defineStore("messages", () => {
         initialized = true;
       } else {
         const newMessages = await getMessages(lastSeqno.value);
+        if (fetchGeneration !== generation) return;
         if (newMessages.length > 0) {
           messages.value = [...messages.value, ...newMessages];
           lastSeqno.value = Math.max(...newMessages.map((m) => m.seqno));
         }
       }
     } catch (e) {
+      if (fetchGeneration !== generation) return;
       error.value = e instanceof Error ? e.message : String(e);
       const connection = useConnectionStore();
       connection.handleConnectionError();
     } finally {
-      loading.value = false;
+      if (fetchGeneration === generation) {
+        loading.value = false;
+      }
     }
   }
 
@@ -66,6 +74,7 @@ export const useMessagesStore = defineStore("messages", () => {
       return;
 
     loadingMore.value = true;
+    const fetchGeneration = generation;
     try {
       const oldestSeqno = Math.min(...messages.value.map((m) => m.seqno));
       if (oldestSeqno <= 0) {
@@ -78,6 +87,7 @@ export const useMessagesStore = defineStore("messages", () => {
       // and filter client-side to keep only the needed slice.
       const startSeqno = Math.max(0, oldestSeqno - PAGE_SIZE - 1);
       const older = await getMessages(startSeqno);
+      if (fetchGeneration !== generation) return;
       const filtered = older.filter((m) => m.seqno < oldestSeqno);
 
       if (filtered.length > 0) {
@@ -86,11 +96,14 @@ export const useMessagesStore = defineStore("messages", () => {
 
       hasMore.value = startSeqno > 0 && filtered.length > 0;
     } catch (e) {
+      if (fetchGeneration !== generation) return;
       error.value = e instanceof Error ? e.message : String(e);
       const connection = useConnectionStore();
       connection.handleConnectionError();
     } finally {
-      loadingMore.value = false;
+      if (fetchGeneration === generation) {
+        loadingMore.value = false;
+      }
     }
   }
 
@@ -107,6 +120,18 @@ export const useMessagesStore = defineStore("messages", () => {
     }
   }
 
+  function resetSessionState() {
+    stopPolling();
+    generation++;
+    messages.value = [];
+    lastSeqno.value = 0;
+    hasMore.value = true;
+    loadingMore.value = false;
+    loading.value = false;
+    error.value = null;
+    initialized = false;
+  }
+
   return {
     messages,
     loading,
@@ -119,5 +144,6 @@ export const useMessagesStore = defineStore("messages", () => {
     fetchOlderMessages,
     startPolling,
     stopPolling,
+    resetSessionState,
   };
 });

@@ -144,6 +144,8 @@ const {
 // ── Auto-connect to local BOINC client on startup ───────────────
 
 function startAllPolling() {
+  messagesStore.resetSessionState();
+  noticesStore.resetSessionState();
   tasksStore.startPolling();
   projectsStore.startPolling();
   transfersStore.startPolling();

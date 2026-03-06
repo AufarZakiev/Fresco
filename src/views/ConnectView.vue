@@ -143,6 +143,8 @@ const connectionLabel = computed(() => {
 });
 
 function startAllPolling() {
+  messages.resetSessionState();
+  notices.resetSessionState();
   tasks.startPolling();
   projects.startPolling();
   transfers.startPolling();

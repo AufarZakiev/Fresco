@@ -13,23 +13,33 @@ export const useNoticesStore = defineStore("notices", () => {
   const error = ref<string | null>(null);
   const lastSeqno = ref(0);
   let pollTimer: ReturnType<typeof setInterval> | null = null;
+  let generation = 0;
+  let catchingUp = false;
 
   async function fetchNotices() {
     loading.value = true;
     error.value = null;
+    const fetchGeneration = generation;
     try {
       const newNotices = await getNotices(lastSeqno.value);
+      if (fetchGeneration !== generation) return;
       if (newNotices.length > 0) {
         notices.value = [...notices.value, ...newNotices];
         lastSeqno.value = Math.max(...newNotices.map((n) => n.seqno));
-        notifyNewNotices(newNotices.length);
+        if (!catchingUp) {
+          notifyNewNotices(newNotices.length);
+        }
       }
+      catchingUp = false;
     } catch (e) {
+      if (fetchGeneration !== generation) return;
       error.value = e instanceof Error ? e.message : String(e);
       const connection = useConnectionStore();
       connection.handleConnectionError();
     } finally {
-      loading.value = false;
+      if (fetchGeneration === generation) {
+        loading.value = false;
+      }
     }
   }
 
@@ -46,5 +56,15 @@ export const useNoticesStore = defineStore("notices", () => {
     }
   }
 
-  return { notices, loading, error, fetchNotices, startPolling, stopPolling };
+  function resetSessionState() {
+    stopPolling();
+    generation++;
+    notices.value = [];
+    lastSeqno.value = 0;
+    loading.value = false;
+    error.value = null;
+    catchingUp = true;
+  }
+
+  return { notices, loading, error, fetchNotices, startPolling, stopPolling, resetSessionState };
 });
