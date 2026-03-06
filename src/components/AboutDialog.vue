@@ -2,7 +2,7 @@
 import { computed, nextTick, ref, watch } from "vue";
 import { onKeyStroke, usePreferredDark } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../lib/typedInvoke";
 import { useUpdateCheck, startBackgroundDownload } from "../composables/useUpdateCheck";
 import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 

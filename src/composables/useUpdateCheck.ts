@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../lib/typedInvoke";
 import { useManagerSettingsStore } from "../stores/managerSettings";
 import { getOS, getArch, platformAssetPattern } from "./usePlatform";
 
@@ -35,7 +35,7 @@ const downloaded = ref(false);
 const downloadError = ref("");
 
 // Fetch build time eagerly so About dialog shows it immediately
-invoke<string>("get_build_time").then((bt) => {
+invoke("get_build_time").then((bt) => {
   buildTime.value = bt;
 });
 

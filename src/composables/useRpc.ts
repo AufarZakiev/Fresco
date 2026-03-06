@@ -1,9 +1,10 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../lib/typedInvoke";
 import type {
   TaskResult,
   Project,
   CcStatus,
   CcState,
+  ConnectionState,
   FileTransfer,
   ProjectStatistics,
   Message,
@@ -49,7 +50,7 @@ export async function disconnect(): Promise<void> {
   return invoke("disconnect");
 }
 
-export async function getConnectionState(): Promise<string> {
+export async function getConnectionState(): Promise<ConnectionState> {
   return invoke("get_connection_state");
 }
 

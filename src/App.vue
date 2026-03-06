@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, provide } from "vue";
 import { onKeyStroke, useEventListener } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./lib/typedInvoke";
 import { useRoute, useRouter } from "vue-router";
 import { useConnectionStore } from "./stores/connection";
 import { CONNECTION_STATE } from "./types/boinc";

@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../lib/typedInvoke";
 
 export type OS = "windows" | "macos" | "linux";
 export type Arch = "arm64" | "x86_64";
