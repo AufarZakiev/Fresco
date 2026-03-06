@@ -472,6 +472,10 @@
     "cancel": "キャンセル",
     "apply": "適用"
   },
+  "table": {
+    "hideColumn": "列を非表示",
+    "reorderColumn": "ドラッグして並べ替え"
+  },
   "properties": {
     "taskProperties": "タスクのプロパティ",
     "projectProperties": "プロジェクトのプロパティ",
