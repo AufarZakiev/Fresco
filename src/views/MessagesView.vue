@@ -170,11 +170,19 @@ function formatMessage(m: {
   return `[${formatTimestamp(m.timestamp)}] ${m.project ? m.project + ": " : ""}${m.body}`;
 }
 
+const visibleSelectedCount = computed(() => {
+  if (selectedSeqnos.value.size === 0) return 0;
+  return filteredByType.value.filter((m) =>
+    selectedSeqnos.value.has(m.seqno),
+  ).length;
+});
+
 async function copySelectedToClipboard() {
-  const msgs =
-    selectedSeqnos.value.size > 0
-      ? store.filteredMessages.filter((m) => selectedSeqnos.value.has(m.seqno))
-      : store.filteredMessages;
+  const visible = filteredByType.value;
+  const visibleSelected = visible.filter((m) =>
+    selectedSeqnos.value.has(m.seqno),
+  );
+  const msgs = visibleSelected.length > 0 ? visibleSelected : visible;
   const text = msgs.map(formatMessage).join("\n");
   try {
     await navigator.clipboard.writeText(text);
@@ -250,7 +258,7 @@ onKeyStroke("Escape", (e) => {
 
 onKeyStroke("c", (e) => {
   if (isTypingInInput(e) || !(e.ctrlKey || e.metaKey)) return;
-  if (selectedSeqnos.value.size === 0) return;
+  if (visibleSelectedCount.value === 0) return;
   e.preventDefault();
   copySelectedToClipboard();
 });
@@ -284,8 +292,8 @@ onUnmounted(() => {
       </button>
       <button class="btn" @click="copySelectedToClipboard">
         {{
-          selectedSeqnos.size > 0
-            ? $t("messages.copySelected", selectedSeqnos.size)
+          visibleSelectedCount > 0
+            ? $t("messages.copySelected", visibleSelectedCount)
             : $t("messages.copyAll")
         }}
       </button>
