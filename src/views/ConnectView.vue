@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { usePreferredDark } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import Tooltip from "../components/Tooltip.vue";
 import {
@@ -62,14 +63,7 @@ const connecting = ref(false);
 const osLoading = ref(true);
 const statusMessage = ref<string | null>(null);
 const recentConnections = ref<RecentConnection[]>([]);
-const isDarkTheme = ref(
-  window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false,
-);
-window
-  .matchMedia?.("(prefers-color-scheme: dark)")
-  .addEventListener("change", (e) => {
-    isDarkTheme.value = e.matches;
-  });
+const isDarkTheme = usePreferredDark();
 
 onMounted(async () => {
   loadRecent();

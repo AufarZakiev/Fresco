@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, provide } from "vue";
-import { onKeyStroke, useEventListener } from "@vueuse/core";
+import { onKeyStroke, useEventListener, usePreferredDark } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { invoke } from "./lib/typedInvoke";
 import { useRoute, useRouter } from "vue-router";
@@ -65,14 +65,7 @@ const prefsInitialTab = ref<"computing" | "manager">("computing");
 const showExitConfirm = ref(false);
 const initializing = ref(true);
 const loadingStatus = ref(t("app.loading.connectingLocal"));
-const isDarkTheme = ref(
-  window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false,
-);
-window
-  .matchMedia?.("(prefers-color-scheme: dark)")
-  .addEventListener("change", (e) => {
-    isDarkTheme.value = e.matches;
-  });
+const isDarkTheme = usePreferredDark();
 const sidebarOpen = ref(false);
 const collapsedGroups = ref<string[]>(["advanced"]);
 
