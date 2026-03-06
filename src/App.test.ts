@@ -5,6 +5,7 @@ import { createRouter, createMemoryHistory } from "vue-router";
 import App from "./App.vue";
 import { useConnectionStore } from "./stores/connection";
 import { CONNECTION_STATE } from "./types/boinc";
+import { connectLocal } from "./composables/useRpc";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn().mockResolvedValue(undefined),
@@ -301,6 +302,45 @@ describe("App", () => {
     document.body.dispatchEvent(event);
 
     expect(spy).toHaveBeenCalled();
+  });
+
+  it("navigates to /tasks when SelectComputerDialog emits connected", async () => {
+    // Make autoConnect fail so it stays on "/"
+    vi.mocked(connectLocal).mockRejectedValueOnce(new Error("no client"));
+
+    const router = createTestRouter();
+    await router.push("/");
+    await router.isReady();
+
+    const selectComputerStub = { template: "<div />", name: "SelectComputerDialog" };
+    const wrapper = mount(App, {
+      global: {
+        plugins: [router],
+        stubs: {
+          ActivityControls: stubComponent,
+          PreferencesDialog: stubComponent,
+          AboutDialog: stubComponent,
+          SelectComputerDialog: selectComputerStub,
+          ManagerOptionsDialog: stubComponent,
+          ExitConfirmDialog: stubComponent,
+          StatusBar: stubComponent,
+          ToastContainer: stubComponent,
+          UpdateBanner: stubComponent,
+        },
+      },
+    });
+    await flushPromises();
+
+    // autoConnect failed — still on "/"
+    expect(router.currentRoute.value.path).toBe("/");
+
+    const dialog = wrapper.findComponent({ name: "SelectComputerDialog" });
+    expect(dialog.exists()).toBe(true);
+
+    dialog.vm.$emit("connected");
+    await flushPromises();
+
+    expect(router.currentRoute.value.path).toBe("/tasks");
   });
 
   it("allows Backspace inside text input", async () => {

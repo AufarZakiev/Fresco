@@ -66,7 +66,8 @@ async function doConnectLocal() {
       error.value = connection.error ?? t("selectComputer.connectionFailed");
     }
   } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
+    console.error(e);
+    error.value = t("selectComputer.connectionFailed");
   } finally {
     connecting.value = false;
   }
