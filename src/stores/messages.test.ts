@@ -237,6 +237,77 @@ describe("useMessagesStore", () => {
     expect(store.filteredMessages).toHaveLength(3);
   });
 
+  it("resetSessionState clears data and stops polling", async () => {
+    const all = Array.from({ length: 10 }, (_, i) => makeMessage(i + 1));
+    stubRpc(10, all);
+
+    const store = useMessagesStore();
+    store.startPolling(1000);
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(store.messages.length).toBeGreaterThan(0);
+
+    store.resetSessionState();
+
+    expect(store.messages).toEqual([]);
+    expect(store.loading).toBe(false);
+    expect(store.error).toBeNull();
+    expect(store.hasMore).toBe(true);
+    expect(store.loadingMore).toBe(false);
+
+    // Polling should be stopped
+    const callsAfterReset = mockInvoke.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(mockInvoke.mock.calls.length).toBe(callsAfterReset);
+  });
+
+  it("resetSessionState invalidates in-flight fetches", async () => {
+    let resolveRpc: (value: unknown) => void;
+    mockInvoke.mockImplementationOnce(
+      () => new Promise((resolve) => { resolveRpc = resolve; }),
+    );
+
+    const store = useMessagesStore();
+    const fetchPromise = store.fetchMessages();
+
+    // Reset while fetch is still pending
+    store.resetSessionState();
+
+    // Resolve the stale fetch — its result should be discarded
+    resolveRpc!(10);
+    await fetchPromise;
+
+    expect(store.messages).toEqual([]);
+  });
+
+  it("resetSessionState resets initialized flag so next fetch starts fresh", async () => {
+    const all = Array.from({ length: 10 }, (_, i) => makeMessage(i + 1));
+    stubRpc(10, all);
+
+    const store = useMessagesStore();
+    await store.fetchMessages(); // initial fetch
+    expect(store.messages).toHaveLength(10);
+
+    store.resetSessionState();
+
+    // After reset, next fetch should do the initial windowing again (get_message_count)
+    const newMessages = Array.from({ length: 5 }, (_, i) => makeMessage(i + 1));
+    stubRpc(5, newMessages);
+
+    await store.fetchMessages();
+    expect(store.messages).toHaveLength(5);
+    expect(store.messages[0].seqno).toBe(1);
+  });
+
+  it("resetSessionState preserves searchText", async () => {
+    const store = useMessagesStore();
+    store.searchText = "important";
+
+    store.resetSessionState();
+
+    expect(store.searchText).toBe("important");
+  });
+
   it("polling starts and stops correctly", async () => {
     const all = Array.from({ length: 5 }, (_, i) => makeMessage(i + 1));
     stubRpc(5, all);

@@ -104,6 +104,99 @@ describe("useNoticesStore", () => {
     expect(spy).toHaveBeenCalledOnce();
   });
 
+  it("resetSessionState clears data and stops polling", async () => {
+    mockGetNotices.mockResolvedValueOnce([makeNotice(1), makeNotice(2)]);
+    const store = useNoticesStore();
+    store.startPolling(1000);
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(store.notices.length).toBeGreaterThan(0);
+
+    store.resetSessionState();
+
+    expect(store.notices).toEqual([]);
+    expect(store.loading).toBe(false);
+    expect(store.error).toBeNull();
+
+    // Polling should be stopped — no further fetches
+    const callsAfterReset = mockGetNotices.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(mockGetNotices.mock.calls.length).toBe(callsAfterReset);
+  });
+
+  it("resetSessionState invalidates in-flight fetches", async () => {
+    let resolveRpc: (value: Notice[]) => void;
+    mockGetNotices.mockImplementationOnce(
+      () => new Promise((resolve) => { resolveRpc = resolve; }),
+    );
+
+    const store = useNoticesStore();
+    const fetchPromise = store.fetchNotices();
+
+    // Reset while fetch is still pending
+    store.resetSessionState();
+
+    // Resolve the stale fetch — its result should be discarded
+    resolveRpc!([makeNotice(1)]);
+    await fetchPromise;
+
+    expect(store.notices).toEqual([]);
+  });
+
+  it("resetSessionState suppresses notification on first fetch after reset", async () => {
+    mockGetNotices.mockResolvedValueOnce([makeNotice(1)]);
+    const store = useNoticesStore();
+    await store.fetchNotices();
+    expect(mockNotify).toHaveBeenCalledTimes(1);
+
+    store.resetSessionState();
+    mockNotify.mockClear();
+
+    // First fetch after reset: catch-up, no notification
+    mockGetNotices.mockResolvedValueOnce([makeNotice(5), makeNotice(6)]);
+    await store.fetchNotices();
+    expect(store.notices).toHaveLength(2);
+    expect(mockNotify).not.toHaveBeenCalled();
+
+    // Second fetch: new notices, should notify
+    mockGetNotices.mockResolvedValueOnce([makeNotice(7)]);
+    await store.fetchNotices();
+    expect(mockNotify).toHaveBeenCalledWith(1);
+  });
+
+  it("resetSessionState clears catchingUp even when first fetch returns empty", async () => {
+    const store = useNoticesStore();
+    store.resetSessionState();
+    mockNotify.mockClear();
+
+    // First fetch after reset returns empty
+    mockGetNotices.mockResolvedValueOnce([]);
+    await store.fetchNotices();
+    expect(mockNotify).not.toHaveBeenCalled();
+
+    // Second fetch returns notices — should notify normally
+    mockGetNotices.mockResolvedValueOnce([makeNotice(1)]);
+    await store.fetchNotices();
+    expect(mockNotify).toHaveBeenCalledWith(1);
+  });
+
+  it("resetSessionState allows re-fetching from scratch", async () => {
+    mockGetNotices.mockResolvedValueOnce([makeNotice(1)]);
+    const store = useNoticesStore();
+    await store.fetchNotices();
+    expect(store.notices).toHaveLength(1);
+
+    store.resetSessionState();
+
+    mockGetNotices.mockResolvedValueOnce([makeNotice(10)]);
+    await store.fetchNotices();
+
+    // Should have fetched from seqno 0 (reset) and only contain new data
+    expect(mockGetNotices).toHaveBeenLastCalledWith(0);
+    expect(store.notices).toHaveLength(1);
+    expect(store.notices[0].seqno).toBe(10);
+  });
+
   it("polls and stops", async () => {
     mockGetNotices.mockResolvedValue([]);
     const store = useNoticesStore();
