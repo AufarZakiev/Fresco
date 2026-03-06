@@ -60,7 +60,6 @@ describe("useNoticesStore", () => {
 
     expect(store.notices).toEqual(notices);
     expect(mockGetNotices).toHaveBeenCalledWith(0);
-    expect(mockNotify).toHaveBeenCalledWith(2);
   });
 
   it("fetchNotices accumulates across calls", async () => {
@@ -82,6 +81,42 @@ describe("useNoticesStore", () => {
 
     expect(store.notices).toEqual([]);
     expect(mockNotify).not.toHaveBeenCalled();
+  });
+
+  it("does not notify on initial sync (first fetch after store creation)", async () => {
+    mockGetNotices.mockResolvedValueOnce([makeNotice(1), makeNotice(2), makeNotice(3)]);
+    const store = useNoticesStore();
+    await store.fetchNotices();
+
+    expect(store.notices).toHaveLength(3);
+    expect(mockNotify).not.toHaveBeenCalled();
+  });
+
+  it("notifies on second fetch after initial sync", async () => {
+    // First fetch — initial sync, no notification
+    mockGetNotices.mockResolvedValueOnce([makeNotice(1)]);
+    const store = useNoticesStore();
+    await store.fetchNotices();
+    expect(mockNotify).not.toHaveBeenCalled();
+
+    // Second fetch — new notices arrive, should notify
+    mockGetNotices.mockResolvedValueOnce([makeNotice(2), makeNotice(3)]);
+    await store.fetchNotices();
+    expect(mockNotify).toHaveBeenCalledWith(2);
+  });
+
+  it("clears initial catchingUp even when first fetch returns empty", async () => {
+    const store = useNoticesStore();
+
+    // First fetch returns empty
+    mockGetNotices.mockResolvedValueOnce([]);
+    await store.fetchNotices();
+    expect(mockNotify).not.toHaveBeenCalled();
+
+    // Second fetch returns notices — should notify
+    mockGetNotices.mockResolvedValueOnce([makeNotice(1)]);
+    await store.fetchNotices();
+    expect(mockNotify).toHaveBeenCalledWith(1);
   });
 
   it("fetchNotices sets error on failure", async () => {
@@ -144,10 +179,11 @@ describe("useNoticesStore", () => {
   });
 
   it("resetSessionState suppresses notification on first fetch after reset", async () => {
+    // Initial sync (first fetch) — no notification
     mockGetNotices.mockResolvedValueOnce([makeNotice(1)]);
     const store = useNoticesStore();
     await store.fetchNotices();
-    expect(mockNotify).toHaveBeenCalledTimes(1);
+    expect(mockNotify).not.toHaveBeenCalled();
 
     store.resetSessionState();
     mockNotify.mockClear();
