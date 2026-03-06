@@ -31,6 +31,25 @@ vi.mock("@tauri-apps/plugin-process", () => ({
   relaunch: vi.fn(),
 }));
 
+// Prevent real fetch() to GitHub API during teardown
+const { mockCheckForUpdates } = vi.hoisted(() => ({
+  mockCheckForUpdates: vi.fn(),
+}));
+vi.mock("./composables/useUpdateCheck", async () => {
+  const { ref } = await import("vue");
+  return {
+    checkForUpdates: mockCheckForUpdates,
+    useUpdateCheck: vi.fn(() => ({
+      updateAvailable: ref(false),
+      dismissed: ref(false),
+      updateOnExit: ref(false),
+      downloaded: ref(false),
+      downloading: ref(false),
+      checkForUpdates: mockCheckForUpdates,
+    })),
+  };
+});
+
 // Mock all RPC calls so autoConnect finishes quickly
 vi.mock("./composables/useRpc", () => ({
   connectLocal: vi.fn().mockResolvedValue(undefined),
