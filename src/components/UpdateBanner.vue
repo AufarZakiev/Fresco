@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../lib/typedInvoke";
 import Tooltip from "./Tooltip.vue";
 import {
   useUpdateCheck,
