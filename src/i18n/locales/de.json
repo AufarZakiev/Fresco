@@ -472,6 +472,10 @@
     "cancel": "Abbrechen",
     "apply": "Übernehmen"
   },
+  "table": {
+    "hideColumn": "Spalte ausblenden",
+    "reorderColumn": "Ziehen zum Neuordnen"
+  },
   "properties": {
     "taskProperties": "Aufgabeneigenschaften",
     "projectProperties": "Projekteigenschaften",

@@ -472,6 +472,10 @@
     "cancel": "Cancelar",
     "apply": "Aplicar"
   },
+  "table": {
+    "hideColumn": "Ocultar columna",
+    "reorderColumn": "Arrastrar para reordenar"
+  },
   "properties": {
     "taskProperties": "Propiedades de la tarea",
     "projectProperties": "Propiedades del proyecto",

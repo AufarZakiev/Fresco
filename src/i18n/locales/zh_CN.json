@@ -472,6 +472,10 @@
     "cancel": "取消",
     "apply": "应用"
   },
+  "table": {
+    "hideColumn": "隐藏列",
+    "reorderColumn": "拖动以重新排序"
+  },
   "properties": {
     "taskProperties": "任务属性",
     "projectProperties": "项目属性",

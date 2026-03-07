@@ -472,6 +472,10 @@
     "cancel": "Отмена",
     "apply": "Применить"
   },
+  "table": {
+    "hideColumn": "Скрыть столбец",
+    "reorderColumn": "Перетащите для изменения порядка"
+  },
   "properties": {
     "taskProperties": "Свойства задания",
     "projectProperties": "Свойства проекта",
