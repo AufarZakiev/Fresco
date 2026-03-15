@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { onKeyStroke } from "@vueuse/core";
 import { getProxySettings, setProxySettings } from "../composables/useRpc";
 import type { ProxyInfo } from "../types/boinc";
 import { useFocusTrap } from "@vueuse/integrations/useFocusTrap";
 
+type ProxyMode = "none" | "http" | "socks";
+
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
 const dialogRef = ref<HTMLElement | null>(null);
-const { activate, deactivate } = useFocusTrap(dialogRef);
+const { activate, deactivate } = useFocusTrap(dialogRef, {
+  allowOutsideClick: true,
+});
 watch(
   () => props.open,
   async (isOpen) => {
@@ -23,12 +27,60 @@ watch(
   },
 );
 
-const activeTab = ref<"http" | "socks">("http");
 const loading = ref(false);
 const saving = ref(false);
 const error = ref("");
 const form = ref<ProxyInfo | null>(null);
 
+const proxyMode = computed<ProxyMode>({
+  get() {
+    if (!form.value) return "none";
+    if (form.value.use_http_proxy) return "http";
+    if (form.value.use_socks_proxy) return "socks";
+    return "none";
+  },
+  set(mode: ProxyMode) {
+    if (!form.value) return;
+    form.value.use_http_proxy = mode === "http";
+    form.value.use_socks_proxy = mode === "socks";
+  },
+});
+
+// ── No-proxy hosts as a list ──────────────────────────────────────
+const noProxyList = computed<string[]>(() => {
+  if (!form.value || !form.value.noproxy_hosts) return [];
+  return form.value.noproxy_hosts
+    .split(",")
+    .map((h) => h.trim())
+    .filter(Boolean);
+});
+
+function syncListToForm(list: string[]) {
+  if (!form.value) return;
+  form.value.noproxy_hosts = list.join(",");
+}
+
+const newHost = ref("");
+const newHostInput = ref<HTMLInputElement | null>(null);
+
+function addHost() {
+  const host = newHost.value.trim();
+  if (!host || noProxyList.value.includes(host)) {
+    newHost.value = "";
+    return;
+  }
+  syncListToForm([...noProxyList.value, host]);
+  newHost.value = "";
+  nextTick(() => newHostInput.value?.focus());
+}
+
+function removeHost(index: number) {
+  const list = [...noProxyList.value];
+  list.splice(index, 1);
+  syncListToForm(list);
+}
+
+// ── Lifecycle ─────────────────────────────────────────────────────
 onKeyStroke("Escape", () => {
   if (!props.open) return;
   emit("close");
@@ -40,6 +92,7 @@ watch(
     if (isOpen) {
       loading.value = true;
       error.value = "";
+      newHost.value = "";
       try {
         const proxy = await getProxySettings();
         form.value = { ...proxy };
@@ -89,164 +142,188 @@ async function save() {
         </div>
 
         <template v-else-if="form">
-          <div class="tabs">
-            <button
-              class="tab"
-              :class="{ active: activeTab === 'http' }"
-              @click="activeTab = 'http'"
-            >
-              {{ $t("proxy.httpProxy") }}
-            </button>
-            <button
-              class="tab"
-              :class="{ active: activeTab === 'socks' }"
-              @click="activeTab = 'socks'"
-            >
-              {{ $t("proxy.socksProxy") }}
-            </button>
+          <!-- Segmented control -->
+          <div class="segmented-control-wrapper">
+            <div class="segmented-control" role="radiogroup">
+              <button
+                v-for="mode in (['none', 'http', 'socks'] as const)"
+                :key="mode"
+                role="radio"
+                :aria-checked="proxyMode === mode"
+                class="segment"
+                :class="{ active: proxyMode === mode }"
+                @click="proxyMode = mode"
+              >
+                {{
+                  mode === "none"
+                    ? $t("proxy.none")
+                    : mode === "http"
+                      ? $t("proxy.httpProxy")
+                      : $t("proxy.socksProxy")
+                }}
+              </button>
+            </div>
           </div>
 
           <div class="proxy-body">
-            <!-- HTTP Proxy tab -->
-            <div v-if="activeTab === 'http'" class="proxy-section">
+            <!-- HTTP Proxy fields -->
+            <div v-if="proxyMode === 'http'" class="proxy-section">
               <label class="pref-row">
-                <span>{{ $t("proxy.useHttp") }}</span>
+                <span>{{ $t("proxy.serverName") }}</span>
+                <input v-model="form.http_server_name" type="text" />
+              </label>
+              <label class="pref-row">
+                <span>{{ $t("proxy.port") }}</span>
+                <input
+                  v-model.number="form.http_server_port"
+                  type="number"
+                  min="0"
+                  max="65535"
+                />
+              </label>
+              <label class="pref-row">
+                <span>{{ $t("proxy.useHttpAuth") }}</span>
                 <span
                   class="toggle-switch"
-                  :class="{ on: form.use_http_proxy }"
+                  :class="{ on: form.use_http_auth }"
                   role="switch"
-                  :aria-checked="!!form.use_http_proxy"
+                  :aria-checked="!!form.use_http_auth"
                   tabindex="0"
-                  @click.prevent="form.use_http_proxy = !form.use_http_proxy"
+                  @click.prevent="form.use_http_auth = !form.use_http_auth"
                   @keydown.enter.prevent="
-                    form.use_http_proxy = !form.use_http_proxy
+                    form.use_http_auth = !form.use_http_auth
                   "
                   @keydown.space.prevent="
-                    form.use_http_proxy = !form.use_http_proxy
+                    form.use_http_auth = !form.use_http_auth
                   "
                 >
                   <span class="toggle-knob" />
                 </span>
               </label>
-              <template v-if="form.use_http_proxy">
-                <label class="pref-row">
-                  <span>{{ $t("proxy.serverName") }}</span>
-                  <input v-model="form.http_server_name" type="text" />
-                </label>
-                <label class="pref-row">
-                  <span>{{ $t("proxy.port") }}</span>
-                  <input
-                    v-model.number="form.http_server_port"
-                    type="number"
-                    min="0"
-                    max="65535"
-                  />
-                </label>
-                <label class="pref-row">
-                  <span>{{ $t("proxy.useHttpAuth") }}</span>
-                  <span
-                    class="toggle-switch"
-                    :class="{ on: form.use_http_auth }"
-                    role="switch"
-                    :aria-checked="!!form.use_http_auth"
-                    tabindex="0"
-                    @click.prevent="form.use_http_auth = !form.use_http_auth"
-                    @keydown.enter.prevent="
-                      form.use_http_auth = !form.use_http_auth
-                    "
-                    @keydown.space.prevent="
-                      form.use_http_auth = !form.use_http_auth
-                    "
-                  >
-                    <span class="toggle-knob" />
-                  </span>
-                </label>
-                <template v-if="form.use_http_auth">
-                  <label class="pref-row">
-                    <span>{{ $t("proxy.username") }}</span>
-                    <input v-model="form.http_user_name" type="text" />
-                  </label>
-                  <label class="pref-row">
-                    <span>{{ $t("proxy.password") }}</span>
-                    <input v-model="form.http_user_passwd" type="password" />
-                  </label>
-                </template>
-              </template>
-            </div>
-
-            <!-- SOCKS Proxy tab -->
-            <div v-if="activeTab === 'socks'" class="proxy-section">
-              <label class="pref-row">
-                <span>{{ $t("proxy.useSocks") }}</span>
-                <span
-                  class="toggle-switch"
-                  :class="{ on: form.use_socks_proxy }"
-                  role="switch"
-                  :aria-checked="!!form.use_socks_proxy"
-                  tabindex="0"
-                  @click.prevent="form.use_socks_proxy = !form.use_socks_proxy"
-                  @keydown.enter.prevent="
-                    form.use_socks_proxy = !form.use_socks_proxy
-                  "
-                  @keydown.space.prevent="
-                    form.use_socks_proxy = !form.use_socks_proxy
-                  "
-                >
-                  <span class="toggle-knob" />
-                </span>
-              </label>
-              <template v-if="form.use_socks_proxy">
-                <label class="pref-row">
-                  <span>{{ $t("proxy.serverName") }}</span>
-                  <input v-model="form.socks_server_name" type="text" />
-                </label>
-                <label class="pref-row">
-                  <span>{{ $t("proxy.port") }}</span>
-                  <input
-                    v-model.number="form.socks_server_port"
-                    type="number"
-                    min="0"
-                    max="65535"
-                  />
-                </label>
+              <template v-if="form.use_http_auth">
                 <label class="pref-row">
                   <span>{{ $t("proxy.username") }}</span>
-                  <input v-model="form.socks5_user_name" type="text" />
+                  <input v-model="form.http_user_name" type="text" />
                 </label>
                 <label class="pref-row">
                   <span>{{ $t("proxy.password") }}</span>
-                  <input v-model="form.socks5_user_passwd" type="password" />
-                </label>
-                <label class="pref-row">
-                  <span>{{ $t("proxy.useSocks5Dns") }}</span>
-                  <span
-                    class="toggle-switch"
-                    :class="{ on: form.socks5_remote_dns }"
-                    role="switch"
-                    :aria-checked="!!form.socks5_remote_dns"
-                    tabindex="0"
-                    @click.prevent="
-                      form.socks5_remote_dns = !form.socks5_remote_dns
-                    "
-                    @keydown.enter.prevent="
-                      form.socks5_remote_dns = !form.socks5_remote_dns
-                    "
-                    @keydown.space.prevent="
-                      form.socks5_remote_dns = !form.socks5_remote_dns
-                    "
-                  >
-                    <span class="toggle-knob" />
-                  </span>
+                  <input v-model="form.http_user_passwd" type="password" />
                 </label>
               </template>
             </div>
 
-            <!-- Common section -->
-            <div class="proxy-section noproxy-section">
-              <label class="pref-row noproxy-row">
-                <span>{{ $t("proxy.noProxyHosts") }}</span>
-                <textarea v-model="form.noproxy_hosts" rows="3"></textarea>
+            <!-- SOCKS5 Proxy fields -->
+            <div v-if="proxyMode === 'socks'" class="proxy-section">
+              <label class="pref-row">
+                <span>{{ $t("proxy.serverName") }}</span>
+                <input v-model="form.socks_server_name" type="text" />
               </label>
+              <label class="pref-row">
+                <span>{{ $t("proxy.port") }}</span>
+                <input
+                  v-model.number="form.socks_server_port"
+                  type="number"
+                  min="0"
+                  max="65535"
+                />
+              </label>
+              <label class="pref-row">
+                <span>{{ $t("proxy.username") }}</span>
+                <input v-model="form.socks5_user_name" type="text" />
+              </label>
+              <label class="pref-row">
+                <span>{{ $t("proxy.password") }}</span>
+                <input v-model="form.socks5_user_passwd" type="password" />
+              </label>
+              <label class="pref-row">
+                <span>{{ $t("proxy.useSocks5Dns") }}</span>
+                <span
+                  class="toggle-switch"
+                  :class="{ on: form.socks5_remote_dns }"
+                  role="switch"
+                  :aria-checked="!!form.socks5_remote_dns"
+                  tabindex="0"
+                  @click.prevent="
+                    form.socks5_remote_dns = !form.socks5_remote_dns
+                  "
+                  @keydown.enter.prevent="
+                    form.socks5_remote_dns = !form.socks5_remote_dns
+                  "
+                  @keydown.space.prevent="
+                    form.socks5_remote_dns = !form.socks5_remote_dns
+                  "
+                >
+                  <span class="toggle-knob" />
+                </span>
+              </label>
+            </div>
+
+            <!-- No-proxy message when "None" selected -->
+            <div v-if="proxyMode === 'none'" class="proxy-none-message">
+              {{ $t("proxy.noProxyMessage") }}
+            </div>
+
+            <!-- No-proxy hosts list -->
+            <div
+              v-if="proxyMode !== 'none'"
+              class="proxy-section noproxy-section"
+            >
+              <span class="noproxy-label">{{ $t("proxy.noProxyHosts") }}</span>
+              <div class="noproxy-list">
+                <div
+                  v-for="(host, index) in noProxyList"
+                  :key="host"
+                  class="noproxy-item"
+                >
+                  <span class="noproxy-host">{{ host }}</span>
+                  <button
+                    class="noproxy-remove"
+                    :aria-label="$t('proxy.removeHost')"
+                    @click="removeHost(index)"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div class="noproxy-add-row">
+                  <input
+                    ref="newHostInput"
+                    v-model="newHost"
+                    type="text"
+                    class="noproxy-add-input"
+                    :placeholder="$t('proxy.addHostPlaceholder')"
+                    @keydown.enter.prevent="addHost"
+                  />
+                  <button
+                    class="noproxy-add-btn"
+                    :disabled="!newHost.trim()"
+                    @click="addHost"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -322,33 +399,47 @@ async function save() {
   color: var(--color-text-secondary);
 }
 
-.tabs {
-  display: flex;
-  border-bottom: 1px solid var(--color-border);
-  padding: 0 16px;
+/* ── Segmented control ─────────────────────────────────────────── */
+
+.segmented-control-wrapper {
+  padding: 16px 20px 0;
 }
 
-.tab {
-  padding: 10px 16px;
+.segmented-control {
+  display: flex;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 2px;
+}
+
+.segment {
+  flex: 1;
+  padding: 7px 12px;
   border: none;
   background: none;
-  font-size: var(--font-size-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
   color: var(--color-text-secondary);
   cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  font-weight: 500;
-  transition: all var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
-.tab:hover {
+.segment:hover {
   color: var(--color-text-primary);
 }
 
-.tab.active {
-  color: var(--color-accent);
-  border-bottom-color: var(--color-accent);
+.segment.active {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+
+/* ── Body ──────────────────────────────────────────────────────── */
 
 .proxy-body {
   flex: 1;
@@ -362,10 +453,11 @@ async function save() {
   gap: 2px;
 }
 
-.noproxy-section {
-  margin-top: var(--space-lg);
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-md);
+.proxy-none-message {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
 }
 
 .pref-row {
@@ -386,7 +478,7 @@ async function save() {
 .pref-row input[type="text"],
 .pref-row input[type="password"],
 .pref-row input[type="number"] {
-  width: min(130px, 40vw);
+  width: min(200px, 50vw);
   padding: 5px 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -397,6 +489,7 @@ async function save() {
 
 .pref-row input[type="number"] {
   text-align: right;
+  width: min(100px, 30vw);
   -moz-appearance: textfield;
 }
 
@@ -405,6 +498,8 @@ async function save() {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* ── Toggle switch ─────────────────────────────────────────────── */
 
 .toggle-switch {
   width: 36px;
@@ -440,22 +535,116 @@ async function save() {
   left: 18px;
 }
 
-.noproxy-row {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-sm);
+/* ── No-proxy hosts ────────────────────────────────────────────── */
+
+.noproxy-section {
+  margin-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-md);
 }
 
-.noproxy-row textarea {
-  width: 100%;
-  padding: 8px 10px;
+.noproxy-label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.noproxy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.noproxy-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.noproxy-host {
+  color: var(--color-text-primary);
+  font-family: monospace;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noproxy-remove {
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.noproxy-remove:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-light);
+}
+
+.noproxy-add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.noproxy-add-input {
+  flex: 1;
+  padding: 5px 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-size: var(--font-size-md);
-  font-family: inherit;
-  resize: vertical;
+  font-size: var(--font-size-sm);
   background: var(--color-bg);
+  color: var(--color-text-primary);
 }
+
+.noproxy-add-input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.noproxy-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.noproxy-add-btn:hover:not(:disabled) {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.noproxy-add-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ── Footer / error ────────────────────────────────────────────── */
 
 .proxy-error {
   padding: 8px 20px;
