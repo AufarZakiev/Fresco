@@ -7,6 +7,7 @@ import { usePreferencesStore } from "../stores/preferences";
 import { useManagerSettingsStore } from "../stores/managerSettings";
 import type { GlobalPreferences } from "../types/boinc";
 import PrefNumericInput from "./PrefNumericInput.vue";
+import PrefRangeInput from "./PrefRangeInput.vue";
 import PrefTimeInput from "./PrefTimeInput.vue";
 import PrefToggleSwitch from "./PrefToggleSwitch.vue";
 import Tooltip from "./Tooltip.vue";
@@ -34,7 +35,9 @@ const props = withDefaults(
 const emit = defineEmits<{ close: [] }>();
 
 const dialogRef = ref<HTMLElement | null>(null);
-const { activate, deactivate } = useFocusTrap(dialogRef);
+const { activate, deactivate } = useFocusTrap(dialogRef, {
+  allowOutsideClick: true,
+});
 watch(
   () => props.open,
   async (isOpen) => {
@@ -322,39 +325,45 @@ async function save() {
                 :step="1"
                 :zero-label="$t('prefs.zeroLabel.noWait')"
               />
-              <PrefNumericInput
+              <PrefRangeInput
                 v-model="form.max_ncpus_pct"
                 :label="$t('prefs.computing.maxCpus')"
                 field="max_ncpus_pct"
                 :min="0"
                 :max="100"
-                :step="1"
+                :step="10"
+                suffix="%"
                 :zero-label="$t('prefs.zeroLabel.useAll')"
               />
-              <PrefNumericInput
+              <PrefRangeInput
                 v-model="form.cpu_usage_limit"
                 :label="$t('prefs.computing.cpuUsageLimit')"
                 field="cpu_usage_limit"
                 :min="0"
                 :max="100"
-                :step="1"
+                :step="10"
+                suffix="%"
                 :zero-label="$t('prefs.zeroLabel.noLimit')"
               />
-              <PrefNumericInput
+              <PrefRangeInput
                 v-model="form.ram_max_used_busy_frac"
                 :label="$t('prefs.computing.ramBusy')"
                 field="ram_max_used_busy_frac"
                 :min="0"
                 :max="1"
-                :step="0.05"
+                :step="0.1"
+                fraction
+                suffix="%"
               />
-              <PrefNumericInput
+              <PrefRangeInput
                 v-model="form.ram_max_used_idle_frac"
                 :label="$t('prefs.computing.ramIdle')"
                 field="ram_max_used_idle_frac"
                 :min="0"
                 :max="1"
-                :step="0.05"
+                :step="0.1"
+                fraction
+                suffix="%"
               />
               <PrefTimeInput
                 v-model="form.start_hour"
@@ -376,13 +385,14 @@ async function save() {
                 :step="1"
                 :zero-label="$t('prefs.zeroLabel.disabled')"
               />
-              <PrefNumericInput
+              <PrefRangeInput
                 v-model="form.suspend_cpu_usage"
                 :label="$t('prefs.computing.suspendCpuUsage')"
                 field="suspend_cpu_usage"
                 :min="0"
                 :max="100"
-                :step="1"
+                :step="10"
+                suffix="%"
                 :zero-label="$t('prefs.zeroLabel.disabled')"
               />
               <PrefToggleSwitch
@@ -484,13 +494,14 @@ async function save() {
                 :step="1"
                 :zero-label="$t('prefs.zeroLabel.noLimit')"
               />
-              <PrefNumericInput
+              <PrefRangeInput
                 v-model="form.disk_max_used_pct"
                 :label="$t('prefs.storage.maxDiskPct')"
                 field="disk_max_used_pct"
                 :min="0"
                 :max="100"
-                :step="1"
+                :step="10"
+                suffix="%"
                 :zero-label="$t('prefs.zeroLabel.noLimit')"
               />
               <PrefNumericInput

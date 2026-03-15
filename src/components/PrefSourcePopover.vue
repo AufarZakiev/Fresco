@@ -163,7 +163,7 @@ onUnmounted(() => {
         <span class="source-dot file" />
         <span class="source-label">{{ $t("prefSource.accountManager") }}</span>
         <span class="source-value">{{ formatValue(fileValue!) }}</span>
-        <Tooltip :text="$t('prefSource.useThisValue')">
+        <Tooltip v-if="overrideValue !== fileValue" :text="$t('prefSource.useThisValue')">
           <button
             class="source-action adopt"
             @click="emit('adopt-value', fileValue!)"
@@ -178,6 +178,14 @@ onUnmounted(() => {
         <span class="source-dot initial" />
         <span class="source-label">{{ $t("prefSource.default") }}</span>
         <span class="source-value">{{ formatValue(initialValue) }}</span>
+        <Tooltip v-if="(hasOverride || hasFileValue) && overrideValue !== initialValue" :text="$t('prefSource.useThisValue')">
+          <button
+            class="source-action adopt"
+            @click="emit('adopt-value', initialValue)"
+          >
+            &rarr;
+          </button>
+        </Tooltip>
       </div>
     </div>
   </Teleport>

@@ -413,12 +413,17 @@ watch(
             :aria-expanded="!isCollapsed(group.key)"
             @click="toggleCollapsed(group.key)"
           >
-            <span
+            <svg
               class="nav-group-chevron"
               :class="{ collapsed: isCollapsed(group.key) }"
               aria-hidden="true"
-              >&#9662;</span
+              width="12"
+              height="12"
+              viewBox="0 0 20 20"
+              fill="currentColor"
             >
+              <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+            </svg>
             {{ group.label }}
           </button>
           <span v-else class="nav-group-label">
@@ -755,20 +760,22 @@ select {
   margin-bottom: 2px;
 }
 
-button.nav-group-label {
+.nav-group-label.clickable {
   background: none;
   border: none;
-  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 10px;
   font-weight: 600;
+  font-family: inherit;
   color: var(--color-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: left;
   width: 100%;
-  padding: 0;
-}
-
-.nav-group-label.clickable {
+  margin-bottom: 2px;
   cursor: pointer;
   user-select: none;
   border-radius: var(--radius-sm);
@@ -782,7 +789,7 @@ button.nav-group-label {
 .nav-group-chevron {
   position: absolute;
   left: -2px;
-  font-size: 10px;
+  flex-shrink: 0;
   transition: transform 0.15s ease;
 }
 
