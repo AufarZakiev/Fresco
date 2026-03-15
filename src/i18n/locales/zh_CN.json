@@ -288,7 +288,8 @@
   "notices": {
     "title": "通知",
     "loading": "正在加载通知...",
-    "empty": "当前没有通知。"
+    "empty": "当前没有通知。",
+    "noticeFromBoinc": "来自 BOINC 的通知"
   },
   "connect": {
     "title": "连接到 BOINC 客户端",

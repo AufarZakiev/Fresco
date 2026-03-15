@@ -78,13 +78,16 @@ onUnmounted(() => {
               rel="noopener"
               class="notice-link"
             >
-              {{ notice.title }}
+              {{ notice.title || $t('notices.noticeFromBoinc') }}
             </a>
-            <span v-else>{{ notice.title }}</span>
+            <span v-else>{{ notice.title || $t('notices.noticeFromBoinc') }}</span>
           </h3>
           <div class="notice-meta">
             <StatusBadge v-if="notice.project_name" variant="info">
               {{ notice.project_name }}
+            </StatusBadge>
+            <StatusBadge v-else-if="!notice.title" variant="info">
+              BOINC
             </StatusBadge>
             <StatusBadge v-if="notice.category" variant="default">
               {{ notice.category }}

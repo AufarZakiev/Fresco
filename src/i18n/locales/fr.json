@@ -288,7 +288,8 @@
   "notices": {
     "title": "Notifications",
     "loading": "Chargement des notifications...",
-    "empty": "Aucune notification pour le moment."
+    "empty": "Aucune notification pour le moment.",
+    "noticeFromBoinc": "Notification de BOINC"
   },
   "connect": {
     "title": "Connexion au client BOINC",

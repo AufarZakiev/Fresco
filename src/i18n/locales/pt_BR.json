@@ -288,7 +288,8 @@
   "notices": {
     "title": "Avisos",
     "loading": "Carregando avisos...",
-    "empty": "Nenhum aviso no momento."
+    "empty": "Nenhum aviso no momento.",
+    "noticeFromBoinc": "Aviso do BOINC"
   },
   "connect": {
     "title": "Conectar ao cliente BOINC",

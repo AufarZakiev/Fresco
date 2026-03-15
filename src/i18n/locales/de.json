@@ -288,7 +288,8 @@
   "notices": {
     "title": "Nachrichten",
     "loading": "Nachrichten werden geladen...",
-    "empty": "Derzeit keine Nachrichten."
+    "empty": "Derzeit keine Nachrichten.",
+    "noticeFromBoinc": "Nachricht von BOINC"
   },
   "connect": {
     "title": "Verbindung zum BOINC-Client",

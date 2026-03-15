@@ -843,6 +843,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   position: absolute;
   right: 24px;
   bottom: calc(24px + var(--status-bar-offset, 0px));
+  z-index: 5;
   display: flex;
   align-items: center;
   gap: 12px;

@@ -452,11 +452,7 @@ watch(
                 <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
               </template>
               <template v-else-if="item.icon === 'transfer'">
-                <path
-                  fill-rule="evenodd"
-                  d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                  clip-rule="evenodd"
-                />
+                <path d="M5 12a1 1 0 102 0V6.414l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L5 6.414V12zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z" />
               </template>
               <template v-else-if="item.icon === 'message'">
                 <path
@@ -471,11 +467,9 @@ watch(
                 />
               </template>
               <template v-else-if="item.icon === 'disk'">
-                <path
-                  fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                  clip-rule="evenodd"
-                />
+                <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" />
+                <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" />
+                <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z" />
               </template>
               <template v-else-if="item.icon === 'monitor'">
                 <path
@@ -753,7 +747,7 @@ select {
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  font-size: var(--font-size-xs);
+  font-size: 10px;
   font-weight: 600;
   color: var(--color-text-tertiary);
   text-transform: uppercase;
@@ -876,6 +870,7 @@ button.nav-group-label {
 
 .sidebar-footer {
   padding: 4px 12px 6px;
+  overflow: hidden;
 }
 
 .sidebar-actions {
@@ -889,6 +884,7 @@ button.nav-group-label {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   cursor: pointer;
