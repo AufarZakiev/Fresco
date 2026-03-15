@@ -27,6 +27,7 @@ watch(
       deactivate();
     }
   },
+  { immediate: true },
 );
 
 const { t } = useI18n();
@@ -56,6 +57,7 @@ watch(
       await loadCurrentInfo();
     }
   },
+  { immediate: true },
 );
 
 async function loadCurrentInfo() {

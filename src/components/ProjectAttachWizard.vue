@@ -40,6 +40,7 @@ watch(
       deactivate();
     }
   },
+  { immediate: true },
 );
 
 const { t } = useI18n();

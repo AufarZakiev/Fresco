@@ -304,6 +304,9 @@ pub fn parse_projects(xml: &str) -> Vec<Project> {
                                     text.parse().unwrap_or(0);
                             }
                             "venue" => current.venue = text,
+                            "suspended_via_gui" => current.suspended_via_gui = true,
+                            "dont_request_more_work" => current.dont_request_more_work = true,
+                            "attached_via_acct_mgr" => current.attached_via_acct_mgr = true,
                             _ => {}
                         }
                     }
@@ -419,6 +422,10 @@ pub fn parse_cc_status(xml: &str) -> CcStatus {
                                 status.max_event_log_lines =
                                     text.parse().unwrap_or(0);
                             }
+                            "ams_password_error" => status.ams_password_error = true,
+                            "manager_must_quit" => status.manager_must_quit = true,
+                            "disallow_attach" => status.disallow_attach = true,
+                            "simple_gui_only" => status.simple_gui_only = true,
                             _ => {}
                         }
                     }
@@ -744,6 +751,7 @@ pub fn parse_notices(xml: &str) -> Vec<Notice> {
                             "project_name" => current.project_name = text,
                             "link" => current.link = text,
                             "category" => current.category = text,
+                            "is_private" => current.is_private = true,
                             _ => {}
                         }
                     }
@@ -994,6 +1002,10 @@ pub fn parse_global_preferences(xml: &str) -> GlobalPreferences {
                                 prefs.vm_max_used_frac =
                                     text.parse().unwrap_or(0.0)
                             }
+                            "dont_verify_images" => prefs.dont_verify_images = true,
+                            "confirm_before_connecting" => prefs.confirm_before_connecting = true,
+                            "hangup_if_dialed" => prefs.hangup_if_dialed = true,
+                            "network_wifi_only" => prefs.network_wifi_only = true,
                             _ => {}
                         }
                     }
@@ -1267,6 +1279,7 @@ pub fn parse_host_info(xml: &str) -> HostInfo {
                             "p_calculated" => info.p_calculated = text.parse().unwrap_or(0.0),
                             "mac_address" => info.mac_address = text,
                             "docker_version" => info.docker_version = text,
+                            "p_vm_extensions_disabled" => info.p_vm_extensions_disabled = true,
                             _ => {}
                         }
                     }
@@ -1491,6 +1504,13 @@ pub fn parse_project_config(xml: &str) -> ProjectConfig {
                                 config.min_passwd_length = text.parse().unwrap_or(0)
                             }
                             "terms_of_use" => config.terms_of_use = text,
+                            "account_creation_disabled" => config.account_creation_disabled = true,
+                            "client_account_creation_disabled" => config.client_account_creation_disabled = true,
+                            "uses_username" => config.uses_username = true,
+                            "terms_of_use_is_html" => config.terms_of_use_is_html = true,
+                            "ldap_auth" => config.ldap_auth = true,
+                            "sched_stopped" => config.sched_stopped = true,
+                            "web_stopped" => config.web_stopped = true,
                             _ => {}
                         }
                     }
@@ -1547,6 +1567,7 @@ pub fn parse_acct_mgr_info(xml: &str) -> AcctMgrInfo {
                         match tag.as_str() {
                             "acct_mgr_name" => info.acct_mgr_name = text,
                             "acct_mgr_url" => info.acct_mgr_url = text,
+                            "have_credentials" => info.have_credentials = true,
                             _ => {}
                         }
                     }
@@ -1642,6 +1663,10 @@ pub fn parse_proxy_info(xml: &str) -> ProxyInfo {
                             "socks5_user_name" => info.socks5_user_name = text,
                             "socks5_user_passwd" => info.socks5_user_passwd = text,
                             "noproxy_hosts" => info.noproxy_hosts = text,
+                            "use_http_proxy" => info.use_http_proxy = true,
+                            "use_http_auth" => info.use_http_auth = true,
+                            "use_socks_proxy" => info.use_socks_proxy = true,
+                            "socks5_remote_dns" => info.socks5_remote_dns = true,
                             _ => {}
                         }
                     }
@@ -1766,6 +1791,7 @@ pub fn parse_cc_config(xml: &str) -> CcConfig {
                             "max_stdout_file_size" => {
                                 config.max_stdout_file_size = text.parse().unwrap_or(0)
                             }
+                            "fetch_minimal_work" => config.fetch_minimal_work = true,
                             _ => {}
                         }
                     }
@@ -2004,6 +2030,10 @@ pub fn parse_cc_state(xml: &str) -> CcState {
                         let text = read_text(&mut reader);
                         state.platforms.push(text);
                     }
+                    "executing_as_daemon" if in_client_state => {
+                        read_text(&mut reader);
+                        state.executing_as_daemon = true;
+                    }
                     _ => {}
                 }
             }
@@ -2047,6 +2077,8 @@ pub fn parse_project_init_status(xml: &str) -> ProjectInitStatus {
                             "url" => status.url = text,
                             "name" => status.name = text,
                             "team_name" => status.team_name = text,
+                            "has_account_key" => status.has_account_key = true,
+                            "embedded" => status.embedded = true,
                             _ => {}
                         }
                     }
@@ -2773,6 +2805,23 @@ Computation started
     <acct_mgr_name>BAM!</acct_mgr_name>
     <acct_mgr_url>https://bam.boincstats.com/</acct_mgr_url>
     <have_credentials/>
+</acct_mgr_info>
+</boinc_gui_rpc_reply>"#;
+
+        let info = parse_acct_mgr_info(xml);
+        assert_eq!(info.acct_mgr_name, "BAM!");
+        assert_eq!(info.acct_mgr_url, "https://bam.boincstats.com/");
+        assert!(info.have_credentials);
+    }
+
+    #[test]
+    fn test_parse_acct_mgr_info_non_self_closing() {
+        let xml = r#"
+<boinc_gui_rpc_reply>
+<acct_mgr_info>
+    <acct_mgr_name>BAM!</acct_mgr_name>
+    <acct_mgr_url>https://bam.boincstats.com/</acct_mgr_url>
+    <have_credentials></have_credentials>
 </acct_mgr_info>
 </boinc_gui_rpc_reply>"#;
 
