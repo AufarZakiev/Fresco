@@ -53,7 +53,7 @@ function mountDialog(open = true) {
 describe("SelectComputerDialog", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    document.body.querySelectorAll(".dialog-overlay").forEach((el) => el.remove());
+    document.body.innerHTML = "";
     mockConnectToRemote.mockReset();
     mockConnectToLocal.mockReset();
     mockState = CONNECTION_STATE.CONNECTED;

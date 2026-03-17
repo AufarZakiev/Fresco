@@ -35,7 +35,7 @@ function mountDialog(open = true) {
 
 describe("AboutDialog", () => {
   beforeEach(() => {
-    document.body.querySelectorAll(".dialog-overlay").forEach((el) => el.remove());
+    document.body.innerHTML = "";
   });
 
   it("does not render when closed", () => {
