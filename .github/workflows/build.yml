@@ -154,7 +154,9 @@ jobs:
           # Linux
           cp artifacts/fresco-x86_64-unknown-linux-gnu/*.AppImage release/Fresco_Linux_x86_64.AppImage
           cp artifacts/fresco-aarch64-unknown-linux-gnu/*.AppImage release/Fresco_Linux_ARM64.AppImage
-          # macOS
+          # macOS – restore executable bit lost by actions/upload-artifact
+          chmod +x artifacts/fresco-aarch64-apple-darwin/*.app/Contents/MacOS/*
+          chmod +x artifacts/fresco-x86_64-apple-darwin/*.app/Contents/MacOS/*
           cd artifacts/fresco-aarch64-apple-darwin && zip -r ../../release/Fresco_macOS_ARM64.app.zip *.app && cd ../..
           cd artifacts/fresco-x86_64-apple-darwin && zip -r ../../release/Fresco_macOS_x86_64.app.zip *.app && cd ../..
           # Windows
