@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from "vue";
-import { onKeyStroke } from "@vueuse/core";
+import { onKeyStroke, useLocalStorage } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import { acctMgrInfo, acctMgrRpc, acctMgrRpcPoll } from "../composables/useRpc";
 import type { AcctMgrInfo } from "../types/boinc";
@@ -10,6 +10,7 @@ import {
   MAX_ATTACH_POLL_ATTEMPTS,
   ATTACH_POLL_DELAY_MS,
 } from "../constants/boinc";
+import { useProjectsStore } from "../stores/projects";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
@@ -31,13 +32,17 @@ watch(
 );
 
 const { t } = useI18n();
+const projectsStore = useProjectsStore();
 const step = ref<"form" | "processing" | "result">("form");
 const loading = ref(false);
 const error = ref("");
 const resultMessage = ref("");
+const replyMessages = ref<string[]>([]);
 
 // Current account manager state
 const currentMgr = ref<AcctMgrInfo | null>(null);
+const storedLoginName = useLocalStorage("acctMgrLoginName", "");
+const loginName = ref("");
 
 // Form fields
 const mgrUrl = ref("");
@@ -65,9 +70,11 @@ async function loadCurrentInfo() {
   try {
     const info = await acctMgrInfo();
     currentMgr.value = info;
+    loginName.value = info.have_credentials ? storedLoginName.value : "";
   } catch (e) {
     console.error("Failed to load account manager info:", e);
     currentMgr.value = null;
+    loginName.value = "";
   } finally {
     loading.value = false;
   }
@@ -91,13 +98,18 @@ async function doAttach() {
     while (attempts < MAX_ATTACH_POLL_ATTEMPTS) {
       await new Promise((r) => setTimeout(r, ATTACH_POLL_DELAY_MS));
       reply = await acctMgrRpcPoll();
+      console.log("[AM attach poll]", attempts, JSON.stringify(reply));
       if (reply.error_num !== BOINC_ERROR_IN_PROGRESS) break;
       attempts++;
     }
 
     if (reply && reply.error_num === 0) {
+      replyMessages.value = reply.messages ?? [];
       resultMessage.value = t("accountManager.successAttach");
       step.value = "result";
+      storedLoginName.value = userName.value;
+      await loadCurrentInfo();
+      projectsStore.fetchProjects();
     } else {
       error.value =
         reply?.messages?.join(", ") || t("accountManager.failAttach");
@@ -127,9 +139,13 @@ async function doDetach() {
     }
 
     if (reply && reply.error_num === 0) {
+      replyMessages.value = reply.messages ?? [];
       resultMessage.value = t("accountManager.successDetach");
       currentMgr.value = null;
+      loginName.value = "";
+      storedLoginName.value = "";
       step.value = "result";
+      projectsStore.fetchProjects();
     } else {
       error.value =
         reply?.messages?.join(", ") || t("accountManager.failDetach");
@@ -145,10 +161,12 @@ function reset() {
   step.value = "form";
   error.value = "";
   resultMessage.value = "";
+  replyMessages.value = [];
   mgrUrl.value = "";
   userName.value = "";
   password.value = "";
   currentMgr.value = null;
+  loginName.value = "";
 }
 
 function close() {
@@ -194,6 +212,7 @@ function close() {
             </div>
             <div class="current-mgr-name">{{ currentMgr.acct_mgr_name }}</div>
             <div class="current-mgr-url">{{ currentMgr.acct_mgr_url }}</div>
+            <div v-if="loginName" class="current-mgr-login">{{ loginName }}</div>
             <button class="btn btn-danger-outline detach-btn" @click="doDetach">
               {{ $t("accountManager.detach") }}
             </button>
@@ -252,6 +271,14 @@ function close() {
         <div v-if="step === 'result'" class="wizard-body wizard-center">
           <div class="success-icon">&#10003;</div>
           <p>{{ resultMessage }}</p>
+          <div v-if="currentMgr?.have_credentials" class="result-mgr">
+            <div class="result-mgr-name">{{ currentMgr.acct_mgr_name }}</div>
+            <div class="result-mgr-url">{{ currentMgr.acct_mgr_url }}</div>
+            <div v-if="loginName" class="result-mgr-login">{{ loginName }}</div>
+          </div>
+          <div v-if="replyMessages.length" class="reply-messages">
+            <p v-for="(msg, i) in replyMessages" :key="i">{{ msg }}</p>
+          </div>
           <button class="btn btn-primary" @click="close">
             {{ $t("accountManager.done") }}
           </button>
@@ -357,6 +384,11 @@ function close() {
 .current-mgr-url {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+}
+
+.current-mgr-login {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
   margin-bottom: var(--space-sm);
 }
 
@@ -428,6 +460,44 @@ function close() {
   to {
     transform: rotate(360deg);
   }
+}
+
+.result-mgr {
+  text-align: center;
+}
+
+.result-mgr-name {
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+
+.result-mgr-url {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.result-mgr-login {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.reply-messages {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.reply-messages p {
+  margin: 0;
+}
+
+.reply-messages p + p {
+  margin-top: 4px;
 }
 
 .success-icon {

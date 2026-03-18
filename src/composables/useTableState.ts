@@ -1,4 +1,5 @@
 import { ref, watch } from "vue";
+import { useLocalStorage } from "@vueuse/core";
 import type { SortingState, VisibilityState, Updater } from "@tanstack/vue-table";
 
 interface OldColumnState {
@@ -59,70 +60,62 @@ export function useTableState(
 ) {
   const storageKey = `boinc-columns-${viewId}`;
 
-  function loadState(): TableState {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-
-        if (isOldFormat(parsed)) {
-          const migrated = migrateOldState(parsed as OldColumnState, allColumnIds);
-          localStorage.setItem(storageKey, JSON.stringify(migrated));
-          return migrated;
-        }
-
-        // New format — merge with defaults to handle added/removed columns
-        const sorting: SortingState = parsed.sorting ?? [
-          { id: defaultSortId, desc: defaultSortDesc },
-        ];
-
-        const storedVisibility: VisibilityState = parsed.columnVisibility ?? {};
-        const columnVisibility: VisibilityState = {};
-        for (const id of allColumnIds) {
-          columnVisibility[id] = storedVisibility[id] ?? true;
-        }
-
-        const storedOrder: string[] = parsed.columnOrder ?? allColumnIds;
-        const allowedKeys = new Set(allColumnIds);
-        const columnOrder = [
-          ...storedOrder.filter((key) => allowedKeys.has(key)),
-          ...allColumnIds.filter((key) => !storedOrder.includes(key)),
-        ];
-
-        return { sorting, columnVisibility, columnOrder };
-      }
-    } catch {
-      // Ignore corrupt localStorage
-    }
-
-    const columnVisibility: VisibilityState = {};
-    for (const id of allColumnIds) {
-      columnVisibility[id] = true;
-    }
-
-    return {
-      sorting: [{ id: defaultSortId, desc: defaultSortDesc }],
-      columnVisibility,
-      columnOrder: [...allColumnIds],
-    };
+  const defaultVisibility: VisibilityState = {};
+  for (const id of allColumnIds) {
+    defaultVisibility[id] = true;
   }
 
-  const initial = loadState();
-  const sorting = ref<SortingState>(initial.sorting);
-  const columnVisibility = ref<VisibilityState>(initial.columnVisibility);
-  const columnOrder = ref<string[]>(initial.columnOrder);
+  const defaultState: TableState = {
+    sorting: [{ id: defaultSortId, desc: defaultSortDesc }],
+    columnVisibility: defaultVisibility,
+    columnOrder: [...allColumnIds],
+  };
+
+  const stored = useLocalStorage<TableState>(storageKey, defaultState, {
+    mergeDefaults: true,
+    flush: "sync",
+  });
+
+  // Migrate old format if needed
+  if (isOldFormat(stored.value as unknown as Record<string, unknown>)) {
+    stored.value = migrateOldState(
+      stored.value as unknown as OldColumnState,
+      allColumnIds,
+    );
+  }
+
+  // Normalize: ensure all current column IDs are present, remove stale ones
+  const allowedIdSet = new Set(allColumnIds);
+  for (const id of Object.keys(stored.value.columnVisibility)) {
+    if (!allowedIdSet.has(id)) {
+      delete stored.value.columnVisibility[id];
+    }
+  }
+  for (const id of allColumnIds) {
+    if (stored.value.columnVisibility[id] === undefined) {
+      stored.value.columnVisibility[id] = true;
+    }
+  }
+
+  const currentOrder = stored.value.columnOrder ?? allColumnIds;
+  stored.value.columnOrder = [
+    ...currentOrder.filter((key) => allowedIdSet.has(key)),
+    ...allColumnIds.filter((key) => !currentOrder.includes(key)),
+  ];
+
+  // Expose individual refs for TanStack table compatibility
+  const sorting = ref<SortingState>(stored.value.sorting);
+  const columnVisibility = ref<VisibilityState>(stored.value.columnVisibility);
+  const columnOrder = ref<string[]>(stored.value.columnOrder);
 
   watch(
     [sorting, columnVisibility, columnOrder],
     () => {
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify({
-          sorting: sorting.value,
-          columnVisibility: columnVisibility.value,
-          columnOrder: columnOrder.value,
-        }),
-      );
+      stored.value = {
+        sorting: sorting.value,
+        columnVisibility: columnVisibility.value,
+        columnOrder: columnOrder.value,
+      };
     },
     { deep: true },
   );

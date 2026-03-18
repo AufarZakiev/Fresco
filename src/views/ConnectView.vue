@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { usePreferredDark } from "@vueuse/core";
+import { useLocalStorage, usePreferredDark } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 import Tooltip from "../components/Tooltip.vue";
 import {
@@ -62,11 +62,10 @@ const password = ref("");
 const connecting = ref(false);
 const osLoading = ref(true);
 const statusMessage = ref<string | null>(null);
-const recentConnections = ref<RecentConnection[]>([]);
+const recentConnections = useLocalStorage<RecentConnection[]>(RECENT_KEY, []);
 const isDarkTheme = usePreferredDark();
 
 onMounted(async () => {
-  loadRecent();
   try {
     currentOS = await getOS();
   } catch {
@@ -84,17 +83,6 @@ onMounted(async () => {
   }
 });
 
-function loadRecent() {
-  try {
-    const raw = localStorage.getItem(RECENT_KEY);
-    if (raw) {
-      recentConnections.value = JSON.parse(raw);
-    }
-  } catch {
-    recentConnections.value = [];
-  }
-}
-
 function saveRecent(entry: RecentConnection) {
   const existing = recentConnections.value.filter(
     (r) =>
@@ -105,14 +93,11 @@ function saveRecent(entry: RecentConnection) {
         r.port === entry.port
       ),
   );
-  const updated = [entry, ...existing].slice(0, MAX_RECENT);
-  recentConnections.value = updated;
-  localStorage.setItem(RECENT_KEY, JSON.stringify(updated));
+  recentConnections.value = [entry, ...existing].slice(0, MAX_RECENT);
 }
 
 function removeRecent(index: number) {
   recentConnections.value.splice(index, 1);
-  localStorage.setItem(RECENT_KEY, JSON.stringify(recentConnections.value));
 }
 
 function applyRecent(entry: RecentConnection) {

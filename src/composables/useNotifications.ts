@@ -28,8 +28,7 @@ function shouldNotify(): boolean {
   if (freq === Infinity) return false;
   if (freq === 0) return true;
 
-  const last = Number(localStorage.getItem(LAST_REMINDER_KEY) || "0");
-  return Date.now() - last >= freq;
+  return Date.now() - Number(localStorage.getItem(LAST_REMINDER_KEY) ?? "0") >= freq;
 }
 
 function markNotified() {

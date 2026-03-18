@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-import { ref, watch } from "vue";
+import { watch } from "vue";
+import { useLocalStorage } from "@vueuse/core";
 
 export interface ManagerSettings {
   language: string;
@@ -25,16 +26,6 @@ const defaults: ManagerSettings = {
   checkForUpdates: true,
 };
 
-function loadSettings(): ManagerSettings {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...defaults, ...JSON.parse(raw) };
-  } catch {
-    // Ignore corrupt localStorage
-  }
-  return { ...defaults };
-}
-
 async function applyTheme(theme: ManagerSettings["theme"]) {
   if (theme === "system") {
     delete document.documentElement.dataset.theme;
@@ -55,17 +46,12 @@ async function applyTheme(theme: ManagerSettings["theme"]) {
 }
 
 export const useManagerSettingsStore = defineStore("managerSettings", () => {
-  const settings = ref<ManagerSettings>(loadSettings());
+  const settings = useLocalStorage<ManagerSettings>(STORAGE_KEY, { ...defaults }, {
+    mergeDefaults: true,
+    flush: "sync",
+  });
 
   applyTheme(settings.value.theme);
-
-  watch(
-    settings,
-    (v) => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(v));
-    },
-    { deep: true },
-  );
 
   watch(
     () => settings.value.theme,
@@ -75,7 +61,7 @@ export const useManagerSettingsStore = defineStore("managerSettings", () => {
   );
 
   function resetSettings() {
-    settings.value = { ...defaults };
+    Object.assign(settings.value, defaults);
   }
 
   return { settings, resetSettings };
