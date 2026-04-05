@@ -1119,6 +1119,7 @@ pub fn run() {
             updater::update_now,
             updater::install_update,
             updater::cleanup_old_binary,
+            tray::sync_tray_modes,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

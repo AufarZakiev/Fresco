@@ -1,7 +1,5 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use tauri::{
-    menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem},
+    menu::{MenuBuilder, MenuItem, MenuItemBuilder, PredefinedMenuItem},
     tray::TrayIconBuilder,
     AppHandle, Emitter, Manager,
 };
@@ -9,6 +7,15 @@ use tauri::{
 use crate::AppState;
 
 const TRAY_ID: &str = "main-tray";
+
+/// BOINC run-mode value that means "never run" (i.e. snoozed).
+const MODE_NEVER: i32 = 3;
+
+/// Holds references to tray menu items so they can be updated at runtime.
+pub(crate) struct TrayState {
+    cpu_item: MenuItem<tauri::Wry>,
+    gpu_item: MenuItem<tauri::Wry>,
+}
 
 pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     // On macOS, use a monochrome template image — the OS handles dark/light automatically.
@@ -48,13 +55,11 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         .item(&exit)
         .build()?;
 
-    let cpu_snoozed = Arc::new(AtomicBool::new(false));
-    let gpu_snoozed = Arc::new(AtomicBool::new(false));
-
-    let cpu_item_ref = cpu_item.clone();
-    let gpu_item_ref = gpu_item.clone();
-    let cpu_snoozed_ref = cpu_snoozed.clone();
-    let gpu_snoozed_ref = gpu_snoozed.clone();
+    // Store menu item references so sync_tray_modes can update labels later.
+    app.manage(TrayState {
+        cpu_item: cpu_item.clone(),
+        gpu_item: gpu_item.clone(),
+    });
 
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
@@ -72,24 +77,32 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 "tray_cpu" => {
-                    if cpu_snoozed_ref.load(Ordering::Relaxed) {
-                        cpu_snoozed_ref.store(false, Ordering::Relaxed);
-                        let _ = cpu_item_ref.set_text("Snooze CPU (1 hr)");
+                    let tray_state = app.state::<TrayState>();
+                    let is_snoozed = tray_state
+                        .cpu_item
+                        .text()
+                        .map(|t| t.starts_with("Resume"))
+                        .unwrap_or(false);
+                    if is_snoozed {
+                        let _ = tray_state.cpu_item.set_text("Snooze CPU (1 hr)");
                         let _ = app.emit("tray-action", "resume_cpu");
                     } else {
-                        cpu_snoozed_ref.store(true, Ordering::Relaxed);
-                        let _ = cpu_item_ref.set_text("Resume CPU");
+                        let _ = tray_state.cpu_item.set_text("Resume CPU");
                         let _ = app.emit("tray-action", "snooze_cpu");
                     }
                 }
                 "tray_gpu" => {
-                    if gpu_snoozed_ref.load(Ordering::Relaxed) {
-                        gpu_snoozed_ref.store(false, Ordering::Relaxed);
-                        let _ = gpu_item_ref.set_text("Snooze GPU (1 hr)");
+                    let tray_state = app.state::<TrayState>();
+                    let is_snoozed = tray_state
+                        .gpu_item
+                        .text()
+                        .map(|t| t.starts_with("Resume"))
+                        .unwrap_or(false);
+                    if is_snoozed {
+                        let _ = tray_state.gpu_item.set_text("Snooze GPU (1 hr)");
                         let _ = app.emit("tray-action", "resume_gpu");
                     } else {
-                        gpu_snoozed_ref.store(true, Ordering::Relaxed);
-                        let _ = gpu_item_ref.set_text("Resume GPU");
+                        let _ = tray_state.gpu_item.set_text("Resume GPU");
                         let _ = app.emit("tray-action", "snooze_gpu");
                     }
                 }
@@ -126,6 +139,28 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         .build(app)?;
 
     Ok(())
+}
+
+/// Synchronise tray menu labels with the actual BOINC run modes.
+/// Called from the frontend every time cc_status is polled.
+#[tauri::command]
+pub fn sync_tray_modes(
+    tray_state: tauri::State<'_, TrayState>,
+    task_mode: i32,
+    gpu_mode: i32,
+) {
+    let cpu_label = if task_mode == MODE_NEVER {
+        "Resume CPU"
+    } else {
+        "Snooze CPU (1 hr)"
+    };
+    let gpu_label = if gpu_mode == MODE_NEVER {
+        "Resume GPU"
+    } else {
+        "Snooze GPU (1 hr)"
+    };
+    let _ = tray_state.cpu_item.set_text(cpu_label);
+    let _ = tray_state.gpu_item.set_text(gpu_label);
 }
 
 /// Switch tray and window icons to match the system theme.

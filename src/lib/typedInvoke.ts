@@ -163,6 +163,9 @@ interface CommandMap {
   get_platform: { args: Record<string, never>; ret: OS };
   get_arch: { args: Record<string, never>; ret: Arch };
 
+  // Tray sync
+  sync_tray_modes: { args: { taskMode: number; gpuMode: number }; ret: void };
+
   // Updater
   download_update: { args: { assetUrl: string }; ret: void };
   update_now: { args: { assetUrl: string }; ret: boolean };
