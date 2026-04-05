@@ -148,6 +148,15 @@ export async function setNetworkMode(
   return invoke("set_network_mode", { mode, duration });
 }
 
+// ── Tray sync ───────────────────────────────────────────────────
+
+export async function syncTrayModes(
+  taskMode: number,
+  gpuMode: number,
+): Promise<void> {
+  return invoke("sync_tray_modes", { taskMode, gpuMode });
+}
+
 // ── Transfer actions ─────────────────────────────────────────────
 
 export async function retryTransfer(

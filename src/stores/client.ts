@@ -9,6 +9,7 @@ import {
   runBenchmarks as rpcRunBenchmarks,
   retryPendingTransfers as rpcRetryPendingTransfers,
   shutdownClient as rpcShutdownClient,
+  syncTrayModes,
 } from "../composables/useRpc";
 import { useConnectionStore } from "./connection";
 
@@ -47,6 +48,7 @@ export const useClientStore = defineStore("client", () => {
     error.value = null;
     try {
       status.value = await getCcStatus();
+      syncTrayModes(status.value.task_mode, status.value.gpu_mode).catch(() => {});
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
       const connection = useConnectionStore();
