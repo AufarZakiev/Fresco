@@ -22,87 +22,21 @@
 
 ---
 
-Connects to the BOINC client over the standard GUI RPC protocol. Starts the BOINC client automatically and works out of the box if BOINC is installed in the default location.
+An in-place replacement for the classic BOINC Manager. Cross-platform, single portable binary, no installer required.
 
-The goal is to reach full functional parity with the standard BOINC Manager.
+Requires the [BOINC client](https://boinc.berkeley.edu/download.php) to be installed. Fresco finds and starts it automatically.
 
 <p align="center">
   <img src="docs/screenshot.png" alt="Fresco screenshot" width="720" />
 </p>
 
-## Features
+## Install
 
-- Tasks, projects, transfers, messages, notices, disk usage, and host info views
-- Project attach wizard and account manager support
-- Activity controls for CPU, GPU, and network modes
-- Global preferences editor
-- Remote client connections
-- System tray with status indicator
-- Cross-platform (Windows, macOS, Linux)
+See the **[Installation](https://github.com/AufarZakiev/Fresco/wiki/Installation)** wiki page for downloads and platform-specific notes.
 
-## Prerequisites
+## Contributing
 
-Fresco is a manager UI only — it requires the **standard BOINC client** to be installed on your system. Install it from [boinc.berkeley.edu](https://boinc.berkeley.edu/download.php) if you haven't already.
-
-Fresco will automatically find and start the BOINC client if it is installed in the default location. No additional configuration is needed.
-
-## Installation
-
-Download the latest release from the [Releases](https://github.com/AufarZakiev/Fresco/releases) page. Fresco is a single portable binary — no installer required.
-
-## Building from source
-
-### Windows
-
-```powershell
-# Install Rust
-winget install Rustlang.Rustup
-# Install Node.js
-winget install OpenJS.NodeJS.LTS
-# Install pnpm
-npm install -g pnpm
-
-# Build
-pnpm install
-pnpm tauri build
-```
-
-### macOS
-
-```bash
-# Install Xcode Command Line Tools
-xcode-select --install
-# Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-# Install Node.js and pnpm
-brew install node
-npm install -g pnpm
-
-# Build
-pnpm install
-pnpm tauri build
-```
-
-### Linux (Debian/Ubuntu)
-
-```bash
-# Install system dependencies
-sudo apt-get update
-sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-# Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-# Install Node.js and pnpm
-sudo apt-get install -y nodejs npm
-npm install -g pnpm
-
-# Build
-pnpm install
-pnpm tauri build
-```
-
-The compiled binary will be in `src-tauri/target/release/`.
-
-For development with hot-reload, use `pnpm tauri dev` instead of `pnpm tauri build`.
+See the **[Contributing](https://github.com/AufarZakiev/Fresco/wiki/Contributing)** wiki page for how to report bugs, request features, or build from source.
 
 ## License
 

@@ -1,0 +1,26 @@
+name: Bug report
+description: Something isn't working
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem. Screenshots, logs, or steps to reproduce are welcome but not required.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: What should have happened instead.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Your OS and Fresco version.
+      placeholder: "e.g. Windows 11, Fresco 1.2.0"
+    validations:
+      required: true
