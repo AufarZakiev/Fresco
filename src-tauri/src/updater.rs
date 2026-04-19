@@ -1,4 +1,6 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+#[cfg(target_os = "macos")]
+use std::path::Path;
 
 fn current_exe_path() -> Result<PathBuf, String> {
     std::env::current_exe().map_err(|e| format!("Failed to get current exe path: {e}"))
