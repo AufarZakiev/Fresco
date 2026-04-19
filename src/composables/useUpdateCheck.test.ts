@@ -73,7 +73,11 @@ describe("useUpdateCheck", () => {
   });
 
   it("detects update when release build time differs from app build time", async () => {
-    mockInvoke.mockResolvedValue(appBuildTime);
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === "get_platform") return Promise.resolve("windows");
+      if (cmd === "get_arch") return Promise.resolve("x86_64");
+      return Promise.resolve(appBuildTime);
+    });
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify(
@@ -150,7 +154,11 @@ describe("useUpdateCheck", () => {
   it("checks even when last check was recent (no throttle)", async () => {
     localStorage.setItem("fresco-last-update-check", String(Date.now()));
 
-    mockInvoke.mockResolvedValue(appBuildTime);
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === "get_platform") return Promise.resolve("windows");
+      if (cmd === "get_arch") return Promise.resolve("x86_64");
+      return Promise.resolve(appBuildTime);
+    });
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify(
@@ -210,5 +218,67 @@ describe("useUpdateCheck", () => {
 
     const { error } = useUpdateCheck();
     expect(error.value).toContain("403");
+  });
+
+  it("on macOS only matches .dmg assets, ignoring legacy .app.zip", async () => {
+    const macAssets = [
+      {
+        name: "Fresco_macOS_ARM64.app.zip",
+        browser_download_url: "https://example.com/mac-arm.zip",
+      },
+      {
+        name: "Fresco_macOS_ARM64.dmg",
+        browser_download_url: "https://example.com/mac-arm.dmg",
+      },
+    ];
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === "get_platform") return Promise.resolve("macos");
+      if (cmd === "get_arch") return Promise.resolve("arm64");
+      return Promise.resolve(appBuildTime);
+    });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify(
+          makeRelease("2025-06-15T12:00:00Z", newerBuildTime, macAssets),
+        ),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await checkForUpdates(true);
+
+    const { assetUrl } = useUpdateCheck();
+    expect(assetUrl.value).toBe("https://example.com/mac-arm.dmg");
+  });
+
+  it("suppresses the banner when no platform-compatible asset is in the release", async () => {
+    // Current macOS install can't consume `.app.zip`; the banner must not
+    // appear at all, otherwise users see "Update available" with a disabled
+    // button and no way to act on it.
+    const legacyAssets = [
+      {
+        name: "Fresco_macOS_ARM64.app.zip",
+        browser_download_url: "https://example.com/mac-arm.zip",
+      },
+    ];
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === "get_platform") return Promise.resolve("macos");
+      if (cmd === "get_arch") return Promise.resolve("arm64");
+      return Promise.resolve(appBuildTime);
+    });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify(
+          makeRelease("2025-06-15T12:00:00Z", newerBuildTime, legacyAssets),
+        ),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await checkForUpdates(true);
+
+    const { updateAvailable, assetUrl } = useUpdateCheck();
+    expect(updateAvailable.value).toBe(false);
+    expect(assetUrl.value).toBe("");
   });
 });

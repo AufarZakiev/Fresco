@@ -111,6 +111,9 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           FRESCO_BUILD_TIME: ${{ needs.lint.outputs.build_time }}
+          # Override Tauri's default "skip DMG Finder prettifying on CI" — without this
+          # the macOS DMG ships without background image and custom icon positions.
+          TAURI_BUNDLER_DMG_IGNORE_CI: ${{ startsWith(matrix.platform, 'macos') && 'true' || '' }}
         with:
           args: --target ${{ matrix.target }} ${{ startsWith(matrix.platform, 'windows') && '--no-bundle' || '' }}
 
@@ -120,13 +123,15 @@ jobs:
         with:
           name: fresco-${{ matrix.target }}
           path: src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
+          if-no-files-found: error
 
       - name: Upload portable (macOS)
         if: startsWith(matrix.platform, 'macos')
         uses: actions/upload-artifact@v4
         with:
           name: fresco-${{ matrix.target }}
-          path: src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+          if-no-files-found: error
 
       - name: Upload portable (Windows)
         if: startsWith(matrix.platform, 'windows')
@@ -134,6 +139,7 @@ jobs:
         with:
           name: fresco-${{ matrix.target }}
           path: src-tauri/target/${{ matrix.target }}/release/fresco.exe
+          if-no-files-found: error
 
   release:
     needs: [lint, build]
@@ -154,11 +160,9 @@ jobs:
           # Linux
           cp artifacts/fresco-x86_64-unknown-linux-gnu/*.AppImage release/Fresco_Linux_x86_64.AppImage
           cp artifacts/fresco-aarch64-unknown-linux-gnu/*.AppImage release/Fresco_Linux_ARM64.AppImage
-          # macOS – restore executable bit lost by actions/upload-artifact
-          chmod +x artifacts/fresco-aarch64-apple-darwin/*.app/Contents/MacOS/*
-          chmod +x artifacts/fresco-x86_64-apple-darwin/*.app/Contents/MacOS/*
-          cd artifacts/fresco-aarch64-apple-darwin && zip -r ../../release/Fresco_macOS_ARM64.app.zip *.app && cd ../..
-          cd artifacts/fresco-x86_64-apple-darwin && zip -r ../../release/Fresco_macOS_x86_64.app.zip *.app && cd ../..
+          # macOS
+          cp artifacts/fresco-aarch64-apple-darwin/*.dmg release/Fresco_macOS_ARM64.dmg
+          cp artifacts/fresco-x86_64-apple-darwin/*.dmg release/Fresco_macOS_x86_64.dmg
           # Windows
           cp artifacts/fresco-x86_64-pc-windows-msvc/fresco.exe release/Fresco_Windows_x86_64.exe
           cp artifacts/fresco-aarch64-pc-windows-msvc/fresco.exe release/Fresco_Windows_ARM64.exe 2>/dev/null || true
