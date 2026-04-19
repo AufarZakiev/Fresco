@@ -1206,10 +1206,10 @@ pub fn parse_host_info(xml: &str) -> HostInfo {
                                     current_coproc.driver_version = format!("{major}.{minor:02}");
                                 }
                             }
-                            "driver_version" | "display_driver_version" => {
-                                if current_coproc.driver_version.is_empty() {
-                                    current_coproc.driver_version = text;
-                                }
+                            "driver_version" | "display_driver_version"
+                                if current_coproc.driver_version.is_empty() =>
+                            {
+                                current_coproc.driver_version = text;
                             }
                             // CUDA XML uses cudaVersion
                             "cudaVersion" | "cuda_version" => {
@@ -1295,17 +1295,13 @@ pub fn parse_host_info(xml: &str) -> HostInfo {
             Ok(Event::End(ref e)) => {
                 let tag = String::from_utf8_lossy(e.name().as_ref()).to_string();
                 match tag.as_str() {
-                    "coproc_cuda" | "coproc_opencl" => {
-                        if in_coproc {
-                            info.coprocs.push(current_coproc.clone());
-                            in_coproc = false;
-                        }
+                    "coproc_cuda" | "coproc_opencl" if in_coproc => {
+                        info.coprocs.push(current_coproc.clone());
+                        in_coproc = false;
                     }
-                    "distro" => {
-                        if in_distro {
-                            info.wsl_distros.push(current_distro.clone());
-                            in_distro = false;
-                        }
+                    "distro" if in_distro => {
+                        info.wsl_distros.push(current_distro.clone());
+                        in_distro = false;
                     }
                     "wsl" => {
                         in_wsl = false;
