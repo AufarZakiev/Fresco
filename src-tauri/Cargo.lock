@@ -1094,8 +1094,10 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-process",
  "tauri-plugin-single-instance",
+ "tempfile",
  "thiserror 2.0.18",
  "tokio",
+ "winreg 0.55.0",
 ]
 
 [[package]]

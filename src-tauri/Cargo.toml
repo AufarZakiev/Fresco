@@ -17,7 +17,7 @@ tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["net", "io-util", "sync", "time", "rt"] }
+tokio = { version = "1", features = ["net", "io-util", "sync", "time", "rt", "process"] }
 quick-xml = { version = "0.37", features = ["serialize"] }
 md-5 = "0.10"
 hex = "0.4"
@@ -30,6 +30,9 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 tauri-plugin-process = "2"
 tauri-plugin-autostart = "2"
 
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"
+
 [profile.release]
 opt-level = "s"
 lto = "fat"
@@ -39,3 +42,4 @@ panic = "abort"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full", "test-util"] }
+tempfile = "3"

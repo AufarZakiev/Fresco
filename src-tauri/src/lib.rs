@@ -22,6 +22,8 @@ const BOINC_TIMEOUT_EXISTING_SECS: u64 = 300;
 const BOINC_TIMEOUT_FRESH_SECS: u64 = 180;
 const BOINC_RPC_ADDR: &str = "127.0.0.1:31416";
 const BOINC_CONNECT_POLL_MS: u64 = 500;
+const BREW_INSTALL_TIMEOUT_SECS: u64 = 900;
+const BOINC_DOWNLOAD_URL: &str = "https://boinc.berkeley.edu/download.php";
 
 pub(crate) struct AppState {
     client: Arc<Mutex<Option<RpcClient>>>,
@@ -800,6 +802,8 @@ fn resolve_boinc_exe(client_dir: &str) -> Result<String, String> {
             vec![
                 "/Applications/BOINCManager.app/Contents/Resources/boinc".to_string(),
                 "/Library/Application Support/BOINC Data/boinc".to_string(),
+                "/opt/homebrew/bin/boinc".to_string(),
+                "/usr/local/bin/boinc".to_string(),
             ]
         } else {
             vec!["/usr/bin/boinc".to_string()]
@@ -837,6 +841,104 @@ fn detect_boinc_client_dir() -> Result<String, String> {
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|| exe_path.clone());
     Ok(parent)
+}
+
+#[derive(serde::Serialize)]
+struct BoincInstallOptions {
+    boinc_present: bool,
+    platform: &'static str,
+    package_managers: Vec<String>,
+    official_download_url: &'static str,
+}
+
+fn current_platform() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "windows"
+    } else if cfg!(target_os = "macos") {
+        "macos"
+    } else {
+        "linux"
+    }
+}
+
+fn probe_package_managers() -> Vec<String> {
+    if cfg!(target_os = "windows") {
+        return Vec::new();
+    }
+    let candidates: &[&str] = if cfg!(target_os = "macos") {
+        &["brew"]
+    } else {
+        // Linux: only PMs the frontend has a command mapping for. brew on
+        // Linux exists but we don't render a brew-on-Linux install command,
+        // so probing for it would mislead the UI.
+        &["apt", "dnf", "pacman"]
+    };
+    let mut found = Vec::new();
+    for pm in candidates {
+        let mut cmd = std::process::Command::new(pm);
+        cmd.arg("--version");
+        cmd.stdout(std::process::Stdio::null());
+        cmd.stderr(std::process::Stdio::null());
+        if let Ok(status) = cmd.status() {
+            if status.success() {
+                found.push((*pm).to_string());
+            }
+        }
+    }
+    found
+}
+
+#[tauri::command]
+fn detect_boinc_install_options() -> BoincInstallOptions {
+    BoincInstallOptions {
+        boinc_present: resolve_boinc_exe("").is_ok(),
+        platform: current_platform(),
+        package_managers: probe_package_managers(),
+        official_download_url: BOINC_DOWNLOAD_URL,
+    }
+}
+
+#[tauri::command]
+async fn install_boinc_via_brew() -> Result<(), String> {
+    if !cfg!(target_os = "macos") {
+        return Err("macOS-only".to_string());
+    }
+
+    // `kill_on_drop(true)` ensures that if the wrapping `tokio::time::timeout`
+    // fires we actually terminate `brew` instead of leaking a long-running
+    // background install (which could race with a user retry).
+    let child = tokio::process::Command::new("brew")
+        .args(["install", "boinc"])
+        .kill_on_drop(true)
+        .spawn()
+        .map_err(|e| format!("Failed to spawn brew: {e}"))?;
+
+    let output = match tokio::time::timeout(
+        std::time::Duration::from_secs(BREW_INSTALL_TIMEOUT_SECS),
+        child.wait_with_output(),
+    )
+    .await
+    {
+        Err(_) => {
+            return Err(format!(
+                "brew install timed out after {}s",
+                BREW_INSTALL_TIMEOUT_SECS
+            ));
+        }
+        Ok(inner) => inner.map_err(|e| format!("Failed to run brew: {e}"))?,
+    };
+
+    if output.status.success() {
+        return Ok(());
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let trimmed: String = stderr.chars().take(200).collect();
+    Err(if trimmed.is_empty() {
+        format!("brew install failed (exit {})", output.status)
+    } else {
+        trimmed
+    })
 }
 
 #[tauri::command]
@@ -886,6 +988,646 @@ async fn start_boinc_client(data_dir: String, client_dir: String) -> Result<(), 
             ));
         }
         tokio::time::sleep(std::time::Duration::from_millis(BOINC_CONNECT_POLL_MS)).await;
+    }
+}
+
+// ── Manager autostart detection ─────────────────────────────────
+
+/// Describes a discovered autostart registration for the official BOINC Manager.
+///
+/// Returned by [`detect_boinc_manager_autostart`] and fed back into
+/// [`disable_boinc_manager_autostart`] so the frontend doesn't need to know
+/// platform details.
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(tag = "kind", content = "data")]
+enum ManagerAutostartInfo {
+    /// macOS: explicit launchd plist (`~/Library/LaunchAgents/*.plist` or
+    /// system-wide `/Library/LaunchAgents`, `/Library/LaunchDaemons`).
+    MacLaunchAgent { plist_path: String },
+    /// macOS: Manager.app is installed but no plist was found. On Sequoia+
+    /// BOINC installers register Login Items via SMAppService, which is opaque
+    /// and cannot be edited programmatically by third-party apps.
+    MacLoginItem,
+    /// Windows: `HKCU\...\Run\<value>` or `HKLM\...\Run\<value>`.
+    WindowsRunKey { hive: String, value_name: String },
+    /// Windows: `.lnk` shortcut in the user's Startup folder.
+    WindowsStartupShortcut { lnk_path: String },
+    /// Linux: XDG autostart `.desktop` file.
+    LinuxAutostart { desktop_path: String, system_wide: bool },
+}
+
+/// Filenames that indicate a BOINC Manager launchd unit.
+///
+/// The official Berkeley installer uses `edu.berkeley.boinc.Manager.plist`;
+/// historical/3rd-party packaging may use `BOINCManager` or similar.
+#[cfg(any(target_os = "macos", test))]
+fn is_manager_plist_name(name: &str) -> bool {
+    let lower = name.to_ascii_lowercase();
+    if !lower.ends_with(".plist") {
+        return false;
+    }
+    // We specifically do NOT match the client daemon ("edu.berkeley.boinc"
+    // without ".Manager"). Disabling the daemon would stop computation.
+    (lower.starts_with("edu.berkeley.boinc.manager")
+        || lower.contains("boincmanager")
+        || lower.contains("boinc.manager"))
+        && !lower.ends_with(".fresco-disabled")
+}
+
+/// Filenames that indicate a BOINC Manager XDG autostart entry on Linux.
+/// Compiled on every platform so the shared `disable_boinc_manager_autostart`
+/// validator can reject bogus `LinuxAutostart` paths without needing OS-
+/// specific glue.
+fn is_manager_desktop_name(name: &str) -> bool {
+    let lower = name.to_ascii_lowercase();
+    if !lower.ends_with(".desktop") {
+        return false;
+    }
+    (lower.contains("boincmgr") || lower.contains("boinc-manager") || lower == "boinc.desktop")
+        && !lower.ends_with(".fresco-disabled")
+}
+
+/// Scan a list of directories for the first file whose name satisfies `predicate`.
+///
+/// Returns the full path of the match, or `None` if nothing is found.
+/// Missing directories are silently skipped (expected on machines where the
+/// Manager isn't installed).
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows", test))]
+fn find_first_matching_file(dirs: &[std::path::PathBuf], predicate: fn(&str) -> bool) -> Option<std::path::PathBuf> {
+    for dir in dirs {
+        let Ok(entries) = std::fs::read_dir(dir) else { continue };
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let Some(name_str) = name.to_str() else { continue };
+            if predicate(name_str) {
+                return Some(entry.path());
+            }
+        }
+    }
+    None
+}
+
+#[cfg(target_os = "macos")]
+fn mac_launchagent_dirs() -> Vec<std::path::PathBuf> {
+    // User-level entries come first because detection stops at the first
+    // match, and disabling a per-user LaunchAgent doesn't require root.
+    let mut dirs = Vec::new();
+    if let Some(home) = std::env::var_os("HOME") {
+        dirs.push(std::path::PathBuf::from(home).join("Library/LaunchAgents"));
+    }
+    dirs.push(std::path::PathBuf::from("/Library/LaunchAgents"));
+    dirs.push(std::path::PathBuf::from("/Library/LaunchDaemons"));
+    dirs
+}
+
+#[cfg(target_os = "linux")]
+fn linux_autostart_dirs() -> Vec<(std::path::PathBuf, bool)> {
+    // User-level entries are preferred over system-wide because we can
+    // disable them without root. Detection stops at the first match,
+    // so order matters.
+    let mut dirs = Vec::new();
+    if let Some(home) = std::env::var_os("HOME") {
+        dirs.push((std::path::PathBuf::from(home).join(".config/autostart"), false));
+    }
+    dirs.push((std::path::PathBuf::from("/etc/xdg/autostart"), true));
+    dirs
+}
+
+#[cfg(target_os = "macos")]
+fn macos_major_version() -> Option<u32> {
+    let output = std::process::Command::new("sw_vers")
+        .arg("-productVersion")
+        .output()
+        .ok()?;
+    let ver = String::from_utf8_lossy(&output.stdout);
+    ver.trim().split('.').next()?.parse::<u32>().ok()
+}
+
+#[tauri::command]
+fn detect_boinc_manager_autostart() -> Result<Option<ManagerAutostartInfo>, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let dirs = mac_launchagent_dirs();
+        if let Some(path) = find_first_matching_file(&dirs, is_manager_plist_name) {
+            return Ok(Some(ManagerAutostartInfo::MacLaunchAgent {
+                plist_path: path.to_string_lossy().into_owned(),
+            }));
+        }
+        // No plist found — fall back to detecting the app bundle, but only on
+        // macOS 13+ where SMAppService Login Items replaced editable plists.
+        // On older macOS a BOINC Manager install without a plist almost
+        // certainly means autostart isn't configured; we don't want to prompt
+        // the takeover dialog for users who never registered autostart.
+        // Full SMAppService introspection needs native API (out of scope);
+        // this gate avoids the common false positive.
+        if macos_major_version().is_some_and(|v| v >= 13)
+            && std::path::Path::new("/Applications/BOINCManager.app").exists()
+        {
+            return Ok(Some(ManagerAutostartInfo::MacLoginItem));
+        }
+        Ok(None)
+    }
+    #[cfg(target_os = "windows")]
+    {
+        windows_detect_manager_run_key().map(|opt| opt.or_else(windows_detect_startup_shortcut))
+    }
+    #[cfg(target_os = "linux")]
+    {
+        for (dir, system_wide) in linux_autostart_dirs() {
+            if let Some(path) = find_first_matching_file(&[dir], is_manager_desktop_name) {
+                return Ok(Some(ManagerAutostartInfo::LinuxAutostart {
+                    desktop_path: path.to_string_lossy().into_owned(),
+                    system_wide,
+                }));
+            }
+        }
+        Ok(None)
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn windows_detect_manager_run_key() -> Result<Option<ManagerAutostartInfo>, String> {
+    use winreg::enums::*;
+    use winreg::types::FromRegValue;
+    use winreg::RegKey;
+
+    for (hive_name, hkey) in [("HKCU", HKEY_CURRENT_USER), ("HKLM", HKEY_LOCAL_MACHINE)] {
+        let root = RegKey::predef(hkey);
+        let Ok(run) = root.open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Run") else {
+            continue;
+        };
+        for (value_name, value) in run.enum_values().flatten() {
+            // Only REG_SZ / REG_EXPAND_SZ carry a launch command. Skip other
+            // types instead of matching on the Debug-formatted representation,
+            // which was unreliable for non-string registry types.
+            if !matches!(value.vtype, REG_SZ | REG_EXPAND_SZ) {
+                continue;
+            }
+            let Ok(data) = String::from_reg_value(&value) else {
+                continue;
+            };
+            if data.to_ascii_lowercase().contains("boincmgr") {
+                return Ok(Some(ManagerAutostartInfo::WindowsRunKey {
+                    hive: hive_name.to_string(),
+                    value_name,
+                }));
+            }
+        }
+    }
+    Ok(None)
+}
+
+#[cfg(target_os = "windows")]
+fn windows_detect_startup_shortcut() -> Option<ManagerAutostartInfo> {
+    // Scan the per-user Startup folder for a .lnk whose name suggests BOINC
+    // Manager. We don't parse the .lnk target — name-matching is enough for
+    // the common installer layouts and keeps us dependency-free.
+    let appdata = std::env::var_os("APPDATA")?;
+    let startup = std::path::PathBuf::from(appdata)
+        .join(r"Microsoft\Windows\Start Menu\Programs\Startup");
+    let predicate = |name: &str| -> bool {
+        let lower = name.to_ascii_lowercase();
+        lower.ends_with(".lnk")
+            && (lower.contains("boincmgr") || lower.contains("boinc manager"))
+            && !lower.ends_with(".fresco-disabled")
+    };
+    find_first_matching_file(&[startup], predicate)
+        .map(|path| ManagerAutostartInfo::WindowsStartupShortcut {
+            lnk_path: path.to_string_lossy().into_owned(),
+        })
+}
+
+/// Validate that a filesystem path is a plausible BOINC Manager autostart
+/// entry before we mutate it. Guards against an XSS-compromised frontend
+/// passing an arbitrary user-writable path into
+/// `disable_boinc_manager_autostart`.
+///
+/// `expected_dirs` is the list of directories where the matching kind of
+/// autostart entry can legitimately live; the path's immediate parent
+/// must equal one of them. `filename_ok` is the same name matcher that
+/// `detect_boinc_manager_autostart` used to find the file in the first place.
+///
+/// In `cfg(test)` the directory check is skipped so unit tests can operate
+/// on `tempfile::tempdir()` without needing root-writable mock paths; the
+/// filename matcher still runs.
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows", test))]
+fn validate_autostart_path(
+    path: &std::path::Path,
+    expected_dirs: &[std::path::PathBuf],
+    filename_ok: impl Fn(&str) -> bool,
+) -> Result<(), String> {
+    let filename = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| "autostart path has no filename".to_string())?;
+    if !filename_ok(filename) {
+        return Err(format!(
+            "{filename} does not match a BOINC Manager autostart entry"
+        ));
+    }
+    #[cfg(not(test))]
+    {
+        let parent = path
+            .parent()
+            .ok_or_else(|| "autostart path has no parent directory".to_string())?;
+        if !expected_dirs.iter().any(|d| d == parent) {
+            return Err(format!(
+                "{} is not in an expected autostart directory",
+                path.display()
+            ));
+        }
+    }
+    #[cfg(test)]
+    {
+        let _ = expected_dirs;
+    }
+    Ok(())
+}
+
+/// Rename `path` to `path + ".fresco-disabled"`, replacing any existing
+/// disabled file from a previous run.
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows", test))]
+fn rename_with_disabled_suffix(path: &std::path::Path) -> std::io::Result<std::path::PathBuf> {
+    let mut new_name = path.file_name().unwrap_or_default().to_os_string();
+    new_name.push(".fresco-disabled");
+    let dest = path.with_file_name(new_name);
+    if dest.exists() {
+        std::fs::remove_file(&dest)?;
+    }
+    std::fs::rename(path, &dest)?;
+    Ok(dest)
+}
+
+#[tauri::command]
+fn disable_boinc_manager_autostart(info: ManagerAutostartInfo) -> Result<(), String> {
+    match info {
+        ManagerAutostartInfo::MacLaunchAgent { plist_path } => {
+            #[cfg(target_os = "macos")]
+            {
+                let path = std::path::Path::new(&plist_path);
+                validate_autostart_path(path, &mac_launchagent_dirs(), is_manager_plist_name)?;
+                // Best-effort unload — ignore errors because the agent may not
+                // be currently loaded (e.g. the user just installed Manager
+                // and hasn't rebooted yet).
+                let _ = std::process::Command::new("launchctl")
+                    .args(["unload", &plist_path])
+                    .output();
+                rename_with_disabled_suffix(path)
+                    .map_err(|e| format!("Failed to rename {plist_path}: {e}"))?;
+                Ok(())
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = plist_path;
+                Err("MacLaunchAgent only valid on macOS".to_string())
+            }
+        }
+        ManagerAutostartInfo::MacLoginItem => {
+            // Login Items registered via SMAppService are opaque to third-party
+            // apps. Signal the frontend to deep-link the user to System Settings.
+            Err("manual".to_string())
+        }
+        ManagerAutostartInfo::WindowsRunKey { hive, value_name } => {
+            #[cfg(target_os = "windows")]
+            {
+                use winreg::enums::*;
+                use winreg::types::FromRegValue;
+                use winreg::RegKey;
+                let hkey = match hive.as_str() {
+                    "HKCU" => HKEY_CURRENT_USER,
+                    "HKLM" => HKEY_LOCAL_MACHINE,
+                    other => return Err(format!("Unknown hive: {other}")),
+                };
+                let root = RegKey::predef(hkey);
+                // Editing HKLM almost always requires admin. Map permission
+                // failures on any HKLM op to the "manual" sentinel so the
+                // frontend shows an instructional fallback instead of a
+                // generic error toast.
+                let map_permission =
+                    |err: std::io::Error| -> String {
+                        if hive == "HKLM"
+                            && err.kind() == std::io::ErrorKind::PermissionDenied
+                        {
+                            "manual".to_string()
+                        } else {
+                            err.to_string()
+                        }
+                    };
+                let run = root
+                    .open_subkey_with_flags(
+                        r"Software\Microsoft\Windows\CurrentVersion\Run",
+                        KEY_QUERY_VALUE | KEY_SET_VALUE,
+                    )
+                    .map_err(|e| {
+                        let msg = map_permission(e);
+                        if msg == "manual" {
+                            msg
+                        } else {
+                            format!("Open Run key: {msg}")
+                        }
+                    })?;
+                // Re-read the value and confirm it still points at BOINC
+                // Manager before deleting — guards against the frontend
+                // asking us to delete an arbitrary Run key entry.
+                let value = run
+                    .get_raw_value(&value_name)
+                    .map_err(|e| format!("Read value {value_name}: {e}"))?;
+                if !matches!(value.vtype, REG_SZ | REG_EXPAND_SZ) {
+                    return Err(format!(
+                        "{value_name} is not a string value; refusing to delete"
+                    ));
+                }
+                let data = String::from_reg_value(&value)
+                    .map_err(|e| format!("Decode value {value_name}: {e}"))?;
+                if !data.to_ascii_lowercase().contains("boincmgr") {
+                    return Err(format!(
+                        "{value_name} does not reference boincmgr; refusing to delete"
+                    ));
+                }
+                run.delete_value(&value_name).map_err(|e| {
+                    let msg = map_permission(e);
+                    if msg == "manual" {
+                        msg
+                    } else {
+                        format!("Delete value {value_name}: {msg}")
+                    }
+                })?;
+                Ok(())
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                let _ = (hive, value_name);
+                Err("WindowsRunKey only valid on Windows".to_string())
+            }
+        }
+        ManagerAutostartInfo::WindowsStartupShortcut { lnk_path } => {
+            #[cfg(target_os = "windows")]
+            {
+                let path = std::path::Path::new(&lnk_path);
+                let startup_dirs = std::env::var_os("APPDATA")
+                    .map(|appdata| {
+                        vec![std::path::PathBuf::from(appdata)
+                            .join(r"Microsoft\Windows\Start Menu\Programs\Startup")]
+                    })
+                    .unwrap_or_default();
+                validate_autostart_path(path, &startup_dirs, |name| {
+                    let lower = name.to_ascii_lowercase();
+                    lower.ends_with(".lnk")
+                        && (lower.contains("boincmgr") || lower.contains("boinc manager"))
+                        && !lower.ends_with(".fresco-disabled")
+                })?;
+                rename_with_disabled_suffix(path)
+                    .map_err(|e| format!("Failed to rename {lnk_path}: {e}"))?;
+                Ok(())
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                let _ = lnk_path;
+                Err("WindowsStartupShortcut only valid on Windows".to_string())
+            }
+        }
+        ManagerAutostartInfo::LinuxAutostart { desktop_path, system_wide } => {
+            if system_wide {
+                // We can't rename files under /etc/xdg/autostart without root.
+                // Ask the frontend to show instructions.
+                return Err("manual".to_string());
+            }
+            let path = std::path::Path::new(&desktop_path);
+            #[cfg(target_os = "linux")]
+            let dirs: Vec<std::path::PathBuf> = linux_autostart_dirs()
+                .into_iter()
+                .filter(|(_, sys)| !*sys)
+                .map(|(d, _)| d)
+                .collect();
+            #[cfg(not(target_os = "linux"))]
+            let dirs: Vec<std::path::PathBuf> = Vec::new();
+            validate_autostart_path(path, &dirs, is_manager_desktop_name)?;
+            rename_with_disabled_suffix(path)
+                .map_err(|e| format!("Failed to rename {desktop_path}: {e}"))?;
+            Ok(())
+        }
+    }
+}
+
+#[cfg(test)]
+mod manager_autostart_tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn plist_name_matcher_accepts_official_and_rejects_client() {
+        assert!(is_manager_plist_name("edu.berkeley.boinc.Manager.plist"));
+        assert!(is_manager_plist_name("edu.berkeley.BOINCManager.plist"));
+        assert!(is_manager_plist_name("com.example.BoincManager.plist"));
+
+        // Critical: must not match the client daemon.
+        assert!(!is_manager_plist_name("edu.berkeley.boinc.plist"));
+        assert!(!is_manager_plist_name("edu.berkeley.boinc-client.plist"));
+
+        // Previously-disabled files are ignored so re-runs don't loop.
+        assert!(!is_manager_plist_name(
+            "edu.berkeley.boinc.Manager.plist.fresco-disabled"
+        ));
+        assert!(!is_manager_plist_name("unrelated.plist"));
+    }
+
+    #[test]
+    fn desktop_name_matcher_accepts_manager_variants() {
+        assert!(is_manager_desktop_name("boincmgr.desktop"));
+        assert!(is_manager_desktop_name("boinc-manager.desktop"));
+        assert!(is_manager_desktop_name("BOINCMgr.desktop"));
+        assert!(!is_manager_desktop_name("boincmgr.desktop.fresco-disabled"));
+        assert!(!is_manager_desktop_name("firefox.desktop"));
+        assert!(!is_manager_desktop_name("boincmgr.txt"));
+    }
+
+    #[test]
+    fn find_first_matching_file_returns_match_and_none() {
+        let tmp = tempfile::tempdir().unwrap();
+        fs::write(tmp.path().join("noise.plist"), b"").unwrap();
+        fs::write(tmp.path().join("edu.berkeley.boinc.Manager.plist"), b"").unwrap();
+
+        let found = find_first_matching_file(
+            &[tmp.path().to_path_buf()],
+            is_manager_plist_name,
+        );
+        assert!(found.is_some());
+        assert!(found.unwrap().to_string_lossy().ends_with("Manager.plist"));
+
+        let empty = tempfile::tempdir().unwrap();
+        assert!(find_first_matching_file(
+            &[empty.path().to_path_buf()],
+            is_manager_plist_name,
+        ).is_none());
+    }
+
+    #[test]
+    fn find_first_matching_skips_missing_dirs() {
+        let tmp = tempfile::tempdir().unwrap();
+        fs::write(tmp.path().join("boinc-manager.desktop"), b"").unwrap();
+
+        let mut dirs = vec![std::path::PathBuf::from("/nonexistent/does/not/exist")];
+        dirs.push(tmp.path().to_path_buf());
+
+        let found = find_first_matching_file(&dirs, is_manager_desktop_name);
+        assert!(found.is_some());
+    }
+
+    #[test]
+    fn rename_with_disabled_suffix_renames_and_overwrites() {
+        let tmp = tempfile::tempdir().unwrap();
+        let original = tmp.path().join("boincmgr.desktop");
+        fs::write(&original, b"first").unwrap();
+
+        let disabled = rename_with_disabled_suffix(&original).unwrap();
+        assert!(!original.exists());
+        assert!(disabled.exists());
+        assert_eq!(fs::read(&disabled).unwrap(), b"first");
+
+        // A second disable on a fresh file must overwrite the leftover.
+        fs::write(&original, b"second").unwrap();
+        let disabled2 = rename_with_disabled_suffix(&original).unwrap();
+        assert_eq!(disabled, disabled2);
+        assert_eq!(fs::read(&disabled2).unwrap(), b"second");
+    }
+
+    #[test]
+    fn validate_autostart_path_rejects_mismatched_filename() {
+        let tmp = tempfile::tempdir().unwrap();
+        let bogus = tmp.path().join("important_user_file.plist");
+        let err = validate_autostart_path(&bogus, &[tmp.path().to_path_buf()], is_manager_plist_name)
+            .unwrap_err();
+        assert!(err.contains("does not match"));
+    }
+
+    #[test]
+    fn validate_autostart_path_accepts_matching_filename() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("edu.berkeley.boinc.Manager.plist");
+        validate_autostart_path(&path, &[tmp.path().to_path_buf()], is_manager_plist_name).unwrap();
+    }
+
+    #[test]
+    fn disable_rejects_mac_launch_agent_with_mismatched_filename() {
+        let tmp = tempfile::tempdir().unwrap();
+        let bogus = tmp.path().join("unrelated.plist");
+        #[cfg(target_os = "macos")]
+        std::fs::write(&bogus, b"").unwrap();
+        let err = disable_boinc_manager_autostart(ManagerAutostartInfo::MacLaunchAgent {
+            plist_path: bogus.to_string_lossy().into_owned(),
+        })
+        .unwrap_err();
+        // Either the filename-matcher rejects (macOS) or the "only valid on
+        // macOS" sentinel trips (non-macOS); both indicate we didn't rename.
+        assert!(err.contains("does not match") || err.contains("only valid on macOS"));
+    }
+
+    #[test]
+    fn disable_rejects_mac_login_item_with_manual_sentinel() {
+        // Frontend keys off the literal "manual" string to fall back to
+        // deep-linking System Settings, so this contract must not drift.
+        let err = disable_boinc_manager_autostart(ManagerAutostartInfo::MacLoginItem)
+            .unwrap_err();
+        assert_eq!(err, "manual");
+    }
+
+    #[test]
+    fn disable_rejects_system_wide_linux_autostart_with_manual_sentinel() {
+        let err = disable_boinc_manager_autostart(ManagerAutostartInfo::LinuxAutostart {
+            desktop_path: "/etc/xdg/autostart/boincmgr.desktop".into(),
+            system_wide: true,
+        })
+        .unwrap_err();
+        assert_eq!(err, "manual");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn disable_user_linux_autostart_renames_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("boinc-manager.desktop");
+        std::fs::write(&path, b"[Desktop Entry]\n").unwrap();
+
+        disable_boinc_manager_autostart(ManagerAutostartInfo::LinuxAutostart {
+            desktop_path: path.to_string_lossy().into_owned(),
+            system_wide: false,
+        })
+        .unwrap();
+
+        assert!(!path.exists());
+        assert!(path.with_file_name("boinc-manager.desktop.fresco-disabled").exists());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn disable_mac_launch_agent_renames_plist() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("edu.berkeley.boinc.Manager.plist");
+        std::fs::write(&path, b"<plist/>").unwrap();
+
+        disable_boinc_manager_autostart(ManagerAutostartInfo::MacLaunchAgent {
+            plist_path: path.to_string_lossy().into_owned(),
+        })
+        .unwrap();
+
+        assert!(!path.exists());
+        assert!(path
+            .with_file_name("edu.berkeley.boinc.Manager.plist.fresco-disabled")
+            .exists());
+    }
+}
+
+#[cfg(test)]
+mod install_options_tests {
+    use super::*;
+
+    #[test]
+    fn install_options_reports_current_platform() {
+        let opts = detect_boinc_install_options();
+        let expected = if cfg!(target_os = "windows") {
+            "windows"
+        } else if cfg!(target_os = "macos") {
+            "macos"
+        } else {
+            "linux"
+        };
+        assert_eq!(opts.platform, expected);
+    }
+
+    #[test]
+    fn install_options_boinc_present_matches_resolver() {
+        let opts = detect_boinc_install_options();
+        assert_eq!(opts.boinc_present, resolve_boinc_exe("").is_ok());
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn install_options_windows_has_empty_pm_list() {
+        let opts = detect_boinc_install_options();
+        assert!(opts.package_managers.is_empty());
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    #[tokio::test]
+    async fn install_boinc_via_brew_errors_on_non_macos() {
+        let err = install_boinc_via_brew().await.unwrap_err();
+        assert_eq!(err, "macOS-only");
+    }
+}
+
+#[tauri::command]
+fn open_login_items_settings() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg("x-apple.systempreferences:com.apple.LoginItems-Settings.extension")
+            .spawn()
+            .map_err(|e| format!("Failed to open System Settings: {e}"))?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("open_login_items_settings is macOS-only".to_string())
     }
 }
 
@@ -1098,6 +1840,11 @@ pub fn run() {
             get_newer_version,
             start_boinc_client,
             detect_boinc_client_dir,
+            detect_boinc_install_options,
+            install_boinc_via_brew,
+            detect_boinc_manager_autostart,
+            disable_boinc_manager_autostart,
+            open_login_items_settings,
             launch_graphics,
             launch_remote_desktop,
             exchange_versions,
