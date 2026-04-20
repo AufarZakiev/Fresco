@@ -41,10 +41,22 @@ invoke("get_build_time").then((bt) => {
   buildTime.value = bt;
 });
 
+// Each platform's updater expects a specific asset format. Enforcing the
+// extension prevents older releases that still ship `.app.zip` from being
+// offered on macOS, which the DMG-based updater cannot consume.
+const REQUIRED_EXTENSION: Record<string, string> = {
+  windows: ".exe",
+  macos: ".dmg",
+  linux: ".AppImage",
+};
+
 async function matchAsset(assets: GitHubAsset[]): Promise<string> {
   const [os, arch] = await Promise.all([getOS(), getArch()]);
   const pattern = platformAssetPattern(os, arch);
-  const match = assets.find((a) => a.name.includes(pattern));
+  const requiredExt = REQUIRED_EXTENSION[os];
+  const match = assets.find(
+    (a) => a.name.includes(pattern) && a.name.endsWith(requiredExt),
+  );
   return match?.browser_download_url ?? "";
 }
 
@@ -87,11 +99,20 @@ export async function checkForUpdates(force = false) {
     const releaseBuildTime = extractBuildTime(release.body ?? "");
 
     if (releaseBuildTime && releaseBuildTime !== bt) {
-      updateAvailable.value = true;
+      // Only surface the banner if the release ships an asset this platform
+      // can actually install. Otherwise (e.g. macOS release still on legacy
+      // .app.zip, or an architecture not built that day) we'd be teasing the
+      // user with a notification they can't act on.
+      const url = await matchAsset(release.assets);
+      if (!url) {
+        updateAvailable.value = false;
+        return;
+      }
+      assetUrl.value = url;
       releaseDate.value = release.published_at;
       releaseUrl.value = release.html_url;
-      assetUrl.value = await matchAsset(release.assets);
       dismissed.value = dismissedDate.value === release.published_at;
+      updateAvailable.value = true;
     } else {
       updateAvailable.value = false;
     }

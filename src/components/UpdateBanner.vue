@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { invoke } from "../lib/typedInvoke";
 import Tooltip from "./Tooltip.vue";
@@ -7,11 +7,21 @@ import {
   useUpdateCheck,
   startBackgroundDownload,
 } from "../composables/useUpdateCheck";
+import { getOS } from "../composables/usePlatform";
 
 const { t } = useI18n();
 const { releaseDate, assetUrl, updateOnExit, dismissUpdate } = useUpdateCheck();
 const updating = ref(false);
 const updateError = ref("");
+
+// "Update on exit" requires download_update + install_update, which on macOS
+// cannot run safely without a mounted DMG and atomic .app swap. Until that
+// lands (see AufarZakiev/Fresco#98), the only supported path on macOS is
+// "Update Now" which does the whole flow in one shot.
+const supportsUpdateOnExit = ref(true);
+onMounted(async () => {
+  supportsUpdateOnExit.value = (await getOS()) !== "macos";
+});
 
 function formatDate(iso: string): string {
   try {
@@ -83,7 +93,12 @@ function setUpdateOnExit() {
               : $t("updateBanner.updateNow")
           }}
         </button>
-        <button class="btn" :disabled="updating" @click="setUpdateOnExit">
+        <button
+          v-if="supportsUpdateOnExit"
+          class="btn"
+          :disabled="updating"
+          @click="setUpdateOnExit"
+        >
           {{ $t("updateBanner.updateOnExit") }}
         </button>
         <button class="btn" :disabled="updating" @click="dismissUpdate">
