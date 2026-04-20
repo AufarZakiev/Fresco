@@ -134,6 +134,36 @@ export type ConnectionState =
   | (typeof CONNECTION_STATE)[keyof typeof CONNECTION_STATE]
   | { Error: string };
 
+/**
+ * Describes a discovered autostart registration for the official BOINC Manager.
+ *
+ * Mirrors the Rust enum (serde `tag = "kind", content = "data"`). Frontend
+ * uses this to render the takeover dialog and to pass the same value back
+ * into `disable_boinc_manager_autostart` so the backend doesn't need to
+ * re-detect.
+ */
+export type ManagerAutostartInfo =
+  | { kind: "MacLaunchAgent"; data: { plist_path: string } }
+  | { kind: "MacLoginItem" }
+  | { kind: "WindowsRunKey"; data: { hive: string; value_name: string } }
+  | { kind: "WindowsStartupShortcut"; data: { lnk_path: string } }
+  | {
+      kind: "LinuxAutostart";
+      data: { desktop_path: string; system_wide: boolean };
+    };
+
+/**
+ * Hints for the first-run install onboarding when the BOINC client binary
+ * is missing. Mirrors the Rust struct returned by
+ * `detect_boinc_install_options`.
+ */
+export interface BoincInstallOptions {
+  boinc_present: boolean;
+  platform: "macos" | "linux" | "windows";
+  package_managers: string[];
+  official_download_url: string;
+}
+
 /** Sort direction constants. */
 export const SORT_DIR = {
   ASC: "asc",

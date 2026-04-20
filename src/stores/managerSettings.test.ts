@@ -27,6 +27,8 @@ describe("useManagerSettingsStore", () => {
     expect(store.settings.theme).toBe("system");
     expect(store.settings.showExitConfirmation).toBe(true);
     expect(store.settings.checkForUpdates).toBe(true);
+    expect(store.settings.onboardingCompleted).toBe(false);
+    expect(store.settings.installOnboardingCompleted).toBe(false);
   });
 
   it("loads saved settings from localStorage", () => {

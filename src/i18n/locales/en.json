@@ -707,5 +707,37 @@
     "newNoticesBody": "{count} new notice | {count} new notices",
     "connectionLostTitle": "Connection Lost",
     "connectionLostBody": "Lost connection to the BOINC client."
+  },
+  "onboarding": {
+    "takeover": {
+      "title": "Use Fresco as your BOINC manager?",
+      "lead": "We detected the official BOINC Manager set to start with your computer.",
+      "explanation": "Fresco and the BOINC Manager share the same computing engine, so only one is needed. We can turn off the Manager's autostart — your projects and progress stay untouched.",
+      "macLoginItemNote": "On this macOS version, login items must be turned off by hand. We'll open the right settings page for you.",
+      "useFrescoOnly": "Use Fresco only",
+      "keepBoth": "Keep both",
+      "successToast": "BOINC Manager autostart disabled.",
+      "manualToast": "Opened System Settings — turn off \"BOINCManager\" under Login Items.",
+      "linuxManualToast": "System-wide autostart at {path} — remove it as root to disable.",
+      "windowsHklmManualToast": "System-wide Run key \"{valueName}\" in HKLM — remove it from an elevated session to disable.",
+      "errorToast": "Could not disable BOINC Manager autostart."
+    },
+    "install": {
+      "title": "BOINC isn't installed yet",
+      "lead": "Fresco needs the BOINC computing engine to run tasks. We can set it up for you.",
+      "brewAction": "Install via Homebrew",
+      "brewInProgress": "Installing BOINC…",
+      "brewError": "Homebrew install failed. Please try again or install BOINC manually.",
+      "macosNoBrewLead": "Homebrew isn't available on this Mac. Download BOINC from the official site instead.",
+      "linuxLead": "Run this in your terminal to install the BOINC client:",
+      "linuxNoPmFallback": "No supported package manager was found. Download BOINC from the official site.",
+      "linuxCopyButton": "Copy",
+      "copied": "Command copied to clipboard.",
+      "windowsLead": "Download BOINC from the official site, then return here. Fresco will auto-connect once the client is running.",
+      "windowsManagerNote": "In the installer, uncheck \"BOINC Manager\" — Fresco replaces it.",
+      "downloadButton": "Download BOINC",
+      "showMore": "Other package managers",
+      "skip": "Skip"
+    }
   }
 }

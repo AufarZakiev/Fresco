@@ -25,6 +25,8 @@ import type {
   DailyXferHistory,
   OldResult,
   ConnectionState,
+  ManagerAutostartInfo,
+  BoincInstallOptions,
 } from "../types/boinc";
 import type { OS, Arch } from "../composables/usePlatform";
 
@@ -72,6 +74,24 @@ interface CommandMap {
   // BOINC client launcher
   start_boinc_client: { args: { dataDir: string; clientDir: string }; ret: void };
   detect_boinc_client_dir: { args: Record<string, never>; ret: string };
+
+  // BOINC install onboarding (first run, no binary)
+  detect_boinc_install_options: {
+    args: Record<string, never>;
+    ret: BoincInstallOptions;
+  };
+  install_boinc_via_brew: { args: Record<string, never>; ret: void };
+
+  // BOINC Manager takeover (onboarding)
+  detect_boinc_manager_autostart: {
+    args: Record<string, never>;
+    ret: ManagerAutostartInfo | null;
+  };
+  disable_boinc_manager_autostart: {
+    args: { info: ManagerAutostartInfo };
+    ret: void;
+  };
+  open_login_items_settings: { args: Record<string, never>; ret: void };
 
   // Other
   run_benchmarks: { args: Record<string, never>; ret: void };

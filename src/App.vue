@@ -32,6 +32,10 @@ import { useNoticesStore } from "./stores/notices";
 import { useDiskUsageStore } from "./stores/diskUsage";
 import { usePreferencesStore } from "./stores/preferences";
 import { useManagerSettingsStore } from "./stores/managerSettings";
+import { useToastStore } from "./stores/toast";
+import OnboardingTakeoverDialog from "./components/OnboardingTakeoverDialog.vue";
+import BoincInstallDialog from "./components/BoincInstallDialog.vue";
+import type { ManagerAutostartInfo, BoincInstallOptions } from "./types/boinc";
 import {
   setRunMode,
   setGpuMode,
@@ -53,7 +57,8 @@ const messagesStore = useMessagesStore();
 const noticesStore = useNoticesStore();
 const diskUsageStore = useDiskUsageStore();
 const preferencesStore = usePreferencesStore();
-useManagerSettingsStore(); // Initialize early to apply theme before ConnectView renders
+const managerSettingsStore = useManagerSettingsStore(); // Initialize early to apply theme before ConnectView renders
+const toastStore = useToastStore();
 const showPreferences = ref(false);
 const showAbout = ref(false);
 const showSelectComputer = ref(false);
@@ -175,12 +180,238 @@ async function autoConnect() {
   if (connection.state === CONNECTION_STATE.CONNECTED) {
     startAllPolling();
     router.push("/tasks");
+    // Flip out of the loading screen BEFORE awaiting onboarding —
+    // the dialog is mounted only inside the v-else branch, so leaving
+    // `initializing` true would mean the dialog never renders and the
+    // await below would hang the startup flow forever.
+    initializing.value = false;
+    await runOnboardingIfNeeded();
     invoke("cleanup_old_binary").catch(() => {});
-  } else {
-    // Auto-connect failed — show ConnectView
-    router.replace("/");
+    return;
   }
+
+  // Auto-connect failed. If the binary is missing, give the user a chance
+  // to install it; the install-onboarding dialog lives in the v-else branch
+  // so we must clear `initializing` before awaiting it (same reason as above).
   initializing.value = false;
+  if (autoConnectCancelled) return;
+
+  const recovered = await runInstallOnboardingIfNeeded(dataDir);
+  if (autoConnectCancelled) return;
+
+  if (recovered) {
+    startAllPolling();
+    router.push("/tasks");
+    await runOnboardingIfNeeded();
+    invoke("cleanup_old_binary").catch(() => {});
+    return;
+  }
+
+  router.replace("/");
+}
+
+// Tauri v2 rejects a command with either `Error: <msg>` or a named
+// `InvokeError: <msg>` prefix depending on how the error is constructed.
+// Normalize both shapes before comparing against sentinels like "manual".
+function errMessage(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  return raw.replace(/^(?:[A-Za-z]\w*Error|Error):\s*/, "").trim();
+}
+
+// ── BOINC install onboarding (no binary) ────────────────────────
+
+type InstallChoice = "install-succeeded" | "skip";
+
+const installOptions = ref<BoincInstallOptions | null>(null);
+const showInstallDialog = ref(false);
+const installing = ref(false);
+let installResolver: ((choice: InstallChoice) => void) | null = null;
+
+async function runInstallOnboardingIfNeeded(dataDir: string): Promise<boolean> {
+  if (managerSettingsStore.settings.installOnboardingCompleted) return false;
+
+  let opts: BoincInstallOptions | undefined;
+  try {
+    opts = await invoke("detect_boinc_install_options");
+  } catch {
+    // Detection failure shouldn't block startup — fall through to ConnectView.
+    return false;
+  }
+
+  if (!opts || opts.boinc_present) {
+    // Binary exists but we still couldn't connect — not an install problem.
+    return false;
+  }
+
+  installOptions.value = opts;
+  showInstallDialog.value = true;
+  loadingStatus.value = "";
+
+  const choice = await new Promise<InstallChoice>((resolve) => {
+    installResolver = resolve;
+  });
+  installResolver = null;
+  showInstallDialog.value = false;
+  installOptions.value = null;
+  managerSettingsStore.settings.installOnboardingCompleted = true;
+
+  if (choice !== "install-succeeded") return false;
+
+  try {
+    await connection.connectToLocal(dataDir);
+  } catch {
+    return false;
+  }
+  return connection.state === CONNECTION_STATE.CONNECTED;
+}
+
+async function handleInstallBrew() {
+  const dataDir = defaultDataDir(await getOS());
+  installing.value = true;
+  try {
+    await invoke("install_boinc_via_brew");
+    try {
+      await startBoincClient(dataDir);
+    } catch (err) {
+      const msg = errMessage(err).slice(0, 200);
+      toastStore.show(
+        msg || t("onboarding.install.brewError"),
+        "error",
+        8000,
+      );
+      installResolver?.("skip");
+      return;
+    }
+    installResolver?.("install-succeeded");
+  } catch (err) {
+    const msg = errMessage(err).slice(0, 200);
+    toastStore.show(
+      msg || t("onboarding.install.brewError"),
+      "error",
+      8000,
+    );
+    installResolver?.("skip");
+  } finally {
+    installing.value = false;
+  }
+}
+
+async function handleCopyCommand(cmd: string) {
+  try {
+    await navigator.clipboard.writeText(cmd);
+    toastStore.show(t("onboarding.install.copied"), "success");
+  } catch {
+    // Clipboard unavailable (e.g. insecure origin) — ignore silently; the
+    // command is still visible in the dialog for manual copy.
+  }
+}
+
+async function handleOpenUrl(url: string) {
+  try {
+    const { openUrl } = await import("@tauri-apps/plugin-opener");
+    await openUrl(url);
+  } catch {
+    window.open(url, "_blank");
+  }
+  installResolver?.("skip");
+}
+
+function handleSkipInstall() {
+  installResolver?.("skip");
+}
+
+// ── BOINC Manager takeover onboarding ───────────────────────────
+
+const onboardingInfo = ref<ManagerAutostartInfo | null>(null);
+const showOnboarding = ref(false);
+let onboardingResolver: (() => void) | null = null;
+
+async function runOnboardingIfNeeded() {
+  if (managerSettingsStore.settings.onboardingCompleted) return;
+
+  let info: ManagerAutostartInfo | null = null;
+  try {
+    info = await invoke("detect_boinc_manager_autostart");
+  } catch {
+    // Detection is best-effort — a failure shouldn't block the app.
+    managerSettingsStore.settings.onboardingCompleted = true;
+    return;
+  }
+
+  if (!info) {
+    managerSettingsStore.settings.onboardingCompleted = true;
+    return;
+  }
+
+  onboardingInfo.value = info;
+  showOnboarding.value = true;
+  loadingStatus.value = "";
+
+  await new Promise<void>((resolve) => {
+    onboardingResolver = resolve;
+  });
+  onboardingResolver = null;
+  managerSettingsStore.settings.onboardingCompleted = true;
+}
+
+async function handleTakeover() {
+  const info = onboardingInfo.value;
+  showOnboarding.value = false;
+  if (!info) {
+    onboardingResolver?.();
+    return;
+  }
+  try {
+    await invoke("disable_boinc_manager_autostart", { info });
+    toastStore.show(t("onboarding.takeover.successToast"), "success");
+  } catch (err) {
+    const message = errMessage(err);
+    if (message === "manual") {
+      if (info.kind === "MacLoginItem") {
+        // macOS SMAppService Login Items can't be toggled by third-party apps;
+        // point the user at the exact System Settings pane.
+        try {
+          await invoke("open_login_items_settings");
+        } catch {
+          // Ignore — the instructional toast still points the user at the setting.
+        }
+        toastStore.show(t("onboarding.takeover.manualToast"), "info", 8000);
+      } else if (
+        info.kind === "LinuxAutostart" &&
+        info.data.system_wide
+      ) {
+        // /etc/xdg/autostart can only be edited with root; show the path.
+        toastStore.show(
+          t("onboarding.takeover.linuxManualToast", {
+            path: info.data.desktop_path,
+          }),
+          "info",
+          10000,
+        );
+      } else if (info.kind === "WindowsRunKey" && info.data.hive === "HKLM") {
+        // HKLM\...\Run requires admin to delete. Rather than a cryptic
+        // permission-denied toast, point the user at the entry they need
+        // to remove manually (or re-run Fresco elevated).
+        toastStore.show(
+          t("onboarding.takeover.windowsHklmManualToast", {
+            valueName: info.data.value_name,
+          }),
+          "info",
+          10000,
+        );
+      } else {
+        toastStore.show(t("onboarding.takeover.errorToast"), "error");
+      }
+    } else {
+      toastStore.show(t("onboarding.takeover.errorToast"), "error");
+    }
+  }
+  onboardingResolver?.();
+}
+
+function handleKeepBoth() {
+  showOnboarding.value = false;
+  onboardingResolver?.();
 }
 
 function cancelAutoConnect() {
@@ -578,6 +809,22 @@ watch(
       v-if="showAcctMgr"
       :open="showAcctMgr"
       @close="showAcctMgr = false"
+    />
+    <OnboardingTakeoverDialog
+      :open="showOnboarding"
+      :info="onboardingInfo"
+      @takeover="handleTakeover"
+      @keep-both="handleKeepBoth"
+    />
+    <BoincInstallDialog
+      v-if="installOptions"
+      :open="showInstallDialog"
+      :options="installOptions"
+      :installing="installing"
+      @install="handleInstallBrew"
+      @skip="handleSkipInstall"
+      @copy-command="handleCopyCommand"
+      @open-url="handleOpenUrl"
     />
     <ToastContainer />
   </div>

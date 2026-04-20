@@ -707,5 +707,37 @@
     "newNoticesBody": "{count} новое уведомление | {count} новых уведомления | {count} новых уведомлений",
     "connectionLostTitle": "Соединение потеряно",
     "connectionLostBody": "Потеряно соединение с клиентом BOINC."
+  },
+  "onboarding": {
+    "takeover": {
+      "title": "Сделать Fresco вашим менеджером BOINC?",
+      "lead": "Мы обнаружили, что официальный BOINC Manager стартует вместе с системой.",
+      "explanation": "Fresco и BOINC Manager работают с одним и тем же вычислительным клиентом, второй GUI не нужен. Мы можем отключить автозапуск Manager — проекты и прогресс останутся на месте.",
+      "macLoginItemNote": "В этой версии macOS пункты автозапуска отключаются вручную. Мы откроем нужный раздел системных настроек.",
+      "useFrescoOnly": "Оставить только Fresco",
+      "keepBoth": "Оставить оба",
+      "successToast": "Автозапуск BOINC Manager отключён.",
+      "manualToast": "Открыли системные настройки — снимите «BOINCManager» в пункте автозапуска.",
+      "linuxManualToast": "Автозапуск задан на уровне системы ({path}) — удалите файл с правами root.",
+      "windowsHklmManualToast": "Системный Run-ключ «{valueName}» в HKLM — удалите его из сессии с правами администратора.",
+      "errorToast": "Не удалось отключить автозапуск BOINC Manager."
+    },
+    "install": {
+      "title": "BOINC ещё не установлен",
+      "lead": "Fresco нужен вычислительный клиент BOINC для запуска задач. Мы можем установить его за вас.",
+      "brewAction": "Установить через Homebrew",
+      "brewInProgress": "Устанавливаем BOINC…",
+      "brewError": "Не удалось установить через Homebrew. Попробуйте ещё раз или установите BOINC вручную.",
+      "macosNoBrewLead": "Homebrew не найден на этом Mac. Скачайте BOINC с официального сайта.",
+      "linuxLead": "Выполните в терминале, чтобы установить клиент BOINC:",
+      "linuxNoPmFallback": "Поддерживаемый пакетный менеджер не найден. Скачайте BOINC с официального сайта.",
+      "linuxCopyButton": "Копировать",
+      "copied": "Команда скопирована в буфер обмена.",
+      "windowsLead": "Скачайте BOINC с официального сайта и вернитесь сюда. Fresco автоматически подключится, когда клиент запустится.",
+      "windowsManagerNote": "В установщике снимите галочку «BOINC Manager» — Fresco заменяет его.",
+      "downloadButton": "Скачать BOINC",
+      "showMore": "Другие пакетные менеджеры",
+      "skip": "Пропустить"
+    }
   }
 }
