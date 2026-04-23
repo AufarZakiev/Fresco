@@ -52,6 +52,7 @@
       "progress": "進捗状況",
       "elapsed": "経過時間",
       "remaining": "残り時間",
+      "deadline": "締め切り",
       "status": "状態",
       "resources": "リソース",
       "task": "タスク"
@@ -90,6 +91,7 @@
     "addProject": "プロジェクトを追加",
     "accountManager": "アカウントマネージャ",
     "columns": "列",
+    "customizeColumns": "列の表示・非表示・並び替え",
     "loading": "プロジェクトを読み込み中...",
     "empty": "プロジェクトが追加されていません。",
     "col": {
@@ -98,6 +100,7 @@
       "team": "チーム",
       "totalCredit": "合計クレジット",
       "avgCredit": "平均クレジット",
+      "resourceShare": "リソース割り当て",
       "status": "状態",
       "source": "ソース"
     },

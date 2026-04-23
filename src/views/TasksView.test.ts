@@ -204,6 +204,28 @@ describe("TasksView", () => {
     expect(activeItem).toBeTruthy();
   });
 
+  it("renders the deadline column with a formatted date", () => {
+    const store = useTasksStore();
+    // Fixed epoch: 2023-11-14T22:13:20Z — rendered via toLocaleString,
+    // whose exact format depends on the JS runtime / locale, so only
+    // check that the expected year is shown in the deadline cell.
+    store.tasks = [makeTask({ report_deadline: 1700000000 })];
+
+    const wrapper = mount(TasksView);
+    const cell = wrapper.find("tbody tr .col-deadline");
+    expect(cell.exists()).toBe(true);
+    expect(cell.text()).toMatch(/2023/);
+  });
+
+  it("shows --- in deadline cell when report_deadline is 0", () => {
+    const store = useTasksStore();
+    store.tasks = [makeTask({ report_deadline: 0 })];
+
+    const wrapper = mount(TasksView);
+    const cell = wrapper.find("tbody tr .col-deadline");
+    expect(cell.text()).toBe("---");
+  });
+
   it("opens abort confirmation when Backspace is pressed with selection", async () => {
     const store = useTasksStore();
     store.tasks = [makeTask()];

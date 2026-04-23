@@ -428,6 +428,24 @@ describe("ProjectsView", () => {
     wrapper.unmount();
   });
 
+  it("renders the resource share column with value and percent of total", () => {
+    const store = useProjectsStore();
+    store.projects = [
+      makeProject({ project_name: "A", resource_share: 100 }),
+      makeProject({
+        master_url: "https://example2.com/",
+        project_name: "B",
+        resource_share: 300,
+      }),
+    ];
+
+    const wrapper = mount(ProjectsView);
+    const rowText = wrapper.findAll("tbody tr").map((r) => r.text()).join(" ");
+    // 100 out of 400 total = 25.00%, 300 out of 400 = 75.00%
+    expect(rowText).toContain("100 (25.00%)");
+    expect(rowText).toContain("300 (75.00%)");
+  });
+
   it("hides web links when multiple projects selected", async () => {
     const store = useProjectsStore();
     store.projects = [

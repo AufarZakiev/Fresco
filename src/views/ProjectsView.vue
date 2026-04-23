@@ -11,6 +11,7 @@ import StatusBadge from "../components/StatusBadge.vue";
 import ContextMenu from "../components/ContextMenu.vue";
 import type { ContextMenuItem } from "../components/ContextMenu.vue";
 import ItemPropertiesDialog from "../components/ItemPropertiesDialog.vue";
+import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import Tooltip from "../components/Tooltip.vue";
 import { onKeyStroke } from "@vueuse/core";
 import { useTableState } from "../composables/useTableState";
@@ -37,6 +38,7 @@ const allColumnKeys = [
   "team",
   "totalCredit",
   "avgCredit",
+  "resourceShare",
   "status",
   "source",
 ];
@@ -49,6 +51,7 @@ const {
   onColumnOrderChange,
 } = useTableState("projects", allColumnKeys, "project");
 const showProperties = ref(false);
+const showColumnDialog = ref(false);
 const propertiesProject = ref<Project | null>(null);
 const confirmAction = ref<{
   title: string;
@@ -64,6 +67,16 @@ const selectedViaContext = ref(false);
 
 function formatCredit(credit: number): string {
   return credit.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
+const totalResourceShare = computed(() =>
+  store.projects.reduce((sum, p) => sum + (p.resource_share || 0), 0),
+);
+
+function resourceSharePercent(share: number): number {
+  const total = totalResourceShare.value;
+  if (total <= 0) return 0;
+  return (share / total) * 100;
 }
 
 function projectStatus(project: Project): string {
@@ -111,6 +124,46 @@ const columns: ColumnDef<Project, unknown>[] = [
     header: () => t("projects.col.avgCredit"),
     cell: (info) => formatCredit(info.getValue() as number),
     meta: { align: "right", class: "col-number" } satisfies ColumnMeta,
+  },
+  {
+    id: "resourceShare",
+    accessorFn: (row) => row.resource_share,
+    header: () => t("projects.col.resourceShare"),
+    cell: (info) => {
+      const share = info.getValue() as number;
+      const pct = resourceSharePercent(share);
+      const shareStr = share.toLocaleString(undefined, {
+        maximumFractionDigits: 0,
+      });
+      const pctStr = pct.toFixed(2);
+      const total = totalResourceShare.value;
+      return h(
+        "div",
+        {
+          class: "share-bar",
+          title: total > 0 ? `${shareStr} (${pctStr}%)` : shareStr,
+          role: "progressbar",
+          "aria-valuenow": Math.round(pct),
+          "aria-valuemin": 0,
+          "aria-valuemax": 100,
+          "aria-valuetext": total > 0 ? `${pctStr}%` : shareStr,
+        },
+        [
+          h("div", { class: "share-track" }, [
+            h("div", {
+              class: "share-fill",
+              style: { width: `${Math.min(100, Math.max(0, pct))}%` },
+            }),
+          ]),
+          h(
+            "span",
+            { class: "share-text" },
+            total > 0 ? `${shareStr} (${pctStr}%)` : shareStr,
+          ),
+        ],
+      );
+    },
+    meta: { class: "col-share" } satisfies ColumnMeta,
   },
   {
     id: "status",
@@ -632,7 +685,22 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       @close="showProperties = false"
     />
 
+    <ColumnCustomizationDialog
+      :open="showColumnDialog"
+      :table="table"
+      @update-visibility="onColumnVisibilityChange"
+      @update-order="onColumnOrderChange"
+      @close="showColumnDialog = false"
+    />
+
     <div class="fab-group">
+      <Tooltip :text="$t('projects.customizeColumns')">
+        <button class="fab fab-small" @click.stop="showColumnDialog = true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+          </svg>
+        </button>
+      </Tooltip>
       <Tooltip :text="$t('sidebar.accountManager')">
         <button class="fab fab-small" @click.stop="openAcctMgr">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18">
@@ -733,6 +801,41 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 .col-number {
   font-family: monospace;
   text-align: right;
+}
+
+.col-share {
+  min-width: 160px;
+}
+
+:deep(.share-bar) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+:deep(.share-track) {
+  flex: 1;
+  height: 8px;
+  min-width: 60px;
+  background: var(--color-bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+:deep(.share-fill) {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 4px;
+  transition: width var(--transition-normal);
+}
+
+:deep(.share-text) {
+  font-family: monospace;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  text-align: right;
+  min-width: 80px;
 }
 
 /* Content layout */
@@ -842,7 +945,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 .fab-group {
   position: absolute;
   right: 24px;
-  bottom: calc(24px + var(--status-bar-offset, 0px));
+  bottom: 24px;
   z-index: 5;
   display: flex;
   align-items: center;

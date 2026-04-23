@@ -45,6 +45,7 @@ const allColumnKeys = [
   "progress",
   "elapsed",
   "remaining",
+  "deadline",
   "status",
   "resources",
   "task",
@@ -89,6 +90,11 @@ function formatTime(seconds: number): string {
 
 function formatPercent(fraction: number): string {
   return `${(fraction * 100).toFixed(2)}%`;
+}
+
+function formatDeadline(epoch: number): string {
+  if (!epoch) return "---";
+  return new Date(epoch * 1000).toLocaleString();
 }
 
 function taskStatus(task: {
@@ -201,6 +207,13 @@ const columns: ColumnDef<TaskResult, unknown>[] = [
     header: () => t("tasks.col.remaining"),
     cell: (info) => formatTime(info.getValue() as number),
     meta: { align: "right", class: "col-time" } satisfies ColumnMeta,
+  },
+  {
+    id: "deadline",
+    accessorFn: (row) => row.report_deadline,
+    header: () => t("tasks.col.deadline"),
+    cell: (info) => formatDeadline(info.getValue() as number),
+    meta: { class: "col-deadline" } satisfies ColumnMeta,
   },
   {
     id: "status",
@@ -702,6 +715,11 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
   text-align: right;
 }
 
+.col-deadline {
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+}
+
 :deep(.progress-bar) {
   display: flex;
   align-items: center;
@@ -811,7 +829,7 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 .fab {
   position: absolute;
   right: 24px;
-  bottom: calc(24px + var(--status-bar-offset, 0px));
+  bottom: 24px;
   width: 40px;
   height: 40px;
   border-radius: 12px;

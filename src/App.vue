@@ -965,6 +965,7 @@ select {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding-bottom: var(--status-bar-offset, 0px);
 }
 
 /* ── Sidebar ──────────────────────────────────────────────────── */

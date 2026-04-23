@@ -52,6 +52,7 @@
       "progress": "Progress",
       "elapsed": "Elapsed",
       "remaining": "Remaining",
+      "deadline": "Deadline",
       "status": "Status",
       "resources": "Resources",
       "task": "Task"
@@ -90,6 +91,7 @@
     "addProject": "Add Project",
     "accountManager": "Account Manager",
     "columns": "Columns",
+    "customizeColumns": "Show, hide, or reorder columns",
     "loading": "Loading projects...",
     "empty": "No projects attached.",
     "col": {
@@ -98,6 +100,7 @@
       "team": "Team",
       "totalCredit": "Total Credit",
       "avgCredit": "Avg Credit",
+      "resourceShare": "Resource Share",
       "status": "Status",
       "source": "Source"
     },

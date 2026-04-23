@@ -52,6 +52,7 @@
       "progress": "Progresso",
       "elapsed": "Decorrido",
       "remaining": "Restante",
+      "deadline": "Prazo",
       "status": "Status",
       "resources": "Recursos",
       "task": "Tarefa"
@@ -90,6 +91,7 @@
     "addProject": "Adicionar Projeto",
     "accountManager": "Gerenciador de contas",
     "columns": "Colunas",
+    "customizeColumns": "Exibir, ocultar ou reordenar colunas",
     "loading": "Carregando projetos...",
     "empty": "Nenhum projeto associado.",
     "col": {
@@ -98,6 +100,7 @@
       "team": "Equipe",
       "totalCredit": "Crédito total",
       "avgCredit": "Crédito médio",
+      "resourceShare": "Compartilhamento de recursos",
       "status": "Status",
       "source": "Origem"
     },

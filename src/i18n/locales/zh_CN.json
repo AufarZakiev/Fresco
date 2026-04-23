@@ -52,6 +52,7 @@
       "progress": "进度",
       "elapsed": "已用时间",
       "remaining": "剩余时间",
+      "deadline": "截止日期",
       "status": "统计",
       "resources": "资源",
       "task": "任务"
@@ -90,6 +91,7 @@
     "addProject": "添加项目",
     "accountManager": "账户管理器",
     "columns": "列",
+    "customizeColumns": "显示、隐藏或重新排列列",
     "loading": "正在加载项目...",
     "empty": "没有已添加的项目。",
     "col": {
@@ -98,6 +100,7 @@
       "team": "团队",
       "totalCredit": "总积分",
       "avgCredit": "平均积分",
+      "resourceShare": "资源分享",
       "status": "统计",
       "source": "来源"
     },

@@ -52,6 +52,7 @@
       "progress": "Fortschritt",
       "elapsed": "Vergangen",
       "remaining": "Verbleibend",
+      "deadline": "Frist",
       "status": "Status",
       "resources": "Ressourcen",
       "task": "Aufgabe"
@@ -90,6 +91,7 @@
     "addProject": "Projekt hinzufügen",
     "accountManager": "Kontomanager",
     "columns": "Spalten",
+    "customizeColumns": "Spalten ein-/ausblenden oder umsortieren",
     "loading": "Projekte werden geladen...",
     "empty": "Keine Projekte angehängt.",
     "col": {
@@ -98,6 +100,7 @@
       "team": "Team",
       "totalCredit": "Gesamtguthaben",
       "avgCredit": "Durchschn. Guthaben",
+      "resourceShare": "Ressourcenaufteilung",
       "status": "Status",
       "source": "Quelle"
     },
