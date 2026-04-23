@@ -1,12 +1,14 @@
 use quick_xml::events::Event;
 use quick_xml::Reader;
 
+use std::collections::HashMap;
+
 use super::types::{
     AccountOut, AcctMgrInfo, AcctMgrRpcReply, CcConfig, CcState, CcStatus, Coproc, DailyStats,
     DailyXfer, DailyXferHistory, DayOfWeekPrefs, DiskUsage, DiskUsageProject, FileTransfer,
     GlobalPreferences, GuiUrl, HostInfo, LogFlags, Message, NewerVersionInfo, Notice, OldResult,
     Project, ProjectAttachReply, ProjectConfig, ProjectInitStatus, ProjectListEntry,
-    ProjectStatistics, ProxyInfo, TaskResult, VersionInfo, WslDistro,
+    ProjectStatistics, ProxyInfo, TaskResult, VersionInfo, WorkunitApp, WslDistro,
 };
 
 /// Extract text content of an XML element, advancing the reader past its end tag.
@@ -1991,6 +1993,197 @@ pub fn parse_version_info(xml: &str) -> VersionInfo {
     info
 }
 
+/// Parse a `get_state` response and flatten the
+/// `<result>` → `<workunit>` → `<app>` chain into a list of `WorkunitApp`
+/// records. Within `<client_state>`, `<project>` sets the current project —
+/// subsequent sibling `<app>`/`<workunit>`/`<result>` blocks belong to it
+/// until the next `<project>` appears.
+pub fn parse_workunit_apps(xml: &str) -> Vec<WorkunitApp> {
+    struct ResultInfo {
+        project_url: String,
+        name: String,
+        wu_name: String,
+        plan_class: String,
+    }
+
+    let mut reader = Reader::from_str(xml);
+    let mut buf = Vec::new();
+
+    let mut current_project_url = String::new();
+    // (project_url, app_name) -> user_friendly_name
+    let mut apps: HashMap<(String, String), String> = HashMap::new();
+    // (project_url, wu_name) -> (app_name, sub_appname)
+    let mut workunits: HashMap<(String, String), (String, String)> = HashMap::new();
+    let mut results: Vec<ResultInfo> = Vec::new();
+
+    #[derive(PartialEq)]
+    enum Container {
+        None,
+        Project,
+        App,
+        Workunit,
+        Result,
+    }
+    let mut container = Container::None;
+    let mut in_active_task = false;
+
+    // scratch for the currently-open container
+    let mut proj_master_url = String::new();
+    let mut app_name = String::new();
+    let mut app_ufn = String::new();
+    let mut wu_name = String::new();
+    let mut wu_app_name = String::new();
+    let mut wu_sub_appname = String::new();
+    let mut res_name = String::new();
+    let mut res_wu_name = String::new();
+    let mut res_plan_class = String::new();
+
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(Event::Start(ref e)) => {
+                let tag = String::from_utf8_lossy(e.name().as_ref()).to_string();
+                match container {
+                    Container::None => match tag.as_str() {
+                        "project" => {
+                            container = Container::Project;
+                            proj_master_url.clear();
+                        }
+                        "app" => {
+                            container = Container::App;
+                            app_name.clear();
+                            app_ufn.clear();
+                        }
+                        "workunit" => {
+                            container = Container::Workunit;
+                            wu_name.clear();
+                            wu_app_name.clear();
+                            wu_sub_appname.clear();
+                        }
+                        "result" => {
+                            container = Container::Result;
+                            in_active_task = false;
+                            res_name.clear();
+                            res_wu_name.clear();
+                            res_plan_class.clear();
+                        }
+                        _ => {}
+                    },
+                    Container::Project => {
+                        if tag == "master_url" {
+                            proj_master_url = read_text(&mut reader);
+                        } else {
+                            // skip nested content
+                            let _ = read_text(&mut reader);
+                        }
+                    }
+                    Container::App => {
+                        let text = read_text(&mut reader);
+                        match tag.as_str() {
+                            "name" => app_name = text,
+                            "user_friendly_name" => app_ufn = text,
+                            _ => {}
+                        }
+                    }
+                    Container::Workunit => {
+                        let text = read_text(&mut reader);
+                        match tag.as_str() {
+                            "name" => wu_name = text,
+                            "app_name" => wu_app_name = text,
+                            "sub_appname" => wu_sub_appname = text,
+                            _ => {}
+                        }
+                    }
+                    Container::Result => {
+                        if tag == "active_task" {
+                            in_active_task = true;
+                        } else if in_active_task {
+                            let _ = read_text(&mut reader);
+                        } else {
+                            let text = read_text(&mut reader);
+                            match tag.as_str() {
+                                "name" => res_name = text,
+                                "wu_name" => res_wu_name = text,
+                                "plan_class" => res_plan_class = text,
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(Event::End(ref e)) => {
+                let tag = String::from_utf8_lossy(e.name().as_ref()).to_string();
+                match container {
+                    Container::Project if tag == "project" => {
+                        current_project_url = proj_master_url.clone();
+                        container = Container::None;
+                    }
+                    Container::App if tag == "app" => {
+                        if !app_name.is_empty() {
+                            apps.insert(
+                                (current_project_url.clone(), std::mem::take(&mut app_name)),
+                                std::mem::take(&mut app_ufn),
+                            );
+                        }
+                        container = Container::None;
+                    }
+                    Container::Workunit if tag == "workunit" => {
+                        if !wu_name.is_empty() {
+                            workunits.insert(
+                                (current_project_url.clone(), std::mem::take(&mut wu_name)),
+                                (
+                                    std::mem::take(&mut wu_app_name),
+                                    std::mem::take(&mut wu_sub_appname),
+                                ),
+                            );
+                        }
+                        container = Container::None;
+                    }
+                    Container::Result if tag == "result" => {
+                        if !res_name.is_empty() && !res_wu_name.is_empty() {
+                            results.push(ResultInfo {
+                                project_url: current_project_url.clone(),
+                                name: std::mem::take(&mut res_name),
+                                wu_name: std::mem::take(&mut res_wu_name),
+                                plan_class: std::mem::take(&mut res_plan_class),
+                            });
+                        }
+                        container = Container::None;
+                    }
+                    Container::Result if tag == "active_task" => {
+                        in_active_task = false;
+                    }
+                    _ => {}
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(_) => break,
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    results
+        .into_iter()
+        .filter_map(|r| {
+            let wu = workunits.get(&(r.project_url.clone(), r.wu_name.clone()))?;
+            let (wu_app_name, sub_appname) = wu;
+            let ufn = apps
+                .get(&(r.project_url.clone(), wu_app_name.clone()))
+                .cloned()
+                .unwrap_or_default();
+            Some(WorkunitApp {
+                project_url: r.project_url,
+                result_name: r.name,
+                wu_name: r.wu_name,
+                app_name: wu_app_name.clone(),
+                user_friendly_name: ufn,
+                plan_class: r.plan_class,
+                sub_appname: sub_appname.clone(),
+            })
+        })
+        .collect()
+}
+
 /// Parse `<client_state>` from a `get_state` response.
 pub fn parse_cc_state(xml: &str) -> CcState {
     let mut state = CcState {
@@ -2498,6 +2691,96 @@ mod tests {
     fn test_parse_success_unexpected() {
         let xml = "<boinc_gui_rpc_reply>\n<something_else/>\n</boinc_gui_rpc_reply>";
         assert!(parse_success(xml).is_err());
+    }
+
+    #[test]
+    fn test_parse_workunit_apps_joins_result_to_app() {
+        let xml = r#"
+<boinc_gui_rpc_reply>
+<client_state>
+<project>
+    <master_url>https://example.com/seti/</master_url>
+    <project_name>SETI@home</project_name>
+</project>
+<app>
+    <name>setiathome_v8</name>
+    <user_friendly_name>SETI@home v8</user_friendly_name>
+</app>
+<app_version>
+    <app_name>setiathome_v8</app_name>
+    <version_num>802</version_num>
+    <plan_class>opencl_nvidia_100</plan_class>
+</app_version>
+<workunit>
+    <name>18no09aa.wu_0</name>
+    <app_name>setiathome_v8</app_name>
+</workunit>
+<result>
+    <name>18no09aa.wu_0_1</name>
+    <wu_name>18no09aa.wu_0</wu_name>
+    <plan_class>opencl_nvidia_100</plan_class>
+</result>
+<project>
+    <master_url>https://example.com/rosetta/</master_url>
+    <project_name>Rosetta@home</project_name>
+</project>
+<app>
+    <name>rosetta</name>
+    <user_friendly_name>Rosetta Mini</user_friendly_name>
+</app>
+<workunit>
+    <name>rosetta_wu_1</name>
+    <app_name>rosetta</app_name>
+    <sub_appname>Rosetta Mini sub</sub_appname>
+</workunit>
+<result>
+    <name>rosetta_wu_1_0</name>
+    <wu_name>rosetta_wu_1</wu_name>
+    <plan_class>mt</plan_class>
+</result>
+</client_state>
+</boinc_gui_rpc_reply>"#;
+
+        let apps = parse_workunit_apps(xml);
+        assert_eq!(apps.len(), 2);
+
+        let seti = apps
+            .iter()
+            .find(|a| a.result_name == "18no09aa.wu_0_1")
+            .expect("seti result present");
+        assert_eq!(seti.project_url, "https://example.com/seti/");
+        assert_eq!(seti.wu_name, "18no09aa.wu_0");
+        assert_eq!(seti.app_name, "setiathome_v8");
+        assert_eq!(seti.user_friendly_name, "SETI@home v8");
+        assert_eq!(seti.plan_class, "opencl_nvidia_100");
+        assert_eq!(seti.sub_appname, "");
+
+        let rosetta = apps
+            .iter()
+            .find(|a| a.result_name == "rosetta_wu_1_0")
+            .expect("rosetta result present");
+        assert_eq!(rosetta.project_url, "https://example.com/rosetta/");
+        assert_eq!(rosetta.user_friendly_name, "Rosetta Mini");
+        assert_eq!(rosetta.sub_appname, "Rosetta Mini sub");
+        assert_eq!(rosetta.plan_class, "mt");
+    }
+
+    #[test]
+    fn test_parse_workunit_apps_skips_orphan_results() {
+        // Result with no matching workunit should be dropped.
+        let xml = r#"
+<boinc_gui_rpc_reply>
+<client_state>
+<project>
+    <master_url>https://example.com/p/</master_url>
+</project>
+<result>
+    <name>orphan_0</name>
+    <wu_name>nonexistent_wu</wu_name>
+</result>
+</client_state>
+</boinc_gui_rpc_reply>"#;
+        assert!(parse_workunit_apps(xml).is_empty());
     }
 
     #[test]

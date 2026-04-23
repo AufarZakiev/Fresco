@@ -25,6 +25,7 @@ import type {
   ProjectInitStatus,
   DailyXferHistory,
   OldResult,
+  WorkunitApp,
 } from "../types/boinc";
 
 /**
@@ -367,6 +368,10 @@ export async function exchangeVersions(): Promise<VersionInfo> {
 
 export async function getState(): Promise<CcState> {
   return invoke("get_state");
+}
+
+export async function getWorkunitApps(): Promise<WorkunitApp[]> {
+  return invoke("get_workunit_apps");
 }
 
 // ── Read commands ───────────────────────────────────────────────

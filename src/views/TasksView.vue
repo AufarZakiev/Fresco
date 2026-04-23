@@ -22,6 +22,7 @@ import { onKeyStroke } from "@vueuse/core";
 import { useTableState } from "../composables/useTableState";
 import { launchGraphics, launchRemoteDesktop } from "../composables/useRpc";
 import { useProjectsStore } from "../stores/projects";
+import { useWorkunitAppsStore } from "../stores/workunitApps";
 import { useToastStore } from "../stores/toast";
 import type { ColumnDef } from "@tanstack/vue-table";
 import {
@@ -33,6 +34,7 @@ import {
 const { t } = useI18n();
 const store = useTasksStore();
 const projectsStore = useProjectsStore();
+const workunitAppsStore = useWorkunitAppsStore();
 const toast = useToastStore();
 const actionBusy = ref(false);
 
@@ -47,6 +49,7 @@ const allColumnKeys = [
   "remaining",
   "deadline",
   "status",
+  "application",
   "resources",
   "task",
 ];
@@ -225,6 +228,14 @@ const columns: ColumnDef<TaskResult, unknown>[] = [
         { variant: statusVariant(info.row.original) },
         () => info.getValue() as string,
       ),
+  },
+  {
+    id: "application",
+    accessorFn: (row) =>
+      workunitAppsStore.appLabel(row.project_url, row.name) ?? "",
+    header: () => t("tasks.col.application"),
+    cell: (info) => (info.getValue() as string) || "---",
+    meta: { class: "col-application" } satisfies ColumnMeta,
   },
   {
     id: "resources",
@@ -718,6 +729,15 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 .col-deadline {
   white-space: nowrap;
   font-size: var(--font-size-sm);
+}
+
+.col-application {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 
 :deep(.progress-bar) {

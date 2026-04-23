@@ -85,6 +85,8 @@ export function handleIpc(cmd: string, payload?: InvokeArgs): unknown {
       return mockDailyXferHistory;
     case "get_state":
       return mockCcState;
+    case "get_workunit_apps":
+      return [];
     case "get_old_results":
       return mockOldResults;
     case "get_all_projects_list":

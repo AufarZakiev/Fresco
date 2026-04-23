@@ -3,7 +3,7 @@ use super::types::{
     AccountOut, AcctMgrInfo, AcctMgrRpcReply, CcConfig, CcState, CcStatus, DailyXferHistory,
     DiskUsage, FileTransfer, GlobalPreferences, HostInfo, Message, NewerVersionInfo, Notice,
     OldResult, Project, ProjectAttachReply, ProjectConfig, ProjectInitStatus, ProjectListEntry,
-    ProjectStatistics, ProxyInfo, TaskResult, VersionInfo,
+    ProjectStatistics, ProxyInfo, TaskResult, VersionInfo, WorkunitApp,
 };
 use super::xml_parse;
 
@@ -444,6 +444,14 @@ impl RpcClient {
     pub async fn get_state(&self) -> Result<CcState, String> {
         let xml = self.rpc_call("<get_state/>").await?;
         Ok(xml_parse::parse_cc_state(&xml))
+    }
+
+    /// Get the friendly-name mapping for each task (result → workunit → app).
+    /// Shells out to `get_state` because this data only lives in the full
+    /// client state, not in `get_results`.
+    pub async fn get_workunit_apps(&self) -> Result<Vec<WorkunitApp>, String> {
+        let xml = self.rpc_call("<get_state/>").await?;
+        Ok(xml_parse::parse_workunit_apps(&xml))
     }
 
     // ── Read commands ───────────────────────────────────────────

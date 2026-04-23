@@ -477,6 +477,22 @@ pub struct DailyXferHistory {
     pub daily_xfers: Vec<DailyXfer>,
 }
 
+/// Friendly name of the BOINC application that produced a task, joined via
+/// `<result>` → `<workunit>` → `<app>` from a `get_state` response. Keyed by
+/// `(project_url, result_name)`. The display name is either the workunit's
+/// `sub_appname` (if set) or the app's `user_friendly_name` plus the result's
+/// `plan_class` in parentheses (e.g. `"Rosetta Mini (mt)"`).
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct WorkunitApp {
+    pub project_url: String,
+    pub result_name: String,
+    pub wu_name: String,
+    pub app_name: String,
+    pub user_friendly_name: String,
+    pub plan_class: String,
+    pub sub_appname: String,
+}
+
 /// An old (completed) result.
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct OldResult {

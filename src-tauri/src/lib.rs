@@ -3,7 +3,7 @@ mod tray;
 mod updater;
 
 use rpc::{
-    AccountOut, AcctMgrInfo, AcctMgrRpcReply, CcConfig, CcState, CcStatus, ConnectionState,
+    AccountOut, AcctMgrInfo, AcctMgrRpcReply, CcConfig, CcState, CcStatus, ConnectionState, WorkunitApp,
     DailyXferHistory, DiskUsage, FileTransfer, GlobalPreferences, HostInfo, Message,
     NewerVersionInfo, Notice, OldResult, Project, ProjectAttachReply, ProjectConfig,
     ProjectInitStatus, ProjectListEntry, ProjectStatistics, ProxyInfo, RpcClient, TaskResult,
@@ -655,6 +655,15 @@ async fn get_state(
     let guard = state.client.lock().await;
     let client = guard.as_ref().ok_or("Not connected")?;
     client.get_state().await
+}
+
+#[tauri::command]
+async fn get_workunit_apps(
+    state: State<'_, AppState>,
+) -> Result<Vec<WorkunitApp>, String> {
+    let guard = state.client.lock().await;
+    let client = guard.as_ref().ok_or("Not connected")?;
+    client.get_workunit_apps().await
 }
 
 // ── Read commands ───────────────────────────────────────────────
@@ -1849,6 +1858,7 @@ pub fn run() {
             launch_remote_desktop,
             exchange_versions,
             get_state,
+            get_workunit_apps,
             read_global_prefs_override,
             read_cc_config,
             get_global_prefs_working,

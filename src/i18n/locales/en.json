@@ -54,6 +54,7 @@
       "remaining": "Remaining",
       "deadline": "Deadline",
       "status": "Status",
+      "application": "Application",
       "resources": "Resources",
       "task": "Task"
     },

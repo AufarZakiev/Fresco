@@ -27,6 +27,7 @@ import type {
   ConnectionState,
   ManagerAutostartInfo,
   BoincInstallOptions,
+  WorkunitApp,
 } from "../types/boinc";
 import type { OS, Arch } from "../composables/usePlatform";
 
@@ -155,6 +156,7 @@ interface CommandMap {
 
   // State
   get_state: { args: Record<string, never>; ret: CcState };
+  get_workunit_apps: { args: Record<string, never>; ret: WorkunitApp[] };
 
   // Read commands
   read_global_prefs_override: { args: Record<string, never>; ret: void };

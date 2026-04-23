@@ -30,6 +30,7 @@ import { useStatisticsStore } from "./stores/statistics";
 import { useMessagesStore } from "./stores/messages";
 import { useNoticesStore } from "./stores/notices";
 import { useDiskUsageStore } from "./stores/diskUsage";
+import { useWorkunitAppsStore } from "./stores/workunitApps";
 import { usePreferencesStore } from "./stores/preferences";
 import { useManagerSettingsStore } from "./stores/managerSettings";
 import { useToastStore } from "./stores/toast";
@@ -56,6 +57,7 @@ const statisticsStore = useStatisticsStore();
 const messagesStore = useMessagesStore();
 const noticesStore = useNoticesStore();
 const diskUsageStore = useDiskUsageStore();
+const workunitAppsStore = useWorkunitAppsStore();
 const preferencesStore = usePreferencesStore();
 const managerSettingsStore = useManagerSettingsStore(); // Initialize early to apply theme before ConnectView renders
 const toastStore = useToastStore();
@@ -152,6 +154,7 @@ function startAllPolling() {
   messagesStore.startPolling();
   noticesStore.startPolling();
   diskUsageStore.startPolling();
+  workunitAppsStore.startPolling();
   preferencesStore.prefetchPreferences();
 }
 

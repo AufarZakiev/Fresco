@@ -62,6 +62,7 @@ import {
   launchRemoteDesktop,
   exchangeVersions,
   getState,
+  getWorkunitApps,
   readGlobalPrefsOverride,
   readCcConfig,
   getGlobalPrefsWorking,
@@ -162,6 +163,11 @@ describe("useRpc", () => {
     it("getState calls correct command", async () => {
       await getState();
       expect(mockInvoke).toHaveBeenCalledWith("get_state");
+    });
+
+    it("getWorkunitApps calls correct command", async () => {
+      await getWorkunitApps();
+      expect(mockInvoke).toHaveBeenCalledWith("get_workunit_apps");
     });
   });
 

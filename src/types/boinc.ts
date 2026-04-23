@@ -568,3 +568,17 @@ export interface OldResult {
   completed_time: number;
   create_time: number;
 }
+
+/** Friendly BOINC application info for a task, joined from get_state's
+ *  `<result>` → `<workunit>` → `<app>` chain. Keyed by `(project_url, result_name)`.
+ *  Display label: `sub_appname` if set, otherwise `"{user_friendly_name} ({plan_class})"`.
+ */
+export interface WorkunitApp {
+  project_url: string;
+  result_name: string;
+  wu_name: string;
+  app_name: string;
+  user_friendly_name: string;
+  plan_class: string;
+  sub_appname: string;
+}
