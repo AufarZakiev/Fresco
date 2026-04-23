@@ -145,6 +145,7 @@ interface CommandMap {
   // CC Config
   get_cc_config: { args: Record<string, never>; ret: CcConfig };
   set_cc_config: { args: { config: CcConfig }; ret: void };
+  list_running_processes: { args: Record<string, never>; ret: string[] };
 
   // Version
   get_newer_version: { args: Record<string, never>; ret: NewerVersionInfo };

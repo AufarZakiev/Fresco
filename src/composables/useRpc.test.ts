@@ -57,6 +57,7 @@ import {
   setProxySettings,
   getCcConfig,
   setCcConfig,
+  listRunningProcesses,
   getNewerVersion,
   launchGraphics,
   launchRemoteDesktop,
@@ -452,6 +453,11 @@ describe("useRpc", () => {
       const config = { log_flags: {} } as never;
       await setCcConfig(config);
       expect(mockInvoke).toHaveBeenCalledWith("set_cc_config", { config });
+    });
+
+    it("listRunningProcesses calls correct command", async () => {
+      await listRunningProcesses();
+      expect(mockInvoke).toHaveBeenCalledWith("list_running_processes");
     });
   });
 

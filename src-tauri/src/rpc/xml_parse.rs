@@ -11,6 +11,20 @@ use super::types::{
     ProjectStatistics, ProxyInfo, TaskResult, VersionInfo, WorkunitApp, WslDistro,
 };
 
+/// Escape a string for embedding as XML element text.
+fn escape_xml_text(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
 /// Extract text content of an XML element, advancing the reader past its end tag.
 /// Handles both regular text and CDATA sections.
 fn read_text(reader: &mut Reader<&[u8]>) -> String {
@@ -1740,8 +1754,6 @@ pub fn parse_cc_config(xml: &str) -> CcConfig {
     let mut config = CcConfig::default();
     let mut in_config = false;
     let mut in_log_flags = false;
-    let mut in_exclusive_apps = false;
-    let mut in_exclusive_gpu_apps = false;
 
     loop {
         match reader.read_event_into(&mut buf) {
@@ -1751,7 +1763,7 @@ pub fn parse_cc_config(xml: &str) -> CcConfig {
                     "cc_config" | "config" => in_config = true,
                     "log_flags" if in_config => in_log_flags = true,
                     "options" if in_config => {} // container tag, just enter it
-                    "exclusive_app" if in_config && !in_exclusive_gpu_apps => {
+                    "exclusive_app" if in_config => {
                         let text = read_text(&mut reader);
                         config.exclusive_apps.push(text);
                     }
@@ -1812,8 +1824,6 @@ pub fn parse_cc_config(xml: &str) -> CcConfig {
                 match tag.as_str() {
                     "cc_config" | "config" => in_config = false,
                     "log_flags" => in_log_flags = false,
-                    "exclusive_apps" => in_exclusive_apps = false,
-                    "exclusive_gpu_apps" => in_exclusive_gpu_apps = false,
                     _ => {}
                 }
             }
@@ -1823,7 +1833,6 @@ pub fn parse_cc_config(xml: &str) -> CcConfig {
         }
         buf.clear();
     }
-    let _ = (in_exclusive_apps, in_exclusive_gpu_apps); // suppress unused warnings
     config
 }
 
@@ -1898,10 +1907,16 @@ fn log_flag_list(flags: &LogFlags) -> Vec<(&'static str, bool)> {
 pub fn serialize_cc_config(config: &CcConfig) -> String {
     let mut xml = String::from("<cc_config>\n<options>\n");
     for app in &config.exclusive_apps {
-        xml.push_str(&format!("<exclusive_app>{app}</exclusive_app>\n"));
+        xml.push_str(&format!(
+            "<exclusive_app>{}</exclusive_app>\n",
+            escape_xml_text(app)
+        ));
     }
     for app in &config.exclusive_gpu_apps {
-        xml.push_str(&format!("<exclusive_gpu_app>{app}</exclusive_gpu_app>\n"));
+        xml.push_str(&format!(
+            "<exclusive_gpu_app>{}</exclusive_gpu_app>\n",
+            escape_xml_text(app)
+        ));
     }
     if config.max_file_xfers > 0 {
         xml.push_str(&format!(
@@ -3271,6 +3286,23 @@ Computation started
         assert!(xml.contains("<task>1</task>"));
         assert!(xml.contains("<file_xfer>0</file_xfer>"));
         assert!(xml.contains("<max_file_xfers>6</max_file_xfers>"));
+    }
+
+    #[test]
+    fn test_serialize_cc_config_escapes_exclusive_app_names() {
+        let config = CcConfig {
+            exclusive_apps: vec!["rock & roll.exe".to_string(), "ng<foo>.exe".to_string()],
+            exclusive_gpu_apps: vec!["a&b.exe".to_string()],
+            ..Default::default()
+        };
+        let xml = serialize_cc_config(&config);
+        assert!(xml.contains("<exclusive_app>rock &amp; roll.exe</exclusive_app>"));
+        assert!(xml.contains("<exclusive_app>ng&lt;foo&gt;.exe</exclusive_app>"));
+        assert!(xml.contains("<exclusive_gpu_app>a&amp;b.exe</exclusive_gpu_app>"));
+
+        let reparsed = parse_cc_config(&xml);
+        assert_eq!(reparsed.exclusive_apps, config.exclusive_apps);
+        assert_eq!(reparsed.exclusive_gpu_apps, config.exclusive_gpu_apps);
     }
 
     #[test]

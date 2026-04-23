@@ -342,6 +342,10 @@ export async function setCcConfig(config: CcConfig): Promise<void> {
   return invoke("set_cc_config", { config });
 }
 
+export async function listRunningProcesses(): Promise<string[]> {
+  return invoke("list_running_processes");
+}
+
 // ── Version check ───────────────────────────────────────────────
 
 export async function getNewerVersion(): Promise<NewerVersionInfo> {

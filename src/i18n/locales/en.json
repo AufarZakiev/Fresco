@@ -339,8 +339,8 @@
       "leaveInMemory": "Leave apps in memory",
       "additionalBuffer": "Additional work buffer (days)",
       "schedulingPeriod": "CPU scheduling period (min)",
-      "exclusiveApps": "Exclusive Applications...",
-      "exclusiveAppsTooltip": "Apps that should suspend BOINC while running"
+      "exclusiveApps": "Pause BOINC When Apps Run...",
+      "exclusiveAppsTooltip": "Configure apps that pause BOINC tasks while they are running"
     },
     "network": {
       "maxDownload": "Max download rate (bytes/s)",
@@ -646,17 +646,37 @@
     "attachFailed": "Attach failed"
   },
   "exclusiveApps": {
-    "title": "Exclusive Applications",
+    "title": "Pause BOINC When These Apps Run",
     "loading": "Loading configuration...",
-    "cpuApps": "Exclusive CPU Applications",
-    "gpuApps": "Exclusive GPU Applications",
-    "noCpuApps": "No exclusive CPU applications configured.",
-    "noGpuApps": "No exclusive GPU applications configured.",
-    "appPlaceholder": "Application name",
-    "add": "Add",
+    "intro": "BOINC will pause work whenever any of these apps is running. Use \"All tasks\" to pause everything, or \"GPU tasks only\" when you just want GPUs idle (e.g. while gaming).",
+    "columnApp": "Application",
+    "columnScope": "Pauses",
+    "scopeAll": "All tasks",
+    "scopeGpu": "GPU tasks only",
+    "empty": "No apps yet. Add one below or pick a running process.",
+    "appPlaceholder": "e.g. photoshop.exe",
+    "addApp": "Add app",
+    "pickProcess": "Pick running process...",
+    "remove": "Remove",
+    "duplicate": "\"{name}\" is already in the list.",
     "cancel": "Cancel",
     "saving": "Saving...",
-    "save": "Save"
+    "save": "Save",
+    "discardTitle": "Discard changes?",
+    "discardBody": "You have unsaved changes. Discard them?",
+    "discardConfirm": "Discard",
+    "discardCancel": "Keep editing",
+    "picker": {
+      "title": "Running processes",
+      "search": "Filter processes...",
+      "loading": "Loading processes...",
+      "empty": "No processes found.",
+      "loadError": "Failed to load processes.",
+      "hideBoinc": "Hide BOINC processes",
+      "count": "{n} selected",
+      "add": "Add selected",
+      "cancel": "Cancel"
+    }
   },
   "managerOptions": {
     "title": "Manager Options",

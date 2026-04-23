@@ -624,6 +624,37 @@ async fn set_cc_config(
     client.set_cc_config(&config).await
 }
 
+/// List currently running processes by executable name.
+///
+/// Returns deduplicated, case-insensitively sorted names suitable for use as
+/// BOINC exclusive-app entries. On Windows the `.exe` suffix is preserved.
+#[tauri::command]
+async fn list_running_processes() -> Result<Vec<String>, String> {
+    use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, System};
+
+    tokio::task::spawn_blocking(|| {
+        let mut system = System::new();
+        system.refresh_processes_specifics(
+            ProcessesToUpdate::All,
+            true,
+            ProcessRefreshKind::nothing(),
+        );
+
+        let mut names: Vec<String> = system
+            .processes()
+            .values()
+            .filter_map(|p| p.name().to_str().map(|s| s.to_string()))
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        names.sort_by_key(|s| s.to_lowercase());
+        names.dedup_by(|a, b| a.eq_ignore_ascii_case(b));
+        names
+    })
+    .await
+    .map_err(|e| format!("Failed to enumerate processes: {e}"))
+}
+
 // ── Version check (Phase 6) ─────────────────────────────────────
 
 #[tauri::command]
@@ -1846,6 +1877,7 @@ pub fn run() {
             set_proxy_settings,
             get_cc_config,
             set_cc_config,
+            list_running_processes,
             get_newer_version,
             start_boinc_client,
             detect_boinc_client_dir,
