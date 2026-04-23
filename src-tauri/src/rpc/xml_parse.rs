@@ -2024,6 +2024,10 @@ pub fn parse_workunit_apps(xml: &str) -> Vec<WorkunitApp> {
     let mut reader = Reader::from_str(xml);
     let mut buf = Vec::new();
 
+    // Positional fallback: tracks the most recently closed <project>.
+    // BOINC's client_state output carries an explicit <project_url> inside
+    // <app>, <workunit>, and <result>, but we still accept positional
+    // tracking for other/legacy responses that omit it.
     let mut current_project_url = String::new();
     // (project_url, app_name) -> user_friendly_name
     let mut apps: HashMap<(String, String), String> = HashMap::new();
@@ -2046,12 +2050,15 @@ pub fn parse_workunit_apps(xml: &str) -> Vec<WorkunitApp> {
     let mut proj_master_url = String::new();
     let mut app_name = String::new();
     let mut app_ufn = String::new();
+    let mut app_project_url = String::new();
     let mut wu_name = String::new();
     let mut wu_app_name = String::new();
     let mut wu_sub_appname = String::new();
+    let mut wu_project_url = String::new();
     let mut res_name = String::new();
     let mut res_wu_name = String::new();
     let mut res_plan_class = String::new();
+    let mut res_project_url = String::new();
 
     loop {
         match reader.read_event_into(&mut buf) {
@@ -2067,12 +2074,14 @@ pub fn parse_workunit_apps(xml: &str) -> Vec<WorkunitApp> {
                             container = Container::App;
                             app_name.clear();
                             app_ufn.clear();
+                            app_project_url.clear();
                         }
                         "workunit" => {
                             container = Container::Workunit;
                             wu_name.clear();
                             wu_app_name.clear();
                             wu_sub_appname.clear();
+                            wu_project_url.clear();
                         }
                         "result" => {
                             container = Container::Result;
@@ -2080,6 +2089,7 @@ pub fn parse_workunit_apps(xml: &str) -> Vec<WorkunitApp> {
                             res_name.clear();
                             res_wu_name.clear();
                             res_plan_class.clear();
+                            res_project_url.clear();
                         }
                         _ => {}
                     },
@@ -2096,6 +2106,7 @@ pub fn parse_workunit_apps(xml: &str) -> Vec<WorkunitApp> {
                         match tag.as_str() {
                             "name" => app_name = text,
                             "user_friendly_name" => app_ufn = text,
+                            "project_url" => app_project_url = text,
                             _ => {}
                         }
                     }
@@ -2105,6 +2116,7 @@ pub fn parse_workunit_apps(xml: &str) -> Vec<WorkunitApp> {
                             "name" => wu_name = text,
                             "app_name" => wu_app_name = text,
                             "sub_appname" => wu_sub_appname = text,
+                            "project_url" => wu_project_url = text,
                             _ => {}
                         }
                     }
@@ -2119,6 +2131,7 @@ pub fn parse_workunit_apps(xml: &str) -> Vec<WorkunitApp> {
                                 "name" => res_name = text,
                                 "wu_name" => res_wu_name = text,
                                 "plan_class" => res_plan_class = text,
+                                "project_url" => res_project_url = text,
                                 _ => {}
                             }
                         }
@@ -2134,8 +2147,13 @@ pub fn parse_workunit_apps(xml: &str) -> Vec<WorkunitApp> {
                     }
                     Container::App if tag == "app" => {
                         if !app_name.is_empty() {
+                            let url = if !app_project_url.is_empty() {
+                                std::mem::take(&mut app_project_url)
+                            } else {
+                                current_project_url.clone()
+                            };
                             apps.insert(
-                                (current_project_url.clone(), std::mem::take(&mut app_name)),
+                                (url, std::mem::take(&mut app_name)),
                                 std::mem::take(&mut app_ufn),
                             );
                         }
@@ -2143,8 +2161,13 @@ pub fn parse_workunit_apps(xml: &str) -> Vec<WorkunitApp> {
                     }
                     Container::Workunit if tag == "workunit" => {
                         if !wu_name.is_empty() {
+                            let url = if !wu_project_url.is_empty() {
+                                std::mem::take(&mut wu_project_url)
+                            } else {
+                                current_project_url.clone()
+                            };
                             workunits.insert(
-                                (current_project_url.clone(), std::mem::take(&mut wu_name)),
+                                (url, std::mem::take(&mut wu_name)),
                                 (
                                     std::mem::take(&mut wu_app_name),
                                     std::mem::take(&mut wu_sub_appname),
@@ -2155,8 +2178,13 @@ pub fn parse_workunit_apps(xml: &str) -> Vec<WorkunitApp> {
                     }
                     Container::Result if tag == "result" => {
                         if !res_name.is_empty() && !res_wu_name.is_empty() {
+                            let url = if !res_project_url.is_empty() {
+                                std::mem::take(&mut res_project_url)
+                            } else {
+                                current_project_url.clone()
+                            };
                             results.push(ResultInfo {
-                                project_url: current_project_url.clone(),
+                                project_url: url,
                                 name: std::mem::take(&mut res_name),
                                 wu_name: std::mem::take(&mut res_wu_name),
                                 plan_class: std::mem::take(&mut res_plan_class),
@@ -2778,6 +2806,170 @@ mod tests {
         assert_eq!(rosetta.user_friendly_name, "Rosetta Mini");
         assert_eq!(rosetta.sub_appname, "Rosetta Mini sub");
         assert_eq!(rosetta.plan_class, "mt");
+    }
+
+    #[test]
+    fn test_parse_workunit_apps_handles_result_with_active_task() {
+        // Running tasks have an <active_task> block nested inside <result>.
+        // Regression: the parser must keep res_name / res_wu_name populated so
+        // running tasks still appear in the joined output.
+        let xml = r#"<boinc_gui_rpc_reply>
+<client_state>
+<project>
+    <master_url>https://example.com/p/</master_url>
+</project>
+<app>
+    <name>myapp</name>
+    <user_friendly_name>My App</user_friendly_name>
+</app>
+<workunit>
+    <name>wu1</name>
+    <app_name>myapp</app_name>
+</workunit>
+<result>
+    <name>res_running</name>
+    <wu_name>wu1</wu_name>
+    <plan_class>mt</plan_class>
+    <active_task>
+        <active_task_state>1</active_task_state>
+        <app_version_num>802</app_version_num>
+        <slot>0</slot>
+        <pid>1234</pid>
+        <scheduler_state>2</scheduler_state>
+        <fraction_done>0.25</fraction_done>
+        <checkpoint_cpu_time>100.0</checkpoint_cpu_time>
+        <needs_shmem/>
+    </active_task>
+</result>
+<result>
+    <name>res_queued</name>
+    <wu_name>wu1</wu_name>
+    <plan_class>mt</plan_class>
+</result>
+</client_state>
+</boinc_gui_rpc_reply>"#;
+        let apps = parse_workunit_apps(xml);
+        let names: Vec<_> = apps.iter().map(|a| a.result_name.as_str()).collect();
+        assert!(
+            names.contains(&"res_running"),
+            "running task missing from joined output; got {:?}",
+            names
+        );
+        assert!(
+            names.contains(&"res_queued"),
+            "queued task missing; got {:?}",
+            names
+        );
+    }
+
+    #[test]
+    fn test_parse_workunit_apps_handles_active_task_with_nested_children() {
+        // Some BOINC builds emit nested elements inside active_task
+        // (e.g. <graphics_exec_path>) which contain text that could bleed
+        // into sibling state if the skip path is wrong.
+        let xml = r#"<boinc_gui_rpc_reply>
+<client_state>
+<project>
+    <master_url>https://example.com/p/</master_url>
+</project>
+<app>
+    <name>myapp</name>
+    <user_friendly_name>My App</user_friendly_name>
+</app>
+<workunit>
+    <name>wu1</name>
+    <app_name>myapp</app_name>
+</workunit>
+<result>
+    <name>res_running</name>
+    <wu_name>wu1</wu_name>
+    <plan_class>mt</plan_class>
+    <active_task>
+        <active_task_state>1</active_task_state>
+        <graphics_exec_path>/path/to/graphics</graphics_exec_path>
+        <slot_path>/path/to/slot</slot_path>
+        <app_version>
+            <platform>x86_64</platform>
+            <version_num>802</version_num>
+        </app_version>
+    </active_task>
+</result>
+</client_state>
+</boinc_gui_rpc_reply>"#;
+        let apps = parse_workunit_apps(xml);
+        let names: Vec<_> = apps.iter().map(|a| a.result_name.as_str()).collect();
+        assert!(
+            names.contains(&"res_running"),
+            "running task missing when active_task has nested children; got {:?}",
+            names
+        );
+    }
+
+    #[test]
+    fn test_parse_workunit_apps_boinc_grouped_emission_order() {
+        // BOINC's client_state.xml emits ALL projects first, then ALL apps,
+        // then ALL workunits, then ALL results — not interleaved per project.
+        // Each child carries <project_url> so the join must use that, not
+        // positional tracking.
+        let xml = r#"<boinc_gui_rpc_reply>
+<client_state>
+<project>
+    <master_url>https://projA.example.com/</master_url>
+</project>
+<project>
+    <master_url>https://projB.example.com/</master_url>
+</project>
+<app>
+    <name>app_a</name>
+    <user_friendly_name>App A</user_friendly_name>
+    <project_url>https://projA.example.com/</project_url>
+</app>
+<app>
+    <name>app_b</name>
+    <user_friendly_name>App B</user_friendly_name>
+    <project_url>https://projB.example.com/</project_url>
+</app>
+<workunit>
+    <name>wu_a</name>
+    <app_name>app_a</app_name>
+    <project_url>https://projA.example.com/</project_url>
+</workunit>
+<workunit>
+    <name>wu_b</name>
+    <app_name>app_b</app_name>
+    <project_url>https://projB.example.com/</project_url>
+</workunit>
+<result>
+    <name>res_a</name>
+    <wu_name>wu_a</wu_name>
+    <project_url>https://projA.example.com/</project_url>
+</result>
+<result>
+    <name>res_b</name>
+    <wu_name>wu_b</wu_name>
+    <project_url>https://projB.example.com/</project_url>
+</result>
+</client_state>
+</boinc_gui_rpc_reply>"#;
+        let apps = parse_workunit_apps(xml);
+        let names: Vec<_> = apps.iter().map(|a| a.result_name.as_str()).collect();
+        assert!(
+            names.contains(&"res_a"),
+            "result res_a from project A missing; got {:?}",
+            names
+        );
+        assert!(
+            names.contains(&"res_b"),
+            "result res_b from project B missing; got {:?}",
+            names
+        );
+
+        let a = apps.iter().find(|a| a.result_name == "res_a").unwrap();
+        let b = apps.iter().find(|a| a.result_name == "res_b").unwrap();
+        assert_eq!(a.project_url, "https://projA.example.com/");
+        assert_eq!(a.user_friendly_name, "App A");
+        assert_eq!(b.project_url, "https://projB.example.com/");
+        assert_eq!(b.user_friendly_name, "App B");
     }
 
     #[test]
