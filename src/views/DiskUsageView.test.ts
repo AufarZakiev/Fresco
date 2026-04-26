@@ -68,10 +68,13 @@ describe("DiskUsageView", () => {
     const store = useDiskUsageStore();
     store.loading = false;
     store.usage = {
-      projects: [],
+      projects: [
+        { master_url: "https://a.org/", disk_usage: 30 * 1073741824 },
+        { master_url: "https://b.org/", disk_usage: 20 * 1073741824 },
+      ],
       d_total: 500 * 1073741824, // 500 GB
       d_free: 200 * 1073741824, // 200 GB
-      d_boinc: 50 * 1073741824, // 50 GB
+      d_boinc: 0, // ignored: BOINC usage is derived from per-project sum
       d_allowed: 100 * 1073741824, // 100 GB
     };
 
@@ -79,7 +82,7 @@ describe("DiskUsageView", () => {
     const text = wrapper.text();
     expect(text).toContain("500.0 GB");
     expect(text).toContain("200.0 GB");
-    expect(text).toContain("50.0 GB");
+    expect(text).toContain("50.0 GB"); // sum of project disk_usage
     expect(text).toContain("100.0 GB");
   });
 
@@ -201,6 +204,30 @@ describe("DiskUsageView", () => {
     const svg = wrapper.find("svg.doughnut-svg");
     expect(svg.attributes("role")).toBe("img");
     expect(svg.attributes("aria-label")).toBeTruthy();
+  });
+
+  // Regression test for issue #104: on some platforms (e.g. macOS Tahoe)
+  // BOINC's <d_boinc> field is much smaller than the actual sum of per-project
+  // disk_usage values. The "Used by BOINC" total must reflect the project sum,
+  // matching the BOINC Manager's behaviour.
+  it("uses sum of project disk_usage instead of d_boinc for total", () => {
+    const diskStore = useDiskUsageStore();
+    diskStore.loading = false;
+    diskStore.usage = {
+      projects: [
+        { master_url: "https://lhc.org/", disk_usage: 10 * 1073741824 }, // 10 GB
+        { master_url: "https://einstein.org/", disk_usage: 6 * 1073741824 }, // 6 GB
+      ],
+      d_total: 500 * 1073741824,
+      d_free: 200 * 1073741824,
+      d_boinc: 103 * 1048576, // 103 MB — wrong value reported by client
+      d_allowed: 100 * 1073741824,
+    };
+
+    const wrapper = mount(DiskUsageView);
+    const text = wrapper.text();
+    expect(text).toContain("16.0 GB"); // sum of projects
+    expect(text).not.toContain("103.0 MB"); // d_boinc is not displayed
   });
 
   it("renders SVG doughnut chart paths for projects", () => {

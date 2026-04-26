@@ -184,7 +184,7 @@ onUnmounted(() => {
                 {{ $t("disk.chartTotal") }}
               </text>
               <text x="120" y="134" class="center-value" text-anchor="middle">
-                {{ formatBytes(store.usage.d_boinc) }}
+                {{ formatBytes(totalProjectUsage) }}
               </text>
             </svg>
 
@@ -221,7 +221,7 @@ onUnmounted(() => {
           <div class="summary-card">
             <span class="summary-label">{{ $t("disk.boincUsage") }}</span>
             <span class="summary-value">{{
-              formatBytes(store.usage.d_boinc)
+              formatBytes(totalProjectUsage)
             }}</span>
           </div>
           <div class="summary-card">
