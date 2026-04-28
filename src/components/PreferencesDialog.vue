@@ -529,6 +529,28 @@ async function save() {
               class="prefs-section"
               tabindex="0"
             >
+              <h3 class="schedule-section-title">
+                {{ $t("prefs.schedule.overall") }}
+              </h3>
+              <div v-if="form" class="schedule-overall">
+                <TimeRangeSlider
+                  :start-hour="form.start_hour"
+                  :end-hour="form.end_hour"
+                  label="CPU"
+                  @update:start-hour="form.start_hour = $event"
+                  @update:end-hour="form.end_hour = $event"
+                />
+                <TimeRangeSlider
+                  :start-hour="form.net_start_hour"
+                  :end-hour="form.net_end_hour"
+                  label="Net"
+                  @update:start-hour="form.net_start_hour = $event"
+                  @update:end-hour="form.net_end_hour = $event"
+                />
+              </div>
+              <h3 class="schedule-section-title schedule-section-title--per-day">
+                {{ $t("prefs.schedule.perDay") }}
+              </h3>
               <p class="section-desc">{{ $t("prefs.schedule.desc") }}</p>
               <div class="schedule-days">
                 <div v-for="(day, i) in dayNames" :key="i" class="schedule-day">
@@ -949,6 +971,24 @@ async function save() {
 }
 
 /* ── Schedule tab ──────────────────────────────────────────────── */
+
+.schedule-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-xs) 0;
+}
+
+.schedule-section-title--per-day {
+  margin-top: var(--space-md);
+}
+
+.schedule-overall {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: var(--space-xs);
+}
 
 .schedule-days {
   display: flex;

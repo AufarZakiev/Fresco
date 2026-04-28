@@ -357,7 +357,9 @@
       "workBuffer": "Work buffer (days)"
     },
     "schedule": {
-      "desc": "Override computing and network hours for specific days. Unchecked days use the global hours set above.",
+      "desc": "Override computing and network hours for specific days. Unchecked days use the default hours set above.",
+      "overall": "Default daily schedule",
+      "perDay": "Per-day overrides",
       "allDay": "All day"
     },
     "manager": {
