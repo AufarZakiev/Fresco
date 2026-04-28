@@ -456,9 +456,16 @@
     "always": "Always",
     "auto": "Auto",
     "suspend": "Suspend",
+    "alwaysTooltip": "Always — run regardless of computing preferences",
+    "autoTooltip": "Auto — follow computing preferences",
+    "suspendTooltip": "Suspend",
     "cpuModeLabel": "CPU mode",
     "gpuModeLabel": "GPU mode",
-    "netModeLabel": "Network mode"
+    "netModeLabel": "Network mode",
+    "all": "All",
+    "allModeLabel": "All resources mode",
+    "expand": "Show individual controls",
+    "collapse": "Hide individual controls"
   },
   "statusBar": {
     "connected": "Connected",

@@ -44,82 +44,132 @@ describe("ActivityControls", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.restoreAllMocks();
+    localStorage.clear();
   });
 
-  it("renders three mode selectors", () => {
+  it("renders master row plus three per-resource rows (collapsed in DOM)", () => {
     const wrapper = mount(ActivityControls);
-    const selects = wrapper.findAll("select");
-    expect(selects).toHaveLength(3);
-  });
-
-  it("each select has an aria-label", () => {
-    const wrapper = mount(ActivityControls);
-    const selects = wrapper.findAll("select");
-
-    selects.forEach((select) => {
-      expect(select.attributes("aria-label")).toBeTruthy();
+    const groups = wrapper.findAll("[role='radiogroup']");
+    // master + cpu + gpu + net
+    expect(groups).toHaveLength(4);
+    groups.forEach((g) => {
+      expect(g.findAll("[role='radio']")).toHaveLength(3);
+      expect(g.attributes("aria-label")).toBeTruthy();
     });
   });
 
-  it("displays current mode values", () => {
+  it("master highlights the shared mode when all three resources match", () => {
     const store = useClientStore();
     store.status = {
       ...store.status,
-      task_mode_perm: RUN_MODE.ALWAYS,
-      gpu_mode_perm: RUN_MODE.NEVER,
+      task_mode_perm: RUN_MODE.AUTO,
+      gpu_mode_perm: RUN_MODE.AUTO,
       network_mode_perm: RUN_MODE.AUTO,
     };
 
     const wrapper = mount(ActivityControls);
-    const selects = wrapper.findAll("select");
-
-    expect((selects[0].element as HTMLSelectElement).value).toBe(
-      String(RUN_MODE.ALWAYS),
-    );
-    expect((selects[1].element as HTMLSelectElement).value).toBe(
-      String(RUN_MODE.NEVER),
-    );
-    expect((selects[2].element as HTMLSelectElement).value).toBe(
-      String(RUN_MODE.AUTO),
-    );
+    const master = wrapper.findAll("[role='radiogroup']")[0];
+    const active = master.find("[role='radio'][aria-checked='true']");
+    expect(active.exists()).toBe(true);
+    expect(active.attributes("data-mode")).toBe(String(RUN_MODE.AUTO));
   });
 
-  it("changing CPU mode calls store action", async () => {
+  it("master shows no active segment when modes differ", () => {
+    const store = useClientStore();
+    store.status = {
+      ...store.status,
+      task_mode_perm: RUN_MODE.AUTO,
+      gpu_mode_perm: RUN_MODE.AUTO,
+      network_mode_perm: RUN_MODE.NEVER,
+    };
+
+    const wrapper = mount(ActivityControls);
+    const master = wrapper.findAll("[role='radiogroup']")[0];
+    expect(master.find("[role='radio'][aria-checked='true']").exists()).toBe(false);
+  });
+
+  it("clicking a master segment sets all three resources", async () => {
     mockInvoke.mockImplementation(mockInvokeHandler as never);
 
     const wrapper = mount(ActivityControls);
-    const cpuSelect = wrapper.findAll("select")[0];
-    await cpuSelect.setValue(String(RUN_MODE.NEVER));
+    mockInvoke.mockClear();
+    const master = wrapper.findAll("[role='radiogroup']")[0];
+    await master.find(`[data-mode='${RUN_MODE.NEVER}']`).trigger("click");
 
     expect(mockInvoke).toHaveBeenCalledWith("set_run_mode", {
       mode: RUN_MODE.NEVER,
       duration: 0,
     });
-  });
-
-  it("changing GPU mode calls store action", async () => {
-    mockInvoke.mockImplementation(mockInvokeHandler as never);
-
-    const wrapper = mount(ActivityControls);
-    const gpuSelect = wrapper.findAll("select")[1];
-    await gpuSelect.setValue(String(RUN_MODE.ALWAYS));
-
     expect(mockInvoke).toHaveBeenCalledWith("set_gpu_mode", {
-      mode: RUN_MODE.ALWAYS,
+      mode: RUN_MODE.NEVER,
+      duration: 0,
+    });
+    expect(mockInvoke).toHaveBeenCalledWith("set_network_mode", {
+      mode: RUN_MODE.NEVER,
       duration: 0,
     });
   });
 
-  it("changing Network mode calls store action", async () => {
+  it("master skips RPCs for resources already in the target mode", async () => {
     mockInvoke.mockImplementation(mockInvokeHandler as never);
 
-    const wrapper = mount(ActivityControls);
-    const networkSelect = wrapper.findAll("select")[2];
-    await networkSelect.setValue(String(RUN_MODE.AUTO));
+    const store = useClientStore();
+    store.status = {
+      ...store.status,
+      task_mode_perm: RUN_MODE.AUTO,
+      gpu_mode_perm: RUN_MODE.AUTO,
+      network_mode_perm: RUN_MODE.NEVER,
+    };
 
+    const wrapper = mount(ActivityControls);
+    mockInvoke.mockClear();
+    const master = wrapper.findAll("[role='radiogroup']")[0];
+    await master.find(`[data-mode='${RUN_MODE.AUTO}']`).trigger("click");
+
+    expect(mockInvoke).not.toHaveBeenCalledWith("set_run_mode", expect.anything());
+    expect(mockInvoke).not.toHaveBeenCalledWith("set_gpu_mode", expect.anything());
     expect(mockInvoke).toHaveBeenCalledWith("set_network_mode", {
       mode: RUN_MODE.AUTO,
       duration: 0,
     });
+  });
+
+  it("clicking a per-resource segment calls only that store action", async () => {
+    mockInvoke.mockImplementation(mockInvokeHandler as never);
+
+    const wrapper = mount(ActivityControls);
+    mockInvoke.mockClear();
+    const cpu = wrapper.findAll("[role='radiogroup']")[1];
+    await cpu.find(`[data-mode='${RUN_MODE.NEVER}']`).trigger("click");
+
+    expect(mockInvoke).toHaveBeenCalledWith("set_run_mode", {
+      mode: RUN_MODE.NEVER,
+      duration: 0,
+    });
+    expect(mockInvoke).not.toHaveBeenCalledWith("set_gpu_mode", expect.anything());
+    expect(mockInvoke).not.toHaveBeenCalledWith("set_network_mode", expect.anything());
+  });
+
+  it("expand toggle flips aria-expanded and persists in localStorage", async () => {
+    const wrapper = mount(ActivityControls);
+    const toggle = wrapper.find("[data-testid='expand-toggle']");
+
+    expect(toggle.attributes("aria-expanded")).toBe("false");
+    expect(localStorage.getItem("fresco.activityControls.expanded")).toBeNull();
+
+    await toggle.trigger("click");
+    expect(toggle.attributes("aria-expanded")).toBe("true");
+    expect(localStorage.getItem("fresco.activityControls.expanded")).toBe("true");
+
+    await toggle.trigger("click");
+    expect(toggle.attributes("aria-expanded")).toBe("false");
+    expect(localStorage.getItem("fresco.activityControls.expanded")).toBe("false");
+  });
+
+  it("restores expanded state from localStorage on mount", () => {
+    localStorage.setItem("fresco.activityControls.expanded", "true");
+    const wrapper = mount(ActivityControls);
+    const toggle = wrapper.find("[data-testid='expand-toggle']");
+    expect(toggle.attributes("aria-expanded")).toBe("true");
   });
 });
