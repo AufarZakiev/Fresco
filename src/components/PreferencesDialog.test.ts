@@ -250,3 +250,67 @@ describe("PreferencesDialog ARIA tabs", () => {
     expect(queryVisibleTabPanel()!.id).toBe("tabpanel-storage");
   });
 });
+
+describe("PreferencesDialog Schedule per-day toggle", () => {
+  let wrapper: VueWrapper;
+
+  beforeEach(async () => {
+    document.body.textContent = "";
+    localStorage.clear();
+    setActivePinia(createPinia());
+
+    const store = usePreferencesStore();
+    store.prefetched = true;
+    store.prefs = { ...mockPreferences };
+  });
+
+  afterEach(() => {
+    wrapper?.unmount();
+    localStorage.clear();
+  });
+
+  it("starts collapsed by default and persists open state", async () => {
+    wrapper = mount(PreferencesDialog, {
+      props: { open: false },
+      attachTo: document.body,
+    });
+    await wrapper.setProps({ open: true });
+    await flushPromises();
+
+    const toggle = document.body.querySelector(
+      "[data-testid='per-day-toggle']",
+    ) as HTMLElement;
+    expect(toggle).not.toBeNull();
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    toggle.click();
+    await flushPromises();
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(localStorage.getItem("fresco.schedulePrefs.perDayExpanded")).toBe(
+      "true",
+    );
+
+    toggle.click();
+    await flushPromises();
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(localStorage.getItem("fresco.schedulePrefs.perDayExpanded")).toBe(
+      "false",
+    );
+  });
+
+  it("restores expanded state from localStorage on mount", async () => {
+    localStorage.setItem("fresco.schedulePrefs.perDayExpanded", "true");
+
+    wrapper = mount(PreferencesDialog, {
+      props: { open: false },
+      attachTo: document.body,
+    });
+    await wrapper.setProps({ open: true });
+    await flushPromises();
+
+    const toggle = document.body.querySelector(
+      "[data-testid='per-day-toggle']",
+    ) as HTMLElement;
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  });
+});
