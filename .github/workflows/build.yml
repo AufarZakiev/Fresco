@@ -165,7 +165,7 @@ jobs:
           cp artifacts/fresco-x86_64-apple-darwin/*.dmg release/Fresco_macOS_x86_64.dmg
           # Windows
           cp artifacts/fresco-x86_64-pc-windows-msvc/fresco.exe release/Fresco_Windows_x86_64.exe
-          cp artifacts/fresco-aarch64-pc-windows-msvc/fresco.exe release/Fresco_Windows_ARM64.exe 2>/dev/null || true
+          cp artifacts/fresco-aarch64-pc-windows-msvc/fresco.exe release/Fresco_Windows_ARM64.exe
 
       - name: Delete existing release
         env:
@@ -175,9 +175,40 @@ jobs:
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
+          BUILD_TIME: ${{ needs.lint.outputs.build_time }}
         run: |
+          cat > release-notes.md <<'EOF'
+          ## Install
+
+          | Platform | Asset |
+          |----------|-------|
+          | macOS (Apple Silicon) | `Fresco_macOS_ARM64.dmg` |
+          | macOS (Intel) | `Fresco_macOS_x86_64.dmg` |
+          | Windows (x86_64) | `Fresco_Windows_x86_64.exe` |
+          | Windows (ARM64) | `Fresco_Windows_ARM64.exe` |
+          | Linux (x86_64) | `Fresco_Linux_x86_64.AppImage` |
+          | Linux (ARM64) | `Fresco_Linux_ARM64.AppImage` |
+
+          ### First launch on macOS
+
+          Fresco is not yet signed with an Apple Developer ID, so macOS blocks the first launch.
+          Expected dialog: **"Fresco cannot be opened because the developer cannot be verified."**
+
+          1. Click **Done** in the warning.
+          2. Open **System Settings → Privacy & Security**.
+          3. Scroll to the bottom and click **Open Anyway** next to Fresco.
+          4. Confirm in the follow-up prompt.
+
+          macOS remembers the approval — subsequent launches open Fresco with a normal double-click.
+
+          ---
+          EOF
+          # Format must stay `build_time:<stamp>` (no space) — the app's
+          # update-check logic parses release notes with `/build_time:(\S+)/`.
+          # See src/composables/useUpdateCheck.ts -> extractBuildTime.
+          printf 'build_time:%s\n' "$BUILD_TIME" >> release-notes.md
           gh release create latest release/* \
             --title "Release $(date -u +'%Y-%m-%d %H:%M UTC')" \
-            --notes "build_time:${{ needs.lint.outputs.build_time }}" \
+            --notes-file release-notes.md \
             --latest \
             --draft=false
