@@ -9,6 +9,24 @@
 
 ## Записи
 
+## [2026-05-09] - Issue #106: statistics separate chart project names
+
+### Что сделано
+- Исправлен режим Statistics / All separated: заголовки отдельных графиков теперь используют `project_name` из текущего списка проектов по `master_url`, как уже делал unique project dropdown.
+- Fallback на URL сохранён для случаев, когда данные проекта ещё не загружены.
+- Добавлен unit-тест, который проверяет, что separate chart titles показывают имя проекта, а не URL.
+
+### Зачем
+Issue #106 описывал расхождение UX: unique project view показывал человекочитаемое имя проекта, а all separated view показывал URL.
+
+### Обновлено
+- [x] Тесты: frontend unit 620/620, `i18n:check` 0/0/0.
+- [x] `agent_docs/development-history.md`
+- [ ] `agent_docs/adr.md` — не требуется, изменение следует существующей модели сопоставления статистики с проектами по `master_url`.
+
+### Следующие шаги
+- Визуально проверить Statistics / All separated в desktop dev app.
+
 ## [2026-05-09] - Issue #105: project scheduler RPC status
 
 ### Что сделано

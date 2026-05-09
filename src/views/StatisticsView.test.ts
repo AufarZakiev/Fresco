@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises, VueWrapper } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import StatisticsView from "./StatisticsView.vue";
+import { useProjectsStore } from "../stores/projects";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
@@ -42,7 +43,7 @@ vi.mock("../components/EmptyState.vue", () => ({
 
 vi.mock("../components/StatisticsChart.vue", () => ({
   default: {
-    template: '<div class="statistics-chart"></div>',
+    template: '<div class="statistics-chart">{{ title }}</div>',
     props: ["data", "title", "enabledSeries"],
   },
 }));
@@ -91,6 +92,26 @@ describe("StatisticsView keyboard shortcuts", () => {
     pressKey("3");
     await wrapper.vm.$nextTick();
     expect(wrapper.find(".segment:nth-child(3)").classes()).toContain("active");
+  });
+
+  it("uses project names in separate chart titles", async () => {
+    const projectsStore = useProjectsStore();
+    projectsStore.projects = [
+      {
+        master_url: "https://example.com/",
+        project_name: "Example Project",
+      } as never,
+    ];
+
+    pressKey("3");
+    await wrapper.vm.$nextTick();
+
+    const chartTitles = wrapper.findAll(".statistics-chart").map((chart) =>
+      chart.text(),
+    );
+    expect(chartTitles).toContain("Example Project — Total Credit");
+    expect(chartTitles).toContain("Example Project — Average Credit");
+    expect(chartTitles.join(" ")).not.toContain("https://example.com/");
   });
 
   it("key u toggles user actor off then on", async () => {

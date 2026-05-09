@@ -55,18 +55,20 @@ const enabledAvgSeries = computed(() => {
   return set;
 });
 
+function projectLabel(masterUrl: string): string {
+  const project = projectsStore.projects.find(
+    (proj) => proj.master_url === masterUrl,
+  );
+  return project?.project_name || masterUrl;
+}
+
 const projectOptions = computed(() =>
   store.projectStats
     .filter((p) => hasRecentActivity(p.daily_statistics))
-    .map((p) => {
-      const project = projectsStore.projects.find(
-        (proj) => proj.master_url === p.master_url,
-      );
-      return {
-        url: p.master_url,
-        label: project?.project_name || p.master_url,
-      };
-    }),
+    .map((p) => ({
+      url: p.master_url,
+      label: projectLabel(p.master_url),
+    })),
 );
 
 const activeProject = computed(() => {
@@ -118,6 +120,7 @@ const separateCharts = computed(() => {
     .filter((p) => p.daily_statistics.length > 0)
     .map((p) => ({
       url: p.master_url,
+      label: projectLabel(p.master_url),
       data: [...p.daily_statistics].sort((a, b) => a.day - b.day),
     }));
 });
@@ -258,12 +261,12 @@ onKeyStroke("h", (e) => {
         <template v-for="chart in separateCharts" :key="chart.url">
           <StatisticsChart
             :data="chart.data"
-            :title="chart.url + ' — ' + $t('statistics.totalCredit')"
+            :title="chart.label + ' — ' + $t('statistics.totalCredit')"
             :enabled-series="enabledTotalSeries"
           />
           <StatisticsChart
             :data="chart.data"
-            :title="chart.url + ' — ' + $t('statistics.avgCredit')"
+            :title="chart.label + ' — ' + $t('statistics.avgCredit')"
             :enabled-series="enabledAvgSeries"
           />
         </template>
