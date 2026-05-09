@@ -1,7 +1,6 @@
 {
   "app": {
     "loading": {
-      "logo": "Fresco",
       "connectingLocal": "Подключение к локальному BOINC...",
       "startingBoinc": "Запуск BOINC, это может занять некоторое время...",
       "boincStarted": "BOINC запущен, подключение...",
@@ -21,14 +20,12 @@
     "hostInfo": "О компьютере",
     "transfers": "Передача",
     "eventLog": "Журнал событий",
-    "selectComputer": "Выбор компьютера",
     "preferences": "Настройки",
     "toggleSidebar": "Показать/скрыть боковую панель",
     "addProject": "Добавить проект",
     "accountManager": "Менеджер учётных записей"
   },
   "tasks": {
-    "title": "Задания",
     "activeOnly": "Только активные задания",
     "customizeColumns": "Настроить отображение столбцов",
     "suspend": "Приостановить",
@@ -37,7 +34,6 @@
     "abort": "Прервать обработку",
     "properties": "Информация",
     "nTasks": "{count} заданий выбрано",
-    "columns": "Столбцы",
     "tooltip": {
       "suspend": "Временно остановить выбранные задания",
       "resume": "Возобновить выбранные задания",
@@ -88,10 +84,6 @@
     }
   },
   "projects": {
-    "title": "Проекты",
-    "addProject": "Добавить проект",
-    "accountManager": "Менеджер учётных записей",
-    "columns": "Столбцы",
     "customizeColumns": "Настроить отображение столбцов",
     "loading": "Загрузка проектов...",
     "empty": "Нет подключённых проектов.",
@@ -112,7 +104,21 @@
     "status": {
       "active": "активна",
       "suspended": "приостановлена",
-      "noNewTasks": "Не запрашивать задания"
+      "noNewTasks": "Не запрашивать задания",
+      "schedulerRequestInProgress": "Запрос планировщика выполняется",
+      "schedulerRequestInProgressWithReason": "Запрос планировщика выполняется: {reason}",
+      "schedulerRequestPending": "Запрос планировщика ожидает: {reason}",
+      "communicationDeferred": "Связь отложена на {duration}"
+    },
+    "rpcReason": {
+      "userReq": "Запрошено пользователем",
+      "resultsDue": "Отправка завершённых заданий",
+      "needWork": "Получение заданий",
+      "trickleUp": "Отправка trickle-up сообщения",
+      "acctMgrReq": "Запрошено менеджером учётных записей",
+      "init": "Инициализация проекта",
+      "projectReq": "Запрошено проектом",
+      "unknown": "Неизвестная причина ({code})"
     },
     "drawer": {
       "update": "Обновить",
@@ -160,11 +166,9 @@
     "nProjects": "{count} проект | {count} проекта | {count} проектов"
   },
   "transfers": {
-    "title": "Передача",
     "retry": "Повторить",
     "abort": "Прервать обработку",
     "nTransfers": "{count} передач выбрано",
-    "columns": "Столбцы",
     "tooltip": {
       "retry": "Повторить выбранные передачи",
       "abort": "Отменить выбранные передачи"
@@ -196,8 +200,6 @@
     }
   },
   "messages": {
-    "title": "Журнал событий",
-    "loading": "Загрузка сообщений…",
     "logFlags": "Флаги журналирования...",
     "selectAll": "Выбрать все",
     "copySelected": "Копировать выбранные ({count})",
@@ -221,7 +223,6 @@
     }
   },
   "disk": {
-    "title": "Использование диска",
     "loading": "Загрузка данных о диске...",
     "empty": "Нет данных об использовании диска.",
     "boincByProject": "Использование BOINC по проектам",
@@ -233,7 +234,6 @@
     "chartLabel": "Диаграмма использования диска"
   },
   "host": {
-    "title": "Информация о компьютере",
     "loading": "Загрузка информации о компьютере...",
     "system": "Система",
     "hostname": "Имя хоста",
@@ -276,7 +276,6 @@
     "docker": "Docker"
   },
   "statistics": {
-    "title": "Статистика",
     "loading": "Загрузка статистики...",
     "empty": "Статистика пока недоступна. Подключите проект и начните вычисления.",
     "emptySeparate": "Нет статистики по проектам для отображения.",
@@ -290,7 +289,6 @@
     "chartLabel": "График статистики"
   },
   "notices": {
-    "title": "Уведомления",
     "loading": "Загрузка уведомлений...",
     "empty": "Нет уведомлений.",
     "noticeFromBoinc": "Уведомление от BOINC"
@@ -358,7 +356,9 @@
     },
     "schedule": {
       "desc": "Переопределение часов вычислений и работы сети для отдельных дней. Для неотмеченных дней используются глобальные настройки.",
-      "allDay": "Весь день"
+      "allDay": "Весь день",
+      "overall": "Default daily schedule",
+      "perDay": "Per-day overrides"
     },
     "manager": {
       "appearance": "Оформление",
@@ -453,12 +453,16 @@
     "cpu": "ЦП",
     "gpu": "GPU",
     "net": "Сеть",
-    "always": "всегда",
-    "auto": "Авто",
-    "suspend": "Приостановить",
     "cpuModeLabel": "Режим CPU",
     "gpuModeLabel": "Режим GPU",
-    "netModeLabel": "Режим сети"
+    "netModeLabel": "Режим сети",
+    "alwaysTooltip": "Always — run regardless of computing preferences",
+    "autoTooltip": "Auto — follow computing preferences",
+    "suspendTooltip": "Suspend",
+    "all": "All",
+    "allModeLabel": "All resources mode",
+    "expand": "Show individual controls",
+    "collapse": "Hide individual controls"
   },
   "statusBar": {
     "connected": "Соединение установлено",
@@ -656,7 +660,31 @@
     "add": "Добавить...",
     "cancel": "Отмена",
     "saving": "Сохранение...",
-    "save": "Сохранить"
+    "save": "Сохранить",
+    "intro": "BOINC will pause work whenever any of these apps is running. Use \"All tasks\" to pause everything, or \"GPU tasks only\" when you just want GPUs idle (e.g. while gaming).",
+    "columnApp": "Application",
+    "columnScope": "Pauses",
+    "scopeAll": "All tasks",
+    "scopeGpu": "GPU tasks only",
+    "empty": "No apps yet. Add one below or pick a running process.",
+    "addApp": "Add app",
+    "pickProcess": "Pick running process...",
+    "remove": "Remove",
+    "duplicate": "\"{name}\" is already in the list.",
+    "discardTitle": "Discard changes?",
+    "discardBody": "You have unsaved changes. Discard them?",
+    "discardConfirm": "Discard",
+    "picker": {
+      "title": "Running processes",
+      "search": "Filter processes...",
+      "loading": "Loading processes...",
+      "empty": "No processes found.",
+      "loadError": "Failed to load processes.",
+      "hideBoinc": "Hide BOINC processes",
+      "count": "{n} selected",
+      "add": "Add selected",
+      "cancel": "Cancel"
+    }
   },
   "managerOptions": {
     "title": "Настройки менеджера",

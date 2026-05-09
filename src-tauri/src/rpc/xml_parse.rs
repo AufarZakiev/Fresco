@@ -299,6 +299,10 @@ pub fn parse_projects(xml: &str) -> Vec<Project> {
                                 current.upload_backoff =
                                     text.parse().unwrap_or(0.0);
                             }
+                            "sched_rpc_pending" => {
+                                current.sched_rpc_pending =
+                                    text.parse().unwrap_or(0);
+                            }
                             "sched_priority" => {
                                 current.sched_priority =
                                     text.parse().unwrap_or(0.0);
@@ -322,6 +326,7 @@ pub fn parse_projects(xml: &str) -> Vec<Project> {
                             "venue" => current.venue = text,
                             "suspended_via_gui" => current.suspended_via_gui = true,
                             "dont_request_more_work" => current.dont_request_more_work = true,
+                            "scheduler_rpc_in_progress" => current.scheduler_rpc_in_progress = true,
                             "attached_via_acct_mgr" => current.attached_via_acct_mgr = true,
                             _ => {}
                         }
@@ -338,6 +343,9 @@ pub fn parse_projects(xml: &str) -> Vec<Project> {
                     }
                     "attached_via_acct_mgr" => {
                         current.attached_via_acct_mgr = true;
+                    }
+                    "scheduler_rpc_in_progress" => {
+                        current.scheduler_rpc_in_progress = true;
                     }
                     _ => {}
                 }
@@ -2644,6 +2652,29 @@ mod tests {
         assert!(!p.attached_via_acct_mgr);
         assert!(!p.suspended_via_gui);
         assert!(!p.dont_request_more_work);
+    }
+
+    #[test]
+    fn test_parse_project_scheduler_rpc_status() {
+        let xml = r#"
+<boinc_gui_rpc_reply>
+<projects>
+<project>
+    <master_url>https://example.com/project/</master_url>
+    <project_name>Example Project</project_name>
+    <sched_rpc_pending>3</sched_rpc_pending>
+    <min_rpc_time>1778337725.000000</min_rpc_time>
+    <scheduler_rpc_in_progress/>
+</project>
+</projects>
+</boinc_gui_rpc_reply>"#;
+
+        let projects = parse_projects(xml);
+        assert_eq!(projects.len(), 1);
+        let p = &projects[0];
+        assert_eq!(p.sched_rpc_pending, 3);
+        assert!((p.min_rpc_time - 1778337725.0).abs() < 0.01);
+        assert!(p.scheduler_rpc_in_progress);
     }
 
     #[test]

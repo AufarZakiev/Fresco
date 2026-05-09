@@ -1,7 +1,6 @@
 {
   "app": {
     "loading": {
-      "logo": "Fresco",
       "connectingLocal": "Connecting to a local BOINC...",
       "startingBoinc": "Starting BOINC, this may take a while...",
       "boincStarted": "BOINC started, connecting...",
@@ -21,14 +20,12 @@
     "hostInfo": "Host Info",
     "transfers": "Transfers",
     "eventLog": "Event Log",
-    "selectComputer": "Select Computer",
     "preferences": "Preferences",
     "toggleSidebar": "Toggle sidebar",
     "addProject": "Add Project",
     "accountManager": "Account Manager"
   },
   "tasks": {
-    "title": "Tasks",
     "activeOnly": "Active Tasks Only",
     "customizeColumns": "Show, hide, or reorder columns",
     "suspend": "Suspend",
@@ -37,7 +34,6 @@
     "abort": "Abort",
     "properties": "Properties",
     "nTasks": "{count} tasks selected",
-    "columns": "Columns",
     "tooltip": {
       "suspend": "Temporarily stop selected tasks",
       "resume": "Resume selected tasks",
@@ -88,10 +84,6 @@
     }
   },
   "projects": {
-    "title": "Projects",
-    "addProject": "Add Project",
-    "accountManager": "Account Manager",
-    "columns": "Columns",
     "customizeColumns": "Show, hide, or reorder columns",
     "loading": "Loading projects...",
     "empty": "No projects attached.",
@@ -112,7 +104,21 @@
     "status": {
       "active": "Active",
       "suspended": "Suspended",
-      "noNewTasks": "No new tasks"
+      "noNewTasks": "No new tasks",
+      "schedulerRequestInProgress": "Scheduler request in progress",
+      "schedulerRequestInProgressWithReason": "Scheduler request in progress: {reason}",
+      "schedulerRequestPending": "Scheduler request pending: {reason}",
+      "communicationDeferred": "Communication deferred {duration}"
+    },
+    "rpcReason": {
+      "userReq": "Requested by user",
+      "resultsDue": "To report completed tasks",
+      "needWork": "To fetch work",
+      "trickleUp": "To send trickle-up message",
+      "acctMgrReq": "Requested by account manager",
+      "init": "Project initialization",
+      "projectReq": "Requested by project",
+      "unknown": "Unknown reason ({code})"
     },
     "drawer": {
       "update": "Update",
@@ -160,11 +166,9 @@
     "nProjects": "{count} project | {count} projects"
   },
   "transfers": {
-    "title": "Transfers",
     "retry": "Retry",
     "abort": "Abort",
     "nTransfers": "{count} transfers selected",
-    "columns": "Columns",
     "tooltip": {
       "retry": "Retry selected transfers",
       "abort": "Cancel selected transfers"
@@ -196,8 +200,6 @@
     }
   },
   "messages": {
-    "title": "Event Log",
-    "loading": "Loading messages...",
     "logFlags": "Log Flags...",
     "selectAll": "Select All",
     "copySelected": "Copy Selected ({count})",
@@ -221,7 +223,6 @@
     }
   },
   "disk": {
-    "title": "Disk Usage",
     "loading": "Loading disk usage...",
     "empty": "No disk usage data available.",
     "boincByProject": "BOINC Usage by Project",
@@ -233,7 +234,6 @@
     "chartLabel": "Disk usage chart"
   },
   "host": {
-    "title": "Host Information",
     "loading": "Loading host information...",
     "system": "System",
     "hostname": "Hostname",
@@ -276,7 +276,6 @@
     "docker": "Docker"
   },
   "statistics": {
-    "title": "Statistics",
     "loading": "Loading statistics...",
     "empty": "No statistics available yet. Attach a project and compute to see data.",
     "emptySeparate": "No project statistics to display.",
@@ -290,7 +289,6 @@
     "chartLabel": "Statistics chart"
   },
   "notices": {
-    "title": "Notices",
     "loading": "Loading notices...",
     "empty": "No notices at this time.",
     "noticeFromBoinc": "Notice from BOINC"
@@ -455,9 +453,6 @@
     "cpu": "CPU",
     "gpu": "GPU",
     "net": "Net",
-    "always": "Always",
-    "auto": "Auto",
-    "suspend": "Suspend",
     "alwaysTooltip": "Always — run regardless of computing preferences",
     "autoTooltip": "Auto — follow computing preferences",
     "suspendTooltip": "Suspend",
@@ -674,7 +669,6 @@
     "discardTitle": "Discard changes?",
     "discardBody": "You have unsaved changes. Discard them?",
     "discardConfirm": "Discard",
-    "discardCancel": "Keep editing",
     "picker": {
       "title": "Running processes",
       "search": "Filter processes...",

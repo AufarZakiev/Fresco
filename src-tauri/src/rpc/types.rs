@@ -66,6 +66,8 @@ pub struct Project {
     pub min_rpc_time: f64,
     pub download_backoff: f64,
     pub upload_backoff: f64,
+    pub sched_rpc_pending: i32,
+    pub scheduler_rpc_in_progress: bool,
     pub sched_priority: f64,
     pub duration_correction_factor: f64,
     pub last_rpc_time: f64,

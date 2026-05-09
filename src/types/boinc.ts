@@ -61,6 +61,8 @@ export interface Project {
   min_rpc_time: number;
   download_backoff: number;
   upload_backoff: number;
+  sched_rpc_pending: number;
+  scheduler_rpc_in_progress: boolean;
   sched_priority: number;
   duration_correction_factor: number;
   last_rpc_time: number;
@@ -208,6 +210,17 @@ export const SCHEDULER_STATE = {
   UNINITIALIZED: 0,
   PREEMPTED: 1,
   SCHEDULED: 2,
+} as const;
+
+/** BOINC scheduler RPC reason codes (from common_defs.h). */
+export const RPC_REASON = {
+  USER_REQ: 1,
+  RESULTS_DUE: 2,
+  NEED_WORK: 3,
+  TRICKLE_UP: 4,
+  ACCT_MGR_REQ: 5,
+  INIT: 6,
+  PROJECT_REQ: 7,
 } as const;
 
 /** Suspend reason bitmask values (from common_defs.h). */

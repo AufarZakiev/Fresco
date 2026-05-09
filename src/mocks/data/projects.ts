@@ -24,6 +24,8 @@ export const mockProjects: Project[] = [
     min_rpc_time: NOW + 600,
     download_backoff: 0,
     upload_backoff: 0,
+    sched_rpc_pending: 3,
+    scheduler_rpc_in_progress: false,
     sched_priority: -1.04,
     hostid: 9876543,
     gui_urls: [
@@ -62,6 +64,8 @@ export const mockProjects: Project[] = [
     min_rpc_time: NOW + 1200,
     download_backoff: 0,
     upload_backoff: 0,
+    sched_rpc_pending: 0,
+    scheduler_rpc_in_progress: true,
     sched_priority: -2.15,
     hostid: 1234567,
     gui_urls: [
@@ -95,6 +99,8 @@ export const mockProjects: Project[] = [
     min_rpc_time: NOW - DAY,
     download_backoff: 0,
     upload_backoff: 0,
+    sched_rpc_pending: 0,
+    scheduler_rpc_in_progress: false,
     sched_priority: 0,
     hostid: 5555555,
     gui_urls: [],

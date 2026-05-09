@@ -2,7 +2,7 @@
 import { computed, h, inject, nextTick, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useProjectsStore } from "../stores/projects";
-import type { Project } from "../types/boinc";
+import { RPC_REASON, type Project } from "../types/boinc";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import DataTable from "../components/DataTable.vue";
 import type { ColumnMeta } from "../components/DataTable.vue";
@@ -13,7 +13,7 @@ import type { ContextMenuItem } from "../components/ContextMenu.vue";
 import ItemPropertiesDialog from "../components/ItemPropertiesDialog.vue";
 import ColumnCustomizationDialog from "../components/ColumnCustomizationDialog.vue";
 import Tooltip from "../components/Tooltip.vue";
-import { onKeyStroke } from "@vueuse/core";
+import { onKeyStroke, useNow } from "@vueuse/core";
 import { useTableState } from "../composables/useTableState";
 import { useToastStore } from "../stores/toast";
 import type { ColumnDef } from "@tanstack/vue-table";
@@ -27,6 +27,7 @@ const { t } = useI18n();
 const store = useProjectsStore();
 const toast = useToastStore();
 const actionBusy = ref(false);
+const now = useNow({ interval: 1000 });
 const openAttachWizard = inject<() => void>("openAttachWizard", () => {});
 const openAcctMgr = inject<() => void>("openAcctMgr", () => {});
 
@@ -79,18 +80,96 @@ function resourceSharePercent(share: number): number {
   return (share / total) * 100;
 }
 
-function projectStatus(project: Project): string {
-  if (project.suspended_via_gui) return t("projects.status.suspended");
-  if (project.dont_request_more_work) return t("projects.status.noNewTasks");
-  return t("projects.status.active");
+type StatusVariant = "default" | "success" | "warning" | "danger" | "info";
+
+interface ProjectStatusItem {
+  text: string;
+  variant: StatusVariant;
 }
 
-function statusVariant(
-  project: Project,
-): "default" | "success" | "warning" | "danger" | "info" {
-  if (project.suspended_via_gui) return "warning";
-  if (project.dont_request_more_work) return "info";
-  return "success";
+function formatDuration(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.ceil(seconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const secs = safeSeconds % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function rpcReasonText(reason: number): string {
+  const labels: Record<number, string> = {
+    [RPC_REASON.USER_REQ]: t("projects.rpcReason.userReq"),
+    [RPC_REASON.RESULTS_DUE]: t("projects.rpcReason.resultsDue"),
+    [RPC_REASON.NEED_WORK]: t("projects.rpcReason.needWork"),
+    [RPC_REASON.TRICKLE_UP]: t("projects.rpcReason.trickleUp"),
+    [RPC_REASON.ACCT_MGR_REQ]: t("projects.rpcReason.acctMgrReq"),
+    [RPC_REASON.INIT]: t("projects.rpcReason.init"),
+    [RPC_REASON.PROJECT_REQ]: t("projects.rpcReason.projectReq"),
+  };
+  return labels[reason] ?? t("projects.rpcReason.unknown", { code: reason });
+}
+
+function rpcDelaySeconds(project: Project): number {
+  if (!project.min_rpc_time) return 0;
+  return Math.max(
+    0,
+    Math.ceil(project.min_rpc_time - now.value.getTime() / 1000),
+  );
+}
+
+function projectStatusItems(project: Project): ProjectStatusItem[] {
+  const items: ProjectStatusItem[] = [];
+
+  if (project.suspended_via_gui) {
+    items.push({
+      text: t("projects.status.suspended"),
+      variant: "warning",
+    });
+  }
+
+  if (project.dont_request_more_work) {
+    items.push({
+      text: t("projects.status.noNewTasks"),
+      variant: "info",
+    });
+  }
+
+  if (project.scheduler_rpc_in_progress) {
+    items.push({
+      text: project.sched_rpc_pending
+        ? t("projects.status.schedulerRequestInProgressWithReason", {
+            reason: rpcReasonText(project.sched_rpc_pending),
+          })
+        : t("projects.status.schedulerRequestInProgress"),
+      variant: "info",
+    });
+  } else if (project.sched_rpc_pending) {
+    items.push({
+      text: t("projects.status.schedulerRequestPending", {
+        reason: rpcReasonText(project.sched_rpc_pending),
+      }),
+      variant: "warning",
+    });
+  }
+
+  const delaySeconds = rpcDelaySeconds(project);
+  if (delaySeconds > 0) {
+    items.push({
+      text: t("projects.status.communicationDeferred", {
+        duration: formatDuration(delaySeconds),
+      }),
+      variant: "warning",
+    });
+  }
+
+  return items.length > 0
+    ? items
+    : [{ text: t("projects.status.active"), variant: "success" }];
+}
+
+function projectStatus(project: Project): string {
+  return projectStatusItems(project)
+    .map((item) => item.text)
+    .join(" ");
 }
 
 const columns: ColumnDef<Project, unknown>[] = [
@@ -171,10 +250,13 @@ const columns: ColumnDef<Project, unknown>[] = [
     header: () => t("projects.col.status"),
     cell: (info) =>
       h(
-        StatusBadge,
-        { variant: statusVariant(info.row.original) },
-        () => info.getValue() as string,
+        "div",
+        { class: "status-stack" },
+        projectStatusItems(info.row.original).map((item) =>
+          h(StatusBadge, { variant: item.variant }, () => item.text),
+        ),
       ),
+    meta: { class: "col-status" } satisfies ColumnMeta,
   },
   {
     id: "source",
@@ -189,10 +271,7 @@ const columns: ColumnDef<Project, unknown>[] = [
       return h(
         "span",
         {
-          class: [
-            "source-badge",
-            isManager ? "source-manager" : "source-user",
-          ],
+          class: ["source-badge", isManager ? "source-manager" : "source-user"],
           title: info.getValue() as string,
         },
         h("span", { class: "source-label" }, info.getValue() as string),
@@ -263,8 +342,12 @@ function handleRowClick(project: Project, index: number, event: MouseEvent) {
     }
     selectedUrls.value = next;
   } else {
-    const isOnlySelected = selectedUrls.value.size === 1 && selectedUrls.value.has(project.master_url);
-    selectedUrls.value = isOnlySelected ? new Set() : new Set([project.master_url]);
+    const isOnlySelected =
+      selectedUrls.value.size === 1 &&
+      selectedUrls.value.has(project.master_url);
+    selectedUrls.value = isOnlySelected
+      ? new Set()
+      : new Set([project.master_url]);
   }
   lastClickedIndex.value = index;
 }
@@ -350,8 +433,7 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
   const filtered = items.filter((item) => !item.disabled);
   return filtered.filter(
     (item, i, arr) =>
-      !item.divider ||
-      (i > 0 && i < arr.length - 1 && !arr[i - 1].divider),
+      !item.divider || (i > 0 && i < arr.length - 1 && !arr[i - 1].divider),
   );
 });
 
@@ -555,7 +637,11 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
       </div>
 
       <Transition name="drawer">
-        <div v-if="hasSelection && !selectedViaContext" class="drawer-panel" @click.stop>
+        <div
+          v-if="hasSelection && !selectedViaContext"
+          class="drawer-panel"
+          @click.stop
+        >
           <div class="drawer-header">
             <h3>
               {{
@@ -567,8 +653,25 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 
           <div class="drawer-section">
             <Tooltip :text="$t('projects.tooltip.update')">
-              <button class="btn icon-btn" :disabled="actionBusy" @click="handleUpdate">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
+              <button
+                class="btn icon-btn"
+                :disabled="actionBusy"
+                @click="handleUpdate"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  width="14"
+                  height="14"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"
+                  />
+                </svg>
                 {{ $t("projects.drawer.update") }}
               </button>
             </Tooltip>
@@ -584,8 +687,36 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
                 :disabled="actionBusy"
                 @click="handleSuspendResume"
               >
-                <svg v-if="singleSelected?.suspended_via_gui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" /></svg>
-                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
+                <svg
+                  v-if="singleSelected?.suspended_via_gui"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  width="14"
+                  height="14"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"
+                  />
+                </svg>
+                <svg
+                  v-else
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  width="14"
+                  height="14"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15.75 5.25v13.5m-7.5-13.5v13.5"
+                  />
+                </svg>
                 {{
                   singleSelected?.suspended_via_gui
                     ? $t("projects.drawer.resume")
@@ -605,8 +736,36 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
                 :disabled="actionBusy"
                 @click="handleNoNewAllowTasks"
               >
-                <svg v-if="singleSelected?.dont_request_more_work" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                <svg
+                  v-if="singleSelected?.dont_request_more_work"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  width="14"
+                  height="14"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                  />
+                </svg>
+                <svg
+                  v-else
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  width="14"
+                  height="14"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"
+                  />
+                </svg>
                 {{
                   singleSelected?.dont_request_more_work
                     ? $t("projects.drawer.allowNewTasks")
@@ -619,7 +778,20 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
               :text="$t('projects.tooltip.properties')"
             >
               <button class="btn icon-btn" @click="openProperties">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  width="14"
+                  height="14"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"
+                  />
+                </svg>
                 {{ $t("projects.drawer.properties") }}
               </button>
             </Tooltip>
@@ -628,13 +800,39 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
           <div class="drawer-section drawer-danger">
             <Tooltip :text="$t('projects.tooltip.reset')">
               <button class="btn btn-danger icon-btn" @click="handleReset">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  width="14"
+                  height="14"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"
+                  />
+                </svg>
                 {{ $t("projects.drawer.reset") }}
               </button>
             </Tooltip>
             <Tooltip :text="$t('projects.tooltip.detach')">
               <button class="btn btn-danger icon-btn" @click="handleDetach">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  width="14"
+                  height="14"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                  />
+                </svg>
                 {{ $t("projects.drawer.detach") }}
               </button>
             </Tooltip>
@@ -696,15 +894,37 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
     <div class="fab-group">
       <Tooltip :text="$t('projects.customizeColumns')">
         <button class="fab fab-small" @click.stop="showColumnDialog = true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            width="18"
+            height="18"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
+            />
           </svg>
         </button>
       </Tooltip>
       <Tooltip :text="$t('sidebar.accountManager')">
         <button class="fab fab-small" @click.stop="openAcctMgr">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            width="18"
+            height="18"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+            />
           </svg>
         </button>
       </Tooltip>
@@ -754,6 +974,17 @@ onKeyStroke(["Delete", "Backspace"], (e) => {
 
 .col-source {
   white-space: nowrap;
+}
+
+.col-status {
+  min-width: 190px;
+}
+
+:deep(.status-stack) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
 }
 
 .source-badge {

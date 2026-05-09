@@ -9,6 +9,29 @@
 
 ## Записи
 
+## [2026-05-09] - Issue #105: project scheduler RPC status
+
+### Что сделано
+- Реализовано отображение scheduler RPC состояния в существующей колонке `Status` на странице Projects:
+  - `Scheduler request in progress` по полю `scheduler_rpc_in_progress` с приоритетом над pending-состоянием.
+  - `Scheduler request pending: <reason>` по `sched_rpc_pending`.
+  - `Communication deferred HH:MM:SS` по `min_rpc_time` с секундным countdown.
+- Расширены Rust/TypeScript модели `Project` и парсер `get_project_status`.
+- Добавлены i18n-ключи для статусов и причин RPC во все locale-файлы.
+- Убран накопившийся шум `i18n:check`: валидатор теперь учитывает динамические ключи, отсутствующие переводы заполнены, неиспользуемые ключи удалены.
+- Обновлены моки и тесты.
+
+### Зачем
+Issue #105 просил показывать пользователю реальный статус pull/scheduler request и задержку до следующей возможной связи с сервером проекта без отдельной колонки.
+
+### Обновлено
+- [x] Тесты: frontend unit 619/619, Rust unit 72/72, production build ok, `i18n:check` 0/0/0.
+- [x] `agent_docs/development-history.md`
+- [ ] `agent_docs/adr.md` — не требуется, изменение следует существующей BOINC RPC-модели.
+
+### Следующие шаги
+- Проверить визуально страницу Projects в dev server.
+
 ## [2026-04-19] - PR: BOINC first-run onboarding (takeover + install)
 
 ### Что сделано

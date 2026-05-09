@@ -1,7 +1,6 @@
 {
   "app": {
     "loading": {
-      "logo": "Fresco",
       "connectingLocal": "Verbindung zum lokalen BOINC wird hergestellt...",
       "startingBoinc": "BOINC wird gestartet, dies kann etwas dauern...",
       "boincStarted": "BOINC gestartet, Verbindung wird hergestellt...",
@@ -21,14 +20,12 @@
     "hostInfo": "Rechnerinfo",
     "transfers": "Übertragung",
     "eventLog": "Ereignisprotokoll",
-    "selectComputer": "Rechner auswählen",
     "preferences": "Einstellungen",
     "toggleSidebar": "Seitenleiste ein-/ausblenden",
     "addProject": "Projekt hinzufügen",
     "accountManager": "Kontomanager"
   },
   "tasks": {
-    "title": "Aufgaben",
     "activeOnly": "Nur aktive Aufgaben",
     "customizeColumns": "Spalten ein-/ausblenden oder umsortieren",
     "suspend": "Anhalten",
@@ -37,7 +34,6 @@
     "abort": "Abbrechen",
     "properties": "Eigenschaften",
     "nTasks": "{count} Aufgaben ausgewählt",
-    "columns": "Spalten",
     "tooltip": {
       "suspend": "Ausgewählte Aufgaben vorübergehend anhalten",
       "resume": "Ausgewählte Aufgaben fortsetzen",
@@ -88,10 +84,6 @@
     }
   },
   "projects": {
-    "title": "Projekte",
-    "addProject": "Projekt hinzufügen",
-    "accountManager": "Kontomanager",
-    "columns": "Spalten",
     "customizeColumns": "Spalten ein-/ausblenden oder umsortieren",
     "loading": "Projekte werden geladen...",
     "empty": "Keine Projekte angehängt.",
@@ -112,7 +104,21 @@
     "status": {
       "active": "aktiv",
       "suspended": "angehalten",
-      "noNewTasks": "Keine neuen Aufgaben"
+      "noNewTasks": "Keine neuen Aufgaben",
+      "schedulerRequestInProgress": "Scheduler-Anfrage läuft",
+      "schedulerRequestInProgressWithReason": "Scheduler-Anfrage läuft: {reason}",
+      "schedulerRequestPending": "Scheduler-Anfrage ausstehend: {reason}",
+      "communicationDeferred": "Kommunikation zurückgestellt {duration}"
+    },
+    "rpcReason": {
+      "userReq": "Vom Benutzer angefordert",
+      "resultsDue": "Zum Melden abgeschlossener Aufgaben",
+      "needWork": "Zum Abrufen von Arbeit",
+      "trickleUp": "Zum Senden einer Trickle-up-Nachricht",
+      "acctMgrReq": "Vom Kontomanager angefordert",
+      "init": "Projektinitialisierung",
+      "projectReq": "Vom Projekt angefordert",
+      "unknown": "Unbekannter Grund ({code})"
     },
     "drawer": {
       "update": "Aktualisieren",
@@ -160,11 +166,9 @@
     "nProjects": "{count} Projekt | {count} Projekte"
   },
   "transfers": {
-    "title": "Übertragung",
     "retry": "Wiederholen",
     "abort": "Abbrechen",
     "nTransfers": "{count} Übertragungen ausgewählt",
-    "columns": "Spalten",
     "tooltip": {
       "retry": "Ausgewählte Übertragungen wiederholen",
       "abort": "Ausgewählte Übertragungen abbrechen"
@@ -196,8 +200,6 @@
     }
   },
   "messages": {
-    "title": "Ereignisprotokoll",
-    "loading": "Nachrichten werden geladen…",
     "logFlags": "Protokoll-Flags...",
     "selectAll": "Alle auswählen",
     "copySelected": "Auswahl kopieren ({count})",
@@ -221,7 +223,6 @@
     }
   },
   "disk": {
-    "title": "Nutzung der Festplatte",
     "loading": "Festplattennutzung wird geladen...",
     "empty": "Keine Daten zur Festplattennutzung verfügbar.",
     "boincByProject": "BOINC-Nutzung nach Projekt",
@@ -233,7 +234,6 @@
     "chartLabel": "Diagramm zur Festplattennutzung"
   },
   "host": {
-    "title": "Rechnerinformationen",
     "loading": "Rechnerinformationen werden geladen...",
     "system": "System",
     "hostname": "Hostname",
@@ -276,7 +276,6 @@
     "docker": "Docker"
   },
   "statistics": {
-    "title": "Statistiken",
     "loading": "Statistiken werden geladen...",
     "empty": "Noch keine Statistiken verfügbar. Projekt hinzufügen und berechnen, um Daten zu sehen.",
     "emptySeparate": "Keine Projektstatistiken vorhanden.",
@@ -290,7 +289,6 @@
     "chartLabel": "Statistikdiagramm"
   },
   "notices": {
-    "title": "Nachrichten",
     "loading": "Nachrichten werden geladen...",
     "empty": "Derzeit keine Nachrichten.",
     "noticeFromBoinc": "Nachricht von BOINC"
@@ -358,7 +356,9 @@
     },
     "schedule": {
       "desc": "Berechnungs- und Netzwerkzeiten für bestimmte Tage überschreiben. Nicht markierte Tage verwenden die oben festgelegten globalen Zeiten.",
-      "allDay": "Ganztägig"
+      "allDay": "Ganztägig",
+      "overall": "Default daily schedule",
+      "perDay": "Per-day overrides"
     },
     "manager": {
       "appearance": "Erscheinungsbild",
@@ -453,12 +453,16 @@
     "cpu": "Prozessor",
     "gpu": "GPU",
     "net": "Netz",
-    "always": "ständig",
-    "auto": "Auto",
-    "suspend": "Anhalten",
     "cpuModeLabel": "CPU-Modus",
     "gpuModeLabel": "GPU-Modus",
-    "netModeLabel": "Netzwerkmodus"
+    "netModeLabel": "Netzwerkmodus",
+    "alwaysTooltip": "Always — run regardless of computing preferences",
+    "autoTooltip": "Auto — follow computing preferences",
+    "suspendTooltip": "Suspend",
+    "all": "All",
+    "allModeLabel": "All resources mode",
+    "expand": "Show individual controls",
+    "collapse": "Hide individual controls"
   },
   "statusBar": {
     "connected": "Verbunden",
@@ -656,7 +660,31 @@
     "add": "Hinzufügen...",
     "cancel": "Abbrechen",
     "saving": "Wird gespeichert...",
-    "save": "Speichern"
+    "save": "Speichern",
+    "intro": "BOINC will pause work whenever any of these apps is running. Use \"All tasks\" to pause everything, or \"GPU tasks only\" when you just want GPUs idle (e.g. while gaming).",
+    "columnApp": "Application",
+    "columnScope": "Pauses",
+    "scopeAll": "All tasks",
+    "scopeGpu": "GPU tasks only",
+    "empty": "No apps yet. Add one below or pick a running process.",
+    "addApp": "Add app",
+    "pickProcess": "Pick running process...",
+    "remove": "Remove",
+    "duplicate": "\"{name}\" is already in the list.",
+    "discardTitle": "Discard changes?",
+    "discardBody": "You have unsaved changes. Discard them?",
+    "discardConfirm": "Discard",
+    "picker": {
+      "title": "Running processes",
+      "search": "Filter processes...",
+      "loading": "Loading processes...",
+      "empty": "No processes found.",
+      "loadError": "Failed to load processes.",
+      "hideBoinc": "Hide BOINC processes",
+      "count": "{n} selected",
+      "add": "Add selected",
+      "cancel": "Cancel"
+    }
   },
   "managerOptions": {
     "title": "Manager-Optionen",
@@ -711,5 +739,37 @@
     "newNoticesBody": "{count} neuer Hinweis | {count} neue Hinweise",
     "connectionLostTitle": "Verbindung verloren",
     "connectionLostBody": "Verbindung zum BOINC-Client verloren."
+  },
+  "onboarding": {
+    "takeover": {
+      "title": "Use Fresco as your BOINC manager?",
+      "lead": "We detected the official BOINC Manager set to start with your computer.",
+      "explanation": "Fresco and the BOINC Manager share the same computing engine, so only one is needed. We can turn off the Manager's autostart — your projects and progress stay untouched.",
+      "macLoginItemNote": "On this macOS version, login items must be turned off by hand. We'll open the right settings page for you.",
+      "useFrescoOnly": "Use Fresco only",
+      "keepBoth": "Keep both",
+      "successToast": "BOINC Manager autostart disabled.",
+      "manualToast": "Opened System Settings — turn off \"BOINCManager\" under Login Items.",
+      "linuxManualToast": "System-wide autostart at {path} — remove it as root to disable.",
+      "windowsHklmManualToast": "System-wide Run key \"{valueName}\" in HKLM — remove it from an elevated session to disable.",
+      "errorToast": "Could not disable BOINC Manager autostart."
+    },
+    "install": {
+      "title": "BOINC isn't installed yet",
+      "lead": "Fresco needs the BOINC computing engine to run tasks. We can set it up for you.",
+      "brewAction": "Install via Homebrew",
+      "brewInProgress": "Installing BOINC…",
+      "brewError": "Homebrew install failed. Please try again or install BOINC manually.",
+      "macosNoBrewLead": "Homebrew isn't available on this Mac. Download BOINC from the official site instead.",
+      "linuxLead": "Run this in your terminal to install the BOINC client:",
+      "linuxNoPmFallback": "No supported package manager was found. Download BOINC from the official site.",
+      "linuxCopyButton": "Copy",
+      "copied": "Command copied to clipboard.",
+      "windowsLead": "Download BOINC from the official site, then return here. Fresco will auto-connect once the client is running.",
+      "windowsManagerNote": "In the installer, uncheck \"BOINC Manager\" — Fresco replaces it.",
+      "downloadButton": "Download BOINC",
+      "showMore": "Other package managers",
+      "skip": "Skip"
+    }
   }
 }

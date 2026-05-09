@@ -31,6 +31,8 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     min_rpc_time: 0,
     download_backoff: 0,
     upload_backoff: 0,
+    sched_rpc_pending: 0,
+    scheduler_rpc_in_progress: false,
     sched_priority: 0,
     duration_correction_factor: 0,
     last_rpc_time: 0,

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import ProjectsView from "./ProjectsView.vue";
@@ -29,6 +29,8 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     min_rpc_time: 0,
     download_backoff: 0,
     upload_backoff: 0,
+    sched_rpc_pending: 0,
+    scheduler_rpc_in_progress: false,
     sched_priority: 0,
     duration_correction_factor: 1,
     last_rpc_time: 0,
@@ -43,6 +45,10 @@ function makeProject(overrides: Partial<Project> = {}): Project {
 describe("ProjectsView", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("shows empty message when no projects", () => {
@@ -69,6 +75,28 @@ describe("ProjectsView", () => {
     expect(rows[0].text()).toContain("Suspended");
     expect(rows[1].text()).toContain("SETI@home");
     expect(rows[1].text()).toContain("Active");
+  });
+
+  it("renders in-progress scheduler request with reason and delay", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-09T12:00:00Z"));
+    const store = useProjectsStore();
+    store.projects = [
+      makeProject({
+        scheduler_rpc_in_progress: true,
+        sched_rpc_pending: 3,
+        min_rpc_time: Date.now() / 1000 + 125,
+      }),
+    ];
+
+    const wrapper = mount(ProjectsView);
+    const row = wrapper.find("tbody tr");
+
+    expect(row.text()).toContain(
+      "Scheduler request in progress: To fetch work",
+    );
+    expect(row.text()).not.toContain("Scheduler request pending");
+    expect(row.text()).toContain("Communication deferred 00:02:05");
   });
 
   it("shows action buttons when a project is selected", async () => {
@@ -440,7 +468,10 @@ describe("ProjectsView", () => {
     ];
 
     const wrapper = mount(ProjectsView);
-    const rowText = wrapper.findAll("tbody tr").map((r) => r.text()).join(" ");
+    const rowText = wrapper
+      .findAll("tbody tr")
+      .map((r) => r.text())
+      .join(" ");
     // 100 out of 400 total = 25.00%, 300 out of 400 = 75.00%
     expect(rowText).toContain("100 (25.00%)");
     expect(rowText).toContain("300 (75.00%)");

@@ -1,7 +1,6 @@
 {
   "app": {
     "loading": {
-      "logo": "Fresco",
       "connectingLocal": "ローカルの BOINC に接続中...",
       "startingBoinc": "BOINC を起動中です。しばらくお待ちください...",
       "boincStarted": "BOINC が起動しました。接続中...",
@@ -21,14 +20,12 @@
     "hostInfo": "ホスト情報",
     "transfers": "ファイル転送",
     "eventLog": "イベントログ",
-    "selectComputer": "コンピュータの選択",
     "preferences": "設定",
     "toggleSidebar": "サイドバーの切り替え",
     "addProject": "プロジェクトを追加",
     "accountManager": "アカウントマネージャ"
   },
   "tasks": {
-    "title": "タスク",
     "activeOnly": "実行中のタスクのみ",
     "customizeColumns": "列の表示・非表示・並び替え",
     "suspend": "一時停止",
@@ -37,7 +34,6 @@
     "abort": "中止",
     "properties": "プロパティ",
     "nTasks": "{count}件のタスクを選択中",
-    "columns": "列",
     "tooltip": {
       "suspend": "選択したタスクを一時停止",
       "resume": "選択したタスクを再開",
@@ -88,10 +84,6 @@
     }
   },
   "projects": {
-    "title": "プロジェクト",
-    "addProject": "プロジェクトを追加",
-    "accountManager": "アカウントマネージャ",
-    "columns": "列",
     "customizeColumns": "列の表示・非表示・並び替え",
     "loading": "プロジェクトを読み込み中...",
     "empty": "プロジェクトが追加されていません。",
@@ -112,7 +104,21 @@
     "status": {
       "active": "活動中",
       "suspended": "一時停止中",
-      "noNewTasks": "新規タスクの取得禁止"
+      "noNewTasks": "新規タスクの取得禁止",
+      "schedulerRequestInProgress": "スケジューラ要求を実行中",
+      "schedulerRequestInProgressWithReason": "スケジューラ要求を実行中: {reason}",
+      "schedulerRequestPending": "スケジューラ要求待機中: {reason}",
+      "communicationDeferred": "通信延期 {duration}"
+    },
+    "rpcReason": {
+      "userReq": "ユーザーによる要求",
+      "resultsDue": "完了タスクの報告",
+      "needWork": "作業の取得",
+      "trickleUp": "trickle-up メッセージの送信",
+      "acctMgrReq": "アカウントマネージャによる要求",
+      "init": "プロジェクト初期化",
+      "projectReq": "プロジェクトによる要求",
+      "unknown": "不明な理由 ({code})"
     },
     "drawer": {
       "update": "更新",
@@ -160,11 +166,9 @@
     "nProjects": "{count} 件のプロジェクト"
   },
   "transfers": {
-    "title": "ファイル転送",
     "retry": "再試行",
     "abort": "中止",
     "nTransfers": "{count}件の転送を選択中",
-    "columns": "列",
     "tooltip": {
       "retry": "選択した転送を再試行",
       "abort": "選択した転送を中止"
@@ -196,8 +200,6 @@
     }
   },
   "messages": {
-    "title": "イベントログ",
-    "loading": "メッセージを読み込み中…",
     "logFlags": "ログフラグ...",
     "selectAll": "すべて選択",
     "copySelected": "選択をコピー ({count})",
@@ -221,7 +223,6 @@
     }
   },
   "disk": {
-    "title": "ディスク領域",
     "loading": "ディスク使用状況を読み込み中...",
     "empty": "ディスク使用データがありません。",
     "boincByProject": "プロジェクト別 BOINC 使用量",
@@ -233,7 +234,6 @@
     "chartLabel": "ディスク使用量チャート"
   },
   "host": {
-    "title": "ホスト情報",
     "loading": "ホスト情報を読み込み中...",
     "system": "システム",
     "hostname": "ホスト名",
@@ -276,7 +276,6 @@
     "docker": "Docker"
   },
   "statistics": {
-    "title": "統計情報",
     "loading": "統計情報を読み込み中...",
     "empty": "統計データがまだありません。プロジェクトを追加して計算を開始すると表示されます。",
     "emptySeparate": "表示するプロジェクト統計がありません。",
@@ -290,7 +289,6 @@
     "chartLabel": "統計チャート"
   },
   "notices": {
-    "title": "お知らせ",
     "loading": "お知らせを読み込み中...",
     "empty": "現在お知らせはありません。",
     "noticeFromBoinc": "BOINCからのお知らせ"
@@ -358,7 +356,9 @@
     },
     "schedule": {
       "desc": "特定の曜日の計算時間とネットワーク時間を上書きします。チェックされていない曜日は、上で設定したグローバル時間が使用されます。",
-      "allDay": "終日"
+      "allDay": "終日",
+      "overall": "Default daily schedule",
+      "perDay": "Per-day overrides"
     },
     "manager": {
       "appearance": "外観",
@@ -453,12 +453,16 @@
     "cpu": "CPU",
     "gpu": "GPU",
     "net": "ネットワーク",
-    "always": "常時通知",
-    "auto": "自動",
-    "suspend": "一時停止",
     "cpuModeLabel": "CPUモード",
     "gpuModeLabel": "GPUモード",
-    "netModeLabel": "ネットワークモード"
+    "netModeLabel": "ネットワークモード",
+    "alwaysTooltip": "Always — run regardless of computing preferences",
+    "autoTooltip": "Auto — follow computing preferences",
+    "suspendTooltip": "Suspend",
+    "all": "All",
+    "allModeLabel": "All resources mode",
+    "expand": "Show individual controls",
+    "collapse": "Hide individual controls"
   },
   "statusBar": {
     "connected": "接続しました",
@@ -656,7 +660,31 @@
     "add": "追加...",
     "cancel": "キャンセル",
     "saving": "保存中...",
-    "save": "保存"
+    "save": "保存",
+    "intro": "BOINC will pause work whenever any of these apps is running. Use \"All tasks\" to pause everything, or \"GPU tasks only\" when you just want GPUs idle (e.g. while gaming).",
+    "columnApp": "Application",
+    "columnScope": "Pauses",
+    "scopeAll": "All tasks",
+    "scopeGpu": "GPU tasks only",
+    "empty": "No apps yet. Add one below or pick a running process.",
+    "addApp": "Add app",
+    "pickProcess": "Pick running process...",
+    "remove": "Remove",
+    "duplicate": "\"{name}\" is already in the list.",
+    "discardTitle": "Discard changes?",
+    "discardBody": "You have unsaved changes. Discard them?",
+    "discardConfirm": "Discard",
+    "picker": {
+      "title": "Running processes",
+      "search": "Filter processes...",
+      "loading": "Loading processes...",
+      "empty": "No processes found.",
+      "loadError": "Failed to load processes.",
+      "hideBoinc": "Hide BOINC processes",
+      "count": "{n} selected",
+      "add": "Add selected",
+      "cancel": "Cancel"
+    }
   },
   "managerOptions": {
     "title": "マネージャオプション",
@@ -711,5 +739,37 @@
     "newNoticesBody": "{count} 件の新しい通知",
     "connectionLostTitle": "接続が切断されました",
     "connectionLostBody": "BOINCクライアントとの接続が失われました。"
+  },
+  "onboarding": {
+    "takeover": {
+      "title": "Use Fresco as your BOINC manager?",
+      "lead": "We detected the official BOINC Manager set to start with your computer.",
+      "explanation": "Fresco and the BOINC Manager share the same computing engine, so only one is needed. We can turn off the Manager's autostart — your projects and progress stay untouched.",
+      "macLoginItemNote": "On this macOS version, login items must be turned off by hand. We'll open the right settings page for you.",
+      "useFrescoOnly": "Use Fresco only",
+      "keepBoth": "Keep both",
+      "successToast": "BOINC Manager autostart disabled.",
+      "manualToast": "Opened System Settings — turn off \"BOINCManager\" under Login Items.",
+      "linuxManualToast": "System-wide autostart at {path} — remove it as root to disable.",
+      "windowsHklmManualToast": "System-wide Run key \"{valueName}\" in HKLM — remove it from an elevated session to disable.",
+      "errorToast": "Could not disable BOINC Manager autostart."
+    },
+    "install": {
+      "title": "BOINC isn't installed yet",
+      "lead": "Fresco needs the BOINC computing engine to run tasks. We can set it up for you.",
+      "brewAction": "Install via Homebrew",
+      "brewInProgress": "Installing BOINC…",
+      "brewError": "Homebrew install failed. Please try again or install BOINC manually.",
+      "macosNoBrewLead": "Homebrew isn't available on this Mac. Download BOINC from the official site instead.",
+      "linuxLead": "Run this in your terminal to install the BOINC client:",
+      "linuxNoPmFallback": "No supported package manager was found. Download BOINC from the official site.",
+      "linuxCopyButton": "Copy",
+      "copied": "Command copied to clipboard.",
+      "windowsLead": "Download BOINC from the official site, then return here. Fresco will auto-connect once the client is running.",
+      "windowsManagerNote": "In the installer, uncheck \"BOINC Manager\" — Fresco replaces it.",
+      "downloadButton": "Download BOINC",
+      "showMore": "Other package managers",
+      "skip": "Skip"
+    }
   }
 }

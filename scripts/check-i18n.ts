@@ -20,7 +20,10 @@ const SRC_DIR = join(ROOT, "src");
 
 // --- Helpers ---
 
-function flatten(obj: Record<string, unknown>, prefix = ""): Map<string, string> {
+function flatten(
+  obj: Record<string, unknown>,
+  prefix = "",
+): Map<string, string> {
   const result = new Map<string, string>();
   for (const [key, value] of Object.entries(obj)) {
     const fullKey = prefix ? `${prefix}.${key}` : key;
@@ -39,7 +42,11 @@ function collectSourceFiles(dir: string): string[] {
   const files: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const fullPath = join(dir, entry.name);
-    if (entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "node_modules") {
+    if (
+      entry.isDirectory() &&
+      !entry.name.startsWith(".") &&
+      entry.name !== "node_modules"
+    ) {
       files.push(...collectSourceFiles(fullPath));
     } else if (
       entry.isFile() &&
@@ -58,9 +65,30 @@ function extractI18nKeys(filePath: string): Set<string> {
   const keys = new Set<string>();
   // Match $t('key.path') and t('key.path') — require at least one dot
   // to avoid false positives from import(), emit(), etc.
-  const regex = /\$?t\(\s*['"]([a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z][a-zA-Z0-9]*)+)['"]/g;
+  const regex =
+    /\$?t\(\s*['"]([a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z][a-zA-Z0-9]*)+)['"]/g;
   let match;
   while ((match = regex.exec(content)) !== null) {
+    keys.add(match[1]);
+  }
+
+  // Match dynamic call bodies such as
+  // `$t(expanded ? 'activity.collapse' : 'activity.expand')`.
+  const callRegex = /\$?t\(([^)]*)\)/g;
+  const keyLiteralRegex =
+    /['"]([a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z][a-zA-Z0-9]*)+)['"]/g;
+  while ((match = callRegex.exec(content)) !== null) {
+    let literalMatch;
+    while ((literalMatch = keyLiteralRegex.exec(match[1])) !== null) {
+      keys.add(literalMatch[1]);
+    }
+  }
+
+  // Match key strings passed indirectly via local config objects, e.g.
+  // `{ labelKey: "activity.cpu" }` then `$t(c.labelKey)` in the template.
+  const keyPropRegex =
+    /\b(?:ariaKey|labelKey|tooltipKey)\s*:\s*["']([a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z][a-zA-Z0-9]*)+)["']/g;
+  while ((match = keyPropRegex.exec(content)) !== null) {
     keys.add(match[1]);
   }
   return keys;
@@ -79,6 +107,15 @@ for (const file of sourceFiles) {
   }
 }
 
+// Prefixes intentionally used through template-literal keys such as
+// `$t(`prefs.tabs.${name}`)`.
+const dynamicKeyPrefixes = ["prefs.tabs."];
+for (const key of enKeys.keys()) {
+  if (dynamicKeyPrefixes.some((prefix) => key.startsWith(prefix))) {
+    usedKeys.add(key);
+  }
+}
+
 let errors = 0;
 let warnings = 0;
 
@@ -90,7 +127,9 @@ for (const key of usedKeys) {
   }
 }
 if (missingFromEn.length > 0) {
-  console.log(`\nERROR: ${missingFromEn.length} key(s) used in code but missing from en.json:`);
+  console.log(
+    `\nERROR: ${missingFromEn.length} key(s) used in code but missing from en.json:`,
+  );
   for (const key of missingFromEn.sort()) {
     console.log(`  ${key}`);
   }
@@ -105,7 +144,9 @@ for (const key of enKeys.keys()) {
   }
 }
 if (unusedKeys.length > 0) {
-  console.log(`\nWARN: ${unusedKeys.length} key(s) in en.json but not found in source:`);
+  console.log(
+    `\nWARN: ${unusedKeys.length} key(s) in en.json but not found in source:`,
+  );
   for (const key of unusedKeys.sort()) {
     console.log(`  ${key}`);
   }
@@ -124,13 +165,17 @@ for (const file of localeFiles.sort()) {
   const missing = [...enKeys.keys()].filter((k) => !localeKeys.has(k));
   if (missing.length > 0) {
     totalMissing += missing.length;
-    console.log(`\nINFO: ${file} missing ${missing.length}/${enKeys.size} keys`);
+    console.log(
+      `\nINFO: ${file} missing ${missing.length}/${enKeys.size} keys`,
+    );
   }
 }
 
 // Summary
 console.log("\n---");
-console.log(`Total: ${errors} error(s), ${warnings} warning(s), ${totalMissing} missing translation(s)`);
+console.log(
+  `Total: ${errors} error(s), ${warnings} warning(s), ${totalMissing} missing translation(s)`,
+);
 
 if (errors > 0) {
   process.exit(1);
