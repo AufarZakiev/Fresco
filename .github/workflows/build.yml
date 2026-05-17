@@ -107,7 +107,65 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Import Apple Developer ID certificate (release macOS)
+        if: startsWith(matrix.platform, 'macos') && github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD KEYCHAIN_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name secret is required for notarized macOS release builds."
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          if ! printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12" 2>/dev/null; then
+            printf '%s' "$APPLE_CERTIFICATE" | base64 -D > "$RUNNER_TEMP/certificate.p12"
+          fi
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import "$RUNNER_TEMP/certificate.p12" -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security find-identity -v -p codesigning build.keychain
+
+          cert_id=$(security find-identity -v -p codesigning build.keychain | awk -F'"' '/Developer ID Application/ { print $2; exit }')
+          if [ -z "$cert_id" ]; then
+            echo "::error::No Developer ID Application identity found in APPLE_CERTIFICATE."
+            exit 1
+          fi
+
+          echo "APPLE_SIGNING_IDENTITY=$cert_id" >> "$GITHUB_ENV"
+
+      - name: Build Tauri (release macOS)
+        if: startsWith(matrix.platform, 'macos') && github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          FRESCO_BUILD_TIME: ${{ needs.lint.outputs.build_time }}
+          # Override Tauri's default "skip DMG Finder prettifying on CI" — without this
+          # the macOS DMG ships without background image and custom icon positions.
+          TAURI_BUNDLER_DMG_IGNORE_CI: true
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          args: --target ${{ matrix.target }}
+
       - name: Build Tauri
+        if: ${{ !(startsWith(matrix.platform, 'macos') && github.event_name == 'push' && github.ref == 'refs/heads/master') }}
         uses: tauri-apps/tauri-action@v0
         env:
           FRESCO_BUILD_TIME: ${{ needs.lint.outputs.build_time }}
@@ -116,6 +174,135 @@ jobs:
           TAURI_BUNDLER_DMG_IGNORE_CI: ${{ startsWith(matrix.platform, 'macos') && 'true' || '' }}
         with:
           args: --target ${{ matrix.target }} ${{ startsWith(matrix.platform, 'windows') && '--no-bundle' || '' }}
+
+      - name: Notarize and staple macOS release DMG
+        if: startsWith(matrix.platform, 'macos') && github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+
+          dmg=$(find "src-tauri/target/${{ matrix.target }}/release/bundle/dmg" -maxdepth 1 -name '*.dmg' -type f -print -quit)
+          if [ -z "$dmg" ]; then
+            echo "::error::Built macOS DMG not found."
+            exit 1
+          fi
+
+          xcrun notarytool submit "$dmg" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple "$dmg"
+          xcrun stapler validate "$dmg"
+          spctl -a -vv --type open --context context:primary-signature "$dmg"
+
+      - name: Verify macOS DMG presentation metadata
+        if: startsWith(matrix.platform, 'macos')
+        run: |
+          set -euo pipefail
+
+          dmg=$(find "src-tauri/target/${{ matrix.target }}/release/bundle/dmg" -maxdepth 1 -name '*.dmg' -type f -print -quit)
+          if [ -z "$dmg" ]; then
+            echo "::error::Built macOS DMG not found."
+            exit 1
+          fi
+
+          mountpoint=$(mktemp -d)
+          attached=0
+          cleanup() {
+            if [ "$attached" -eq 1 ]; then
+              hdiutil detach "$mountpoint" >/dev/null 2>&1 || true
+            fi
+            rm -rf "$mountpoint"
+          }
+          trap cleanup EXIT
+
+          hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mountpoint" >/dev/null
+          attached=1
+
+          if [ ! -d "$mountpoint/Fresco.app" ]; then
+            echo "::error::Fresco.app not found inside $dmg."
+            exit 1
+          fi
+
+          if [ ! -L "$mountpoint/Applications" ]; then
+            echo "::error::Applications symlink not found inside $dmg."
+            exit 1
+          fi
+
+          if [ ! -f "$mountpoint/.background/dmg-background.png" ]; then
+            echo "::error::DMG background image not found; Finder presentation metadata likely was not generated."
+            exit 1
+          fi
+
+          if [ ! -f "$mountpoint/.DS_Store" ]; then
+            echo "::error::.DS_Store not found; Finder presentation metadata likely was not generated."
+            exit 1
+          fi
+
+          width=$(sips -g pixelWidth "$mountpoint/.background/dmg-background.png" | awk '/pixelWidth/ { print $2 }')
+          height=$(sips -g pixelHeight "$mountpoint/.background/dmg-background.png" | awk '/pixelHeight/ { print $2 }')
+          if [ "$width" != "660" ] || [ "$height" != "400" ]; then
+            echo "::error::Unexpected DMG background size: ${width}x${height}."
+            exit 1
+          fi
+
+      - name: Verify macOS release signature and notarization
+        if: startsWith(matrix.platform, 'macos') && github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          set -euo pipefail
+
+          dmg=$(find "src-tauri/target/${{ matrix.target }}/release/bundle/dmg" -maxdepth 1 -name '*.dmg' -type f -print -quit)
+          if [ -z "$dmg" ]; then
+            echo "::error::Built macOS DMG not found."
+            exit 1
+          fi
+
+          mountpoint=$(mktemp -d)
+          attached=0
+          cleanup() {
+            if [ "$attached" -eq 1 ]; then
+              hdiutil detach "$mountpoint" >/dev/null 2>&1 || true
+            fi
+            rm -rf "$mountpoint"
+          }
+          trap cleanup EXIT
+
+          hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mountpoint" >/dev/null
+          attached=1
+
+          app=$(find "$mountpoint" -maxdepth 1 -name '*.app' -type d -print -quit)
+          if [ -z "$app" ]; then
+            echo "::error::Fresco.app not found inside $dmg."
+            exit 1
+          fi
+
+          codesign --verify --deep --strict --verbose=4 "$app"
+          codesign -dv --verbose=4 "$app" 2> "$RUNNER_TEMP/codesign-details.txt"
+
+          if grep -q '^Signature=adhoc$' "$RUNNER_TEMP/codesign-details.txt"; then
+            echo "::error::macOS release app is ad-hoc signed, not Developer ID signed."
+            exit 1
+          fi
+
+          if ! grep -q '^Authority=Developer ID Application:' "$RUNNER_TEMP/codesign-details.txt"; then
+            echo "::error::macOS release app is missing a Developer ID Application authority."
+            exit 1
+          fi
+
+          team_identifier=$(awk -F= '/^TeamIdentifier=/ { print $2; exit }' "$RUNNER_TEMP/codesign-details.txt")
+          if [ -z "$team_identifier" ] || [ "$team_identifier" = "not set" ]; then
+            echo "::error::macOS release app has no TeamIdentifier."
+            exit 1
+          fi
+
+          spctl -a -vv --type execute "$app"
+          xcrun stapler validate "$app"
+          xcrun stapler validate "$dmg"
+          spctl -a -vv --type open --context context:primary-signature "$dmg"
 
       - name: Upload portable (Linux)
         if: startsWith(matrix.platform, 'ubuntu')
@@ -189,17 +376,10 @@ jobs:
           | Linux (x86_64) | `Fresco_Linux_x86_64.AppImage` |
           | Linux (ARM64) | `Fresco_Linux_ARM64.AppImage` |
 
-          ### First launch on macOS
+          ### macOS
 
-          Fresco is not yet signed with an Apple Developer ID, so macOS blocks the first launch.
-          Expected dialog: **"Fresco cannot be opened because the developer cannot be verified."**
-
-          1. Click **Done** in the warning.
-          2. Open **System Settings → Privacy & Security**.
-          3. Scroll to the bottom and click **Open Anyway** next to Fresco.
-          4. Confirm in the follow-up prompt.
-
-          macOS remembers the approval — subsequent launches open Fresco with a normal double-click.
+          Fresco macOS builds are Developer ID signed and notarized. If macOS still blocks launch,
+          download the current DMG again and report the exact dialog text.
 
           ---
           EOF
